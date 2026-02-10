@@ -98,64 +98,84 @@ def _osrm_table_request(
 def _fetch_osrm_matrix_chunked(nodes: list[OnsenNode]) -> np.ndarray:
     """Fetch full NxN distance matrix from OSRM, chunking to stay under limits.
 
-    The OSRM demo server limits table requests to ~100 coordinates.
-    For N > 100, we batch sources in chunks while using all N as destinations.
+    The OSRM demo server limits the total number of coordinates per request
+    to ~100. For N > 100, we use block decomposition: split nodes into groups
+    of ~50, then request each (src_group, dst_group) pair separately with
+    combined coordinates fitting within the limit.
     """
     n = len(nodes)
-    # OSRM uses lon,lat order
     all_coords = [(node.lon, node.lat) for node in nodes]
 
     if n <= OSRM_MAX_TABLE_SIZE:
-        # Single request for the full matrix
         logger.info(f"OSRM: requesting {n}x{n} matrix in single call...")
         data = _osrm_table_request(all_coords)
         distances = data["distances"]
-        return np.array(distances) / 1000.0  # meters → km
+        return np.array(distances) / 1000.0  # meters -> km
 
-    # Chunked: split sources into batches
-    chunk_size = OSRM_MAX_TABLE_SIZE - 1  # Leave room
+    # Split nodes into groups; each pair of groups must fit in 100 coords
+    group_size = OSRM_MAX_TABLE_SIZE // 2
+    groups: list[list[int]] = []
+    for start in range(0, n, group_size):
+        groups.append(list(range(start, min(start + group_size, n))))
+
+    num_blocks = len(groups) ** 2
     matrix = np.zeros((n, n))
-    num_chunks = math.ceil(n / chunk_size)
 
-    logger.info(f"OSRM: requesting {n}x{n} matrix in {num_chunks} chunks...")
+    logger.info(
+        f"OSRM: requesting {n}x{n} matrix in {num_blocks} blocks "
+        f"({len(groups)} groups of ~{group_size})..."
+    )
 
-    for chunk_idx in range(num_chunks):
-        start = chunk_idx * chunk_size
-        end = min(start + chunk_size, n)
-        source_indices = list(range(start, end))
+    block_num = 0
+    for src_group in groups:
+        for dst_group in groups:
+            block_num += 1
 
-        logger.info(
-            f"  Chunk {chunk_idx + 1}/{num_chunks}: "
-            f"sources [{start}..{end - 1}] × {n} destinations"
-        )
+            if src_group == dst_group:
+                # Diagonal block: same coords as source and destination
+                combined_coords = [all_coords[i] for i in src_group]
+                src_indices = list(range(len(src_group)))
+                dst_indices = list(range(len(src_group)))
+            else:
+                # Off-diagonal: source coords then destination coords
+                combined_coords = (
+                    [all_coords[i] for i in src_group]
+                    + [all_coords[i] for i in dst_group]
+                )
+                src_indices = list(range(len(src_group)))
+                dst_indices = list(range(
+                    len(src_group), len(src_group) + len(dst_group)
+                ))
 
-        data = _osrm_table_request(
-            all_coords,
-            sources=source_indices,
-            destinations=list(range(n)),
-        )
+            logger.debug(
+                f"  Block {block_num}/{num_blocks}: "
+                f"[{src_group[0]}..{src_group[-1]}] x "
+                f"[{dst_group[0]}..{dst_group[-1]}] "
+                f"({len(combined_coords)} coords)"
+            )
 
-        distances = data["distances"]  # (end-start) × n matrix
-        for i, src_idx in enumerate(source_indices):
-            for j in range(n):
-                val = distances[i][j]
-                if val is None:
-                    # OSRM returns null for unreachable pairs - use haversine fallback
-                    val = (
-                        haversine(
-                            nodes[src_idx].lat,
-                            nodes[src_idx].lon,
-                            nodes[j].lat,
-                            nodes[j].lon,
+            data = _osrm_table_request(
+                combined_coords,
+                sources=src_indices,
+                destinations=dst_indices,
+            )
+
+            distances = data["distances"]
+            for i, src_node_idx in enumerate(src_group):
+                for j, dst_node_idx in enumerate(dst_group):
+                    val = distances[i][j]
+                    if val is None:
+                        # Unreachable pair - haversine fallback
+                        val = (
+                            haversine(
+                                nodes[src_node_idx].lat, nodes[src_node_idx].lon,
+                                nodes[dst_node_idx].lat, nodes[dst_node_idx].lon,
+                            ) * 1.3 * 1000
                         )
-                        * 1.3
-                        * 1000
-                    )  # km → meters
-                matrix[src_idx][j] = val / 1000.0  # meters → km
+                    matrix[src_node_idx][dst_node_idx] = val / 1000.0
 
-        # Rate limit
-        if chunk_idx < num_chunks - 1:
-            time_mod.sleep(OSRM_REQUEST_DELAY)
+            if block_num < num_blocks:
+                time_mod.sleep(OSRM_REQUEST_DELAY)
 
     return matrix
 
