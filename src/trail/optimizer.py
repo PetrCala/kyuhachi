@@ -17,12 +17,7 @@ from ortools.constraint_solver import routing_enums_pb2, pywrapcp
 
 from src.trail.config import TrailConfig
 from src.trail.models import OnsenNode
-from src.trail.routing import (
-    build_distance_matrix,
-    haversine,
-    penalize_ferry_pairs,
-    scan_ferry_pairs,
-)
+from src.trail.routing import build_distance_matrix, haversine
 
 
 def optimize_route(
@@ -355,20 +350,6 @@ def run_optimization(
         road_factor=config.haversine_road_factor,
         refresh=config.refresh_distances,
     )
-
-    # Pre-optimisation ferry scan: identify all pairs whose
-    # OSRM route crosses a ferry and set them to a huge penalty
-    # so the solver never picks them.
-    if config.use_osrm:
-        ferry_pairs = scan_ferry_pairs(
-            nodes,
-            cache_path=config.osrm_ferry_cache_path,
-            refresh=config.refresh_distances,
-        )
-        if ferry_pairs:
-            dist_matrix = penalize_ferry_pairs(
-                dist_matrix, ferry_pairs,
-            )
 
     # Run optimizer
     route_indices = optimize_route(

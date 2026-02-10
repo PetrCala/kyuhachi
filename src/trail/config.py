@@ -44,19 +44,15 @@ class TrailConfig:
             PATHS.DATA_DIR, "cache", "osrm_geometries.json",
         )
     )
-    osrm_ferry_cache_path: str = field(
-        default_factory=lambda: os.path.join(
-            PATHS.DATA_DIR, "cache", "osrm_ferry_pairs.json",
-        )
-    )
     haversine_road_factor: float = 1.3
     refresh_distances: bool = False  # Force re-fetch from OSRM
 
-    # Data classification
+    # Data classification — excluded onsen IDs
     island_ids: frozenset[int] = frozenset({
-        176, 237, 130, 219,  # Actual islands
-        90,   # 大洞窟の宿 湯楽亭 — Amakusa (OSRM can't route)
-        116,  # 桜島シーサイドホテル — Sakurajima (OSRM can't route)
+        130, 176, 219, 237,          # Remote islands
+        90,                           # Amakusa (OSRM can't route)
+        116,                          # Sakurajima (OSRM can't route)
+        165, 24, 175, 228, 12, 11,   # Shimabara / Unzen area
     })
     beppu_pattern: str = "別府"
 
