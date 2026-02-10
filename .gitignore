@@ -21,3 +21,6 @@ build/
 
 # Generated output
 output/
+
+# OSRM distance cache
+data/cache/

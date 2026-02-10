@@ -11,16 +11,9 @@ from typing import Optional
 
 from loguru import logger
 
+from src.trail.config import TrailConfig
 from src.trail.models import OnsenNode, DayPlan, Segment, Trail
-from src.trail.data_prep import haversine, ROAD_FACTOR
-
-
-# Constants
-WALKING_SPEED_KMH = 4.5
-DEFAULT_START_TIME = time(7, 0)  # Start walking at 7 AM
-ONSEN_VISIT_MINUTES = 45  # Time spent at each onsen
-TARGET_DAILY_KM = 34.0
-MAX_DAILY_KM = 55.0
+from src.trail.routing import haversine
 
 
 def _time_add_hours(t: time, hours: float) -> time:
@@ -65,9 +58,14 @@ def _check_open(node: OnsenNode, dt: datetime) -> tuple[bool, Optional[str]]:
             if not is_open:
                 # Find next opening time
                 earliest = node.usage_time.earliest_opening()
-                if earliest and _time_to_minutes(earliest) > _time_to_minutes(dt.time()):
+                if earliest and _time_to_minutes(earliest) > _time_to_minutes(
+                    dt.time()
+                ):
                     wait = _time_to_minutes(earliest) - _time_to_minutes(dt.time())
-                    return False, f"Opens at {earliest.strftime('%H:%M')} (wait {wait}min)"
+                    return (
+                        False,
+                        f"Opens at {earliest.strftime('%H:%M')} (wait {wait}min)",
+                    )
                 return False, f"Not open at {dt.strftime('%H:%M')}"
 
     return True, None
@@ -75,10 +73,7 @@ def _check_open(node: OnsenNode, dt: datetime) -> tuple[bool, Optional[str]]:
 
 def schedule_trail(
     ordered_onsens: list[OnsenNode],
-    start_date: date,
-    end_date: date,
-    target_daily_km: float = TARGET_DAILY_KM,
-    max_daily_km: float = MAX_DAILY_KM,
+    config: TrailConfig,
     start_lat: Optional[float] = None,
     start_lon: Optional[float] = None,
 ) -> Trail:
@@ -86,10 +81,7 @@ def schedule_trail(
 
     Args:
         ordered_onsens: Onsens in visit order (from optimizer).
-        start_date: First day of hiking.
-        end_date: Last possible day.
-        target_daily_km: Preferred daily distance.
-        max_daily_km: Maximum daily distance.
+        config: Trail configuration.
         start_lat/lon: Starting coordinates (defaults to first onsen).
 
     Returns:
@@ -97,6 +89,14 @@ def schedule_trail(
     """
     if not ordered_onsens:
         return Trail()
+
+    target_daily_km = config.target_daily_km
+    max_daily_km = config.max_daily_km
+    walking_speed = config.walking_speed_kmh
+    visit_minutes = config.onsen_visit_minutes
+    road_factor = config.haversine_road_factor
+    start_date = config.start_date
+    end_date = config.end_date
 
     trail = Trail(
         ordered_onsens=ordered_onsens,
@@ -123,12 +123,15 @@ def schedule_trail(
 
         day = DayPlan(day_number=day_number, date=current_date)
         day_km = 0.0
-        current_time = DEFAULT_START_TIME
+        current_time = config.daily_start_time
 
         # Check if next onsen is beyond max_daily_km (multi-day gap)
         if onsen_idx < len(ordered_onsens):
             next_onsen = ordered_onsens[onsen_idx]
-            dist_to_next = haversine(current_lat, current_lon, next_onsen.lat, next_onsen.lon) * ROAD_FACTOR
+            dist_to_next = (
+                haversine(current_lat, current_lon, next_onsen.lat, next_onsen.lon)
+                * road_factor
+            )
 
             if dist_to_next > max_daily_km:
                 # Walk toward the next onsen (transit day, no onsen visits)
@@ -136,7 +139,7 @@ def schedule_trail(
                 fraction = walk_km / dist_to_next
                 new_lat = current_lat + (next_onsen.lat - current_lat) * fraction
                 new_lon = current_lon + (next_onsen.lon - current_lon) * fraction
-                walk_hours = walk_km / WALKING_SPEED_KMH
+                walk_hours = walk_km / walking_speed
 
                 segment = Segment(
                     from_name=current_name,
@@ -163,8 +166,11 @@ def schedule_trail(
             next_onsen = ordered_onsens[onsen_idx]
 
             # Calculate distance to next onsen
-            dist = haversine(current_lat, current_lon, next_onsen.lat, next_onsen.lon) * ROAD_FACTOR
-            walk_hours = dist / WALKING_SPEED_KMH
+            dist = (
+                haversine(current_lat, current_lon, next_onsen.lat, next_onsen.lon)
+                * road_factor
+            )
+            walk_hours = dist / walking_speed
 
             # Check if we can reach it today
             if day_km + dist > max_daily_km:
@@ -198,11 +204,17 @@ def schedule_trail(
             if warning:
                 day.warnings.append(f"#{next_onsen.id} {next_onsen.name}: {warning}")
 
-            if not is_open and next_onsen.usage_time and next_onsen.usage_time.earliest_opening():
+            if (
+                not is_open
+                and next_onsen.usage_time
+                and next_onsen.usage_time.earliest_opening()
+            ):
                 # Wait for opening
                 opens_at = next_onsen.usage_time.earliest_opening()
                 if _time_to_minutes(opens_at) > _time_to_minutes(arrival_time):
-                    wait_min = _time_to_minutes(opens_at) - _time_to_minutes(arrival_time)
+                    wait_min = _time_to_minutes(opens_at) - _time_to_minutes(
+                        arrival_time
+                    )
                     if wait_min <= 120:  # Wait up to 2 hours
                         arrival_time = opens_at
 
@@ -215,7 +227,7 @@ def schedule_trail(
             current_lat = next_onsen.lat
             current_lon = next_onsen.lon
             current_name = next_onsen.display_name
-            visit_hours = ONSEN_VISIT_MINUTES / 60
+            visit_hours = visit_minutes / 60
             current_time = _time_add_hours(arrival_time, visit_hours)
 
             onsen_idx += 1
@@ -224,10 +236,7 @@ def schedule_trail(
         if day.onsens_visited:
             last_onsen = day.onsens_visited[-1]
             # If the last onsen is a ryokan/hotel type, consider staying there
-            if any(
-                kw in (last_onsen.name or "")
-                for kw in ["旅館", "ホテル", "宿"]
-            ):
+            if any(kw in (last_onsen.name or "") for kw in ["旅館", "ホテル", "宿"]):
                 day.overnight_type = "onsen"
                 day.overnight_name = last_onsen.name
             else:
@@ -248,6 +257,8 @@ def schedule_trail(
 
     if onsen_idx < len(ordered_onsens):
         remaining = len(ordered_onsens) - onsen_idx
-        logger.warning(f"{remaining} onsens could not be scheduled within the date range!")
+        logger.warning(
+            f"{remaining} onsens could not be scheduled within the date range!"
+        )
 
     return trail

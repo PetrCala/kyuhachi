@@ -1,48 +1,28 @@
-"""Data preparation: load onsens, classify, build distance matrix."""
+"""Data preparation: load onsens from DB and classify them."""
 
 from __future__ import annotations
 
-import math
-
-import numpy as np
 from loguru import logger
 
 from src.config import get_database_config
 from src.db.conn import get_db
 from src.db.models import Onsen
+from src.trail.config import TrailConfig
 from src.trail.models import OnsenNode
 from src.trail.hours_adapter import parse_business_hours
+from src.trail.routing import haversine
 
 
-# Haversine distance in km
-def haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    R = 6371.0
-    dlat = math.radians(lat2 - lat1)
-    dlon = math.radians(lon2 - lon1)
-    a = (
-        math.sin(dlat / 2) ** 2
-        + math.cos(math.radians(lat1))
-        * math.cos(math.radians(lat2))
-        * math.sin(dlon / 2) ** 2
-    )
-    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-
-
-# Island onsen IDs (unreachable on foot)
-ISLAND_IDS = {176, 237, 130, 219}
-
-# Road factor: multiply haversine distance by this to approximate actual walking distance
-ROAD_FACTOR = 1.3
-
-# Beppu address pattern
-BEPPU_PATTERN = "別府"
-
-
-def load_onsens(db_url: str | None = None) -> list[OnsenNode]:
+def load_onsens(
+    db_url: str | None = None, config: TrailConfig | None = None
+) -> list[OnsenNode]:
     """Load all onsens from the database and classify them."""
+    if config is None:
+        config = TrailConfig()
+
     if db_url is None:
-        config = get_database_config()
-        db_url = config.url
+        db_config = get_database_config()
+        db_url = db_config.url
 
     nodes: list[OnsenNode] = []
 
@@ -66,11 +46,11 @@ def load_onsens(db_url: str | None = None) -> list[OnsenNode]:
             )
 
             # Classify mandatory (Beppu)
-            if BEPPU_PATTERN in (o.address or ""):
+            if config.beppu_pattern in (o.address or ""):
                 node.is_mandatory = True
 
             # Classify excluded (islands)
-            if o.id in ISLAND_IDS:
+            if o.id in config.island_ids:
                 node.is_excluded = True
                 node.exclude_reason = "island (unreachable on foot)"
 
@@ -103,22 +83,6 @@ def get_eligible(nodes: list[OnsenNode]) -> list[OnsenNode]:
 def get_mandatory(nodes: list[OnsenNode]) -> list[OnsenNode]:
     """Return mandatory (Beppu) onsens."""
     return [n for n in nodes if n.is_mandatory]
-
-
-def build_distance_matrix(
-    nodes: list[OnsenNode], road_factor: float = ROAD_FACTOR
-) -> np.ndarray:
-    """Build a symmetric distance matrix (km) for a list of onsen nodes.
-
-    Uses haversine distance multiplied by road_factor.
-    """
-    n = len(nodes)
-    matrix = np.zeros((n, n))
-    for i in range(n):
-        for j in range(i + 1, n):
-            d = haversine(nodes[i].lat, nodes[i].lon, nodes[j].lat, nodes[j].lon)
-            matrix[i][j] = matrix[j][i] = d * road_factor
-    return matrix
 
 
 def find_beppu_centroid(nodes: list[OnsenNode]) -> tuple[float, float]:
@@ -164,6 +128,7 @@ def print_summary(nodes: list[OnsenNode]) -> None:
 
     # Prefecture breakdown
     from collections import Counter
+
     pref_counts = Counter(n.prefecture for n in eligible)
     print(f"\nEligible by prefecture:")
     for pref, count in pref_counts.most_common():

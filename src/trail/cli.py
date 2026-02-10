@@ -8,27 +8,46 @@ from datetime import date
 from loguru import logger
 
 
+def _build_trail_config(args: argparse.Namespace):
+    """Build a TrailConfig from CLI arguments."""
+    from src.trail.config import TrailConfig
+
+    kwargs = {}
+    if getattr(args, "target", None) is not None:
+        kwargs["target_onsen_count"] = args.target
+    if getattr(args, "time_limit", None) is not None:
+        kwargs["solver_time_limit_seconds"] = args.time_limit
+    if getattr(args, "start_date", None) is not None:
+        kwargs["start_date"] = date.fromisoformat(args.start_date)
+    if getattr(args, "end_date", None) is not None:
+        kwargs["end_date"] = date.fromisoformat(args.end_date)
+    if getattr(args, "output", None) is not None:
+        kwargs["output_dir"] = args.output
+    if getattr(args, "no_osrm", False):
+        kwargs["use_osrm"] = False
+    if getattr(args, "refresh_distances", False):
+        kwargs["refresh_distances"] = True
+
+    return TrailConfig(**kwargs)
+
+
 def cmd_trail_optimize(args: argparse.Namespace) -> None:
     """Handle: kyushu trail optimize"""
     from src.config import get_database_config
     from src.trail.data_prep import load_onsens, get_eligible, print_summary
     from src.trail.optimizer import run_optimization
 
-    config = get_database_config(
+    db_config = get_database_config(
         env_override=getattr(args, "env", None),
         path_override=getattr(args, "database", None),
     )
+    trail_config = _build_trail_config(args)
 
-    target = getattr(args, "target", 88)
-    time_limit = getattr(args, "time_limit", 60)
-
-    nodes = load_onsens(config.url)
+    nodes = load_onsens(db_config.url, config=trail_config)
     print_summary(nodes)
 
     eligible = get_eligible(nodes)
-    ordered, total_dist = run_optimization(
-        eligible, target_count=target, time_limit=time_limit
-    )
+    ordered, total_dist = run_optimization(eligible, config=trail_config)
 
     print(f"\nOptimized route: {len(ordered)} onsens, {total_dist:.1f} km")
     print(f"\nRoute order:")
@@ -43,39 +62,26 @@ def cmd_trail_plan(args: argparse.Namespace) -> None:
     from src.trail.data_prep import load_onsens, get_eligible, print_summary
     from src.trail.optimizer import run_optimization
     from src.trail.scheduler import schedule_trail
-    from src.trail.output import save_outputs, generate_markdown
+    from src.trail.output import save_outputs
     from src.trail.map_generator import generate_map
-    from src.paths import PATHS
     import os
 
-    config = get_database_config(
+    db_config = get_database_config(
         env_override=getattr(args, "env", None),
         path_override=getattr(args, "database", None),
     )
-
-    target = getattr(args, "target", 88)
-    time_limit = getattr(args, "time_limit", 60)
-    start_date_str = getattr(args, "start_date", "2026-09-30")
-    end_date_str = getattr(args, "end_date", "2026-12-03")
-    output_dir = getattr(args, "output", None) or os.path.join(PATHS.PROJECT_ROOT, "output")
-
-    start_date = date.fromisoformat(start_date_str)
-    end_date = date.fromisoformat(end_date_str)
+    trail_config = _build_trail_config(args)
 
     # Step 1: Load data
-    nodes = load_onsens(config.url)
+    nodes = load_onsens(db_config.url, config=trail_config)
     print_summary(nodes)
     eligible = get_eligible(nodes)
 
     # Step 2: Optimize route
-    ordered, total_dist = run_optimization(
-        eligible, target_count=target, time_limit=time_limit
-    )
+    ordered, total_dist = run_optimization(eligible, config=trail_config)
 
     # Step 3: Schedule
-    trail = schedule_trail(
-        ordered, start_date=start_date, end_date=end_date,
-    )
+    trail = schedule_trail(ordered, config=trail_config)
 
     # Populate skipped/excluded info
     visited_ids = {o.id for o in ordered}
@@ -83,7 +89,8 @@ def cmd_trail_plan(args: argparse.Namespace) -> None:
     trail.excluded_onsens = [n for n in nodes if n.is_excluded]
 
     # Step 4: Generate outputs
-    paths = save_outputs(trail, output_dir, all_nodes=nodes)
+    output_dir = trail_config.output_dir
+    paths = save_outputs(trail, output_dir, all_nodes=nodes, config=trail_config)
 
     # Step 5: Generate map
     map_path = os.path.join(output_dir, "trail_map.html")
@@ -92,16 +99,21 @@ def cmd_trail_plan(args: argparse.Namespace) -> None:
 
     # Print summary
     walking_days = sum(1 for d in trail.days if d.walking_km > 0)
-    rest_days = (end_date - start_date).days + 1 - trail.total_days
+    rest_days = trail_config.total_days_available - trail.total_days
 
     print(f"\n{'='*60}")
     print(f"Trail Plan Complete!")
     print(f"{'='*60}")
-    print(f"Onsens:      {trail.total_onsens}")
+    print(
+        f"Onsens:      {trail.total_onsens} ({trail_config.buffer_count} buffer above 88)"
+    )
     print(f"Distance:    {trail.total_distance_km:.1f} km")
     print(f"Days used:   {trail.total_days} ({walking_days} walking)")
     print(f"Rest days:   {rest_days}")
     print(f"Prefectures: {len(trail.prefectures_visited)}")
+    print(
+        f"Routing:     {'OSRM walking' if trail_config.use_osrm else 'haversine estimate'}"
+    )
     print(f"")
     print(f"Output files:")
     for fmt, path in paths.items():
@@ -122,6 +134,25 @@ def cmd_trail_info(args: argparse.Namespace) -> None:
     print_summary(nodes)
 
 
+def _add_common_args(parser: argparse.ArgumentParser) -> None:
+    """Add arguments shared by optimize and plan subcommands."""
+    parser.add_argument(
+        "--target", type=int, default=100, help="Target number of onsens (default: 100)"
+    )
+    parser.add_argument(
+        "--time-limit",
+        type=int,
+        default=60,
+        help="Solver time limit in seconds (default: 60)",
+    )
+    parser.add_argument(
+        "--no-osrm", action="store_true", help="Use haversine distances instead of OSRM"
+    )
+    parser.add_argument(
+        "--refresh-distances", action="store_true", help="Force re-fetch OSRM distances"
+    )
+
+
 def add_trail_subparser(subparsers: argparse._SubParsersAction) -> None:
     """Add the 'trail' subcommand group to the CLI parser."""
     trail_parser = subparsers.add_parser("trail", help="Trail optimization")
@@ -129,26 +160,22 @@ def add_trail_subparser(subparsers: argparse._SubParsersAction) -> None:
 
     # trail optimize
     opt_parser = trail_sub.add_parser("optimize", help="Optimize walking route")
-    opt_parser.add_argument(
-        "--target", type=int, default=88, help="Target number of onsens (default: 88)"
-    )
-    opt_parser.add_argument(
-        "--time-limit", type=int, default=60, help="Solver time limit in seconds (default: 60)"
-    )
+    _add_common_args(opt_parser)
 
     # trail plan (full pipeline)
-    plan_parser = trail_sub.add_parser("plan", help="Full pipeline: optimize + schedule + output")
+    plan_parser = trail_sub.add_parser(
+        "plan", help="Full pipeline: optimize + schedule + output"
+    )
+    _add_common_args(plan_parser)
     plan_parser.add_argument(
-        "--target", type=int, default=88, help="Target number of onsens (default: 88)"
+        "--start-date",
+        default="2026-09-30",
+        help="Start date (YYYY-MM-DD, default: 2026-09-30)",
     )
     plan_parser.add_argument(
-        "--time-limit", type=int, default=60, help="Solver time limit in seconds (default: 60)"
-    )
-    plan_parser.add_argument(
-        "--start-date", default="2026-09-30", help="Start date (YYYY-MM-DD, default: 2026-09-30)"
-    )
-    plan_parser.add_argument(
-        "--end-date", default="2026-12-03", help="End date (YYYY-MM-DD, default: 2026-12-03)"
+        "--end-date",
+        default="2026-12-03",
+        help="End date (YYYY-MM-DD, default: 2026-12-03)",
     )
     plan_parser.add_argument(
         "--output", default=None, help="Output directory (default: output/)"

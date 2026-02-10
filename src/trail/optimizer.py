@@ -1,7 +1,7 @@
 """Route optimization using Google OR-Tools.
 
 Solves a variant of the Traveling Salesman Problem:
-- Select 88 onsens from ~144 eligible
+- Select target_onsen_count onsens from ~144 eligible
 - Mandatory onsens (Beppu) must be included
 - Fixed endpoint: Beppu
 - Flexible start point (southern Kyushu)
@@ -15,14 +15,9 @@ from loguru import logger
 
 from ortools.constraint_solver import routing_enums_pb2, pywrapcp
 
+from src.trail.config import TrailConfig
 from src.trail.models import OnsenNode
-from src.trail.data_prep import haversine, ROAD_FACTOR
-
-
-# Walking speed and constraints
-WALKING_SPEED_KMH = 4.5
-TARGET_DAILY_KM = 34
-MAX_DAILY_KM = 55
+from src.trail.routing import build_distance_matrix, haversine
 
 
 def optimize_route(
@@ -80,7 +75,9 @@ def optimize_route(
     # get dropped. We tune this based on average inter-node distance.
     avg_dist = int(np.mean(int_matrix[int_matrix > 0]))
     mandatory_penalty = avg_dist * n * 100  # Effectively infinite
-    optional_penalty = avg_dist * 3  # Tuned: prefer visiting unless detour > ~3x average
+    optional_penalty = (
+        avg_dist * 3
+    )  # Tuned: prefer visiting unless detour > ~3x average
 
     logger.info(
         f"Penalties: mandatory={mandatory_penalty}, optional={optional_penalty}, "
@@ -115,7 +112,14 @@ def optimize_route(
 
     if solution is None:
         logger.error("No solution found! Falling back to greedy.")
-        return greedy_route(nodes, distance_matrix, mandatory_indices, start_index, end_index, target_count)
+        return greedy_route(
+            nodes,
+            distance_matrix,
+            mandatory_indices,
+            start_index,
+            end_index,
+            target_count,
+        )
 
     # Extract route
     route: list[int] = []
@@ -142,8 +146,7 @@ def optimize_route(
     )
 
     logger.info(
-        f"OR-Tools solution: {len(unique_route)} onsens, "
-        f"{total_dist:.1f} km total"
+        f"OR-Tools solution: {len(unique_route)} onsens, " f"{total_dist:.1f} km total"
     )
 
     # If we got more than target, trim the highest-detour optional nodes
@@ -301,20 +304,18 @@ def _two_opt(
 
 def run_optimization(
     nodes: list[OnsenNode],
-    target_count: int = 88,
-    time_limit: int = 60,
+    config: TrailConfig,
 ) -> tuple[list[OnsenNode], float]:
     """High-level optimization: load data, optimize, return ordered onsens.
 
     Args:
         nodes: All eligible (non-excluded) OnsenNode objects.
-        target_count: Number of onsens to visit.
-        time_limit: Solver time limit in seconds.
+        config: Trail configuration.
 
     Returns:
         Tuple of (ordered list of OnsenNode, total distance in km).
     """
-    from src.trail.data_prep import build_distance_matrix, find_beppu_centroid
+    from src.trail.data_prep import find_beppu_centroid
 
     # Build index mappings
     node_to_idx = {n.id: i for i, n in enumerate(nodes)}
@@ -337,13 +338,18 @@ def run_optimization(
         f"(lat={nodes[start_index].lat:.2f})"
     )
     logger.info(
-        f"End: #{end_node.id} {end_node.display_name} "
-        f"(lat={end_node.lat:.2f})"
+        f"End: #{end_node.id} {end_node.display_name} " f"(lat={end_node.lat:.2f})"
     )
 
-    # Build distance matrix
+    # Build distance matrix (OSRM or haversine fallback)
     logger.info("Building distance matrix...")
-    dist_matrix = build_distance_matrix(nodes)
+    dist_matrix = build_distance_matrix(
+        nodes,
+        use_osrm=config.use_osrm,
+        cache_path=config.osrm_cache_path,
+        road_factor=config.haversine_road_factor,
+        refresh=config.refresh_distances,
+    )
 
     # Run optimizer
     route_indices = optimize_route(
@@ -352,8 +358,8 @@ def run_optimization(
         mandatory_indices=mandatory_indices,
         start_index=start_index,
         end_index=end_index,
-        target_count=target_count,
-        time_limit_seconds=time_limit,
+        target_count=config.target_onsen_count,
+        time_limit_seconds=config.solver_time_limit_seconds,
     )
 
     # Convert indices to OnsenNode objects
