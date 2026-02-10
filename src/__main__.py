@@ -150,6 +150,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Re-scrape all onsens, even already-scraped ones",
     )
 
+    # --- trail subcommand group ---
+    from src.trail.cli import add_trail_subparser
+
+    add_trail_subparser(subparsers)
+
     return parser
 
 
@@ -174,6 +179,21 @@ def main() -> None:
             parser.parse_args(["db", "--help"])
     elif args.command == "scrape":
         cmd_scrape(args)
+    elif args.command == "trail":
+        from src.trail.cli import (
+            cmd_trail_optimize,
+            cmd_trail_plan,
+            cmd_trail_info,
+        )
+
+        if args.trail_command == "optimize":
+            cmd_trail_optimize(args)
+        elif args.trail_command == "plan":
+            cmd_trail_plan(args)
+        elif args.trail_command == "info":
+            cmd_trail_info(args)
+        else:
+            parser.parse_args(["trail", "--help"])
     else:
         parser.print_help()
 
