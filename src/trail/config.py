@@ -37,6 +37,9 @@ class TrailConfig:
     osrm_cache_path: str = field(
         default_factory=lambda: os.path.join(PATHS.DATA_DIR, "cache", "osrm_distances.json")
     )
+    osrm_geometry_cache_path: str = field(
+        default_factory=lambda: os.path.join(PATHS.DATA_DIR, "cache", "osrm_geometries.json")
+    )
     haversine_road_factor: float = 1.3  # Fallback multiplier when OSRM disabled
     refresh_distances: bool = False  # Force re-fetch from OSRM
 

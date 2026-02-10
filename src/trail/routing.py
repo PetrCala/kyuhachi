@@ -17,7 +17,7 @@ import numpy as np
 import requests
 from loguru import logger
 
-from src.trail.models import OnsenNode
+from src.trail.models import OnsenNode, Segment
 
 # OSRM public demo server with foot profile
 OSRM_BASE_URL = "https://routing.openstreetmap.de/routed-foot"
@@ -223,6 +223,101 @@ def _save_cache(cache_path: str, nodes: list[OnsenNode], matrix: np.ndarray) -> 
     with open(cache_path, "w", encoding="utf-8") as f:
         json.dump(data, f)
     logger.info(f"Saved OSRM distance matrix to cache ({cache_path})")
+
+
+def _osrm_route_request(
+    from_lon: float, from_lat: float, to_lon: float, to_lat: float
+) -> Optional[list[list[float]]]:
+    """Fetch walking route geometry between two points.
+
+    Returns list of [lat, lon] pairs (Folium order), or None on failure.
+    """
+    url = (
+        f"{OSRM_BASE_URL}/route/v1/foot/"
+        f"{from_lon},{from_lat};{to_lon},{to_lat}"
+    )
+    params = {"overview": "full", "geometries": "geojson"}
+
+    response = requests.get(url, params=params, timeout=30)
+    response.raise_for_status()
+    data = response.json()
+
+    if data.get("code") != "Ok" or not data.get("routes"):
+        return None
+
+    # GeoJSON coordinates are [lon, lat]; flip to [lat, lon] for Folium
+    coords = data["routes"][0]["geometry"]["coordinates"]
+    return [[lat, lon] for lon, lat in coords]
+
+
+def _geometry_cache_key(
+    from_lat: float, from_lon: float, to_lat: float, to_lon: float
+) -> str:
+    return f"{from_lat:.6f},{from_lon:.6f};{to_lat:.6f},{to_lon:.6f}"
+
+
+def fetch_route_geometries(
+    segments: list[Segment],
+    cache_path: str = "",
+    refresh: bool = False,
+) -> None:
+    """Fetch OSRM walking route geometries for all segments.
+
+    Populates each segment's `geometry` field in-place.
+    Uses a persistent cache to avoid re-fetching.
+    """
+    # Load existing cache
+    cache: dict[str, list[list[float]]] = {}
+    if cache_path and not refresh and os.path.exists(cache_path):
+        try:
+            with open(cache_path, "r", encoding="utf-8") as f:
+                cache = json.load(f)
+            logger.info(f"Loaded {len(cache)} cached route geometries")
+        except Exception as e:
+            logger.warning(f"Failed to load geometry cache: {e}")
+
+    to_fetch: list[tuple[int, str]] = []  # (segment index, cache key)
+    for i, seg in enumerate(segments):
+        key = _geometry_cache_key(seg.from_lat, seg.from_lon, seg.to_lat, seg.to_lon)
+        if key in cache:
+            seg.geometry = cache[key]
+        else:
+            to_fetch.append((i, key))
+
+    if not to_fetch:
+        logger.info("All route geometries loaded from cache")
+        return
+
+    logger.info(
+        f"Fetching {len(to_fetch)} route geometries from OSRM "
+        f"({len(segments) - len(to_fetch)} cached)..."
+    )
+
+    fetched = 0
+    for idx, (seg_i, key) in enumerate(to_fetch):
+        seg = segments[seg_i]
+        try:
+            geometry = _osrm_route_request(
+                seg.from_lon, seg.from_lat, seg.to_lon, seg.to_lat
+            )
+            if geometry:
+                seg.geometry = geometry
+                cache[key] = geometry
+                fetched += 1
+        except Exception as e:
+            logger.debug(f"Route geometry failed for segment {seg_i}: {e}")
+
+        if idx < len(to_fetch) - 1:
+            time_mod.sleep(OSRM_REQUEST_DELAY)
+
+    logger.info(f"Fetched {fetched}/{len(to_fetch)} route geometries")
+
+    # Save updated cache
+    if cache_path:
+        os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+        with open(cache_path, "w", encoding="utf-8") as f:
+            json.dump(cache, f)
+        logger.info(f"Saved geometry cache ({len(cache)} routes)")
 
 
 def build_distance_matrix(

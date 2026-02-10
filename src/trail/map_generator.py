@@ -78,25 +78,27 @@ def generate_map(
                 fill_opacity=0.7,
             ).add_to(visited_group)
 
-    # Add route polylines (one per day, colored)
+    # Add route polylines (one per segment, colored by day)
     for day in trail.days:
         if not day.segments:
             continue
 
-        coords = []
-        for seg in day.segments:
-            if not coords:
-                coords.append([seg.from_lat, seg.from_lon])
-            coords.append([seg.to_lat, seg.to_lon])
-
         color = DAY_COLORS[(day.day_number - 1) % len(DAY_COLORS)]
-        folium.PolyLine(
-            coords,
-            color=color,
-            weight=3,
-            opacity=0.8,
-            tooltip=f"Day {day.day_number}: {day.walking_km:.1f}km",
-        ).add_to(route_group)
+        for seg in day.segments:
+            if seg.geometry:
+                # Real walking route from OSRM
+                coords = seg.geometry
+            else:
+                # Straight line fallback
+                coords = [[seg.from_lat, seg.from_lon], [seg.to_lat, seg.to_lon]]
+
+            folium.PolyLine(
+                coords,
+                color=color,
+                weight=3,
+                opacity=0.8,
+                tooltip=f"Day {day.day_number}: {seg.distance_km:.1f}km",
+            ).add_to(route_group)
 
     # Add skipped/excluded onsens if all_nodes provided
     if all_nodes:

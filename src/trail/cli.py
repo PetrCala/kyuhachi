@@ -88,6 +88,17 @@ def cmd_trail_plan(args: argparse.Namespace) -> None:
     trail.skipped_onsens = [n for n in eligible if n.id not in visited_ids]
     trail.excluded_onsens = [n for n in nodes if n.is_excluded]
 
+    # Step 3b: Fetch route geometries for map
+    if trail_config.use_osrm:
+        from src.trail.routing import fetch_route_geometries
+
+        all_segments = [seg for day in trail.days for seg in day.segments]
+        fetch_route_geometries(
+            all_segments,
+            cache_path=trail_config.osrm_geometry_cache_path,
+            refresh=trail_config.refresh_distances,
+        )
+
     # Step 4: Generate outputs
     output_dir = trail_config.output_dir
     paths = save_outputs(trail, output_dir, all_nodes=nodes, config=trail_config)

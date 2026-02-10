@@ -47,6 +47,7 @@ class Segment:
     to_lon: float
     distance_km: float
     estimated_hours: float
+    geometry: Optional[list[list[float]]] = None  # [[lat, lon], ...] road polyline
 
 
 @dataclass
