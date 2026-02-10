@@ -24,3 +24,6 @@ output/
 
 # OSRM distance cache
 data/cache/
+
+# Local files
+local/
