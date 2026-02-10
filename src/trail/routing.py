@@ -416,8 +416,6 @@ def scan_ferry_pairs(
     if not fz:
         return []
 
-    ref = fz[0]  # probe target
-
     # --- Try cache ---
     node_ids = sorted(nd.id for nd in nodes)
     cache_key = json.dumps(node_ids)
@@ -436,27 +434,35 @@ def scan_ferry_pairs(
         except Exception as e:
             logger.warning(f"Ferry cache load failed: {e}")
 
-    # --- Probe each non-ferry-zone onsen ---
+    # --- Probe each non-ferry-zone onsen against every
+    #     ferry-zone onsen.  If ANY probe uses a ferry,
+    #     that onsen is a "ferry source". ---
     fz_set = set(fz)
-    ferry_sources: list[int] = []  # indices that ferry to ref
+    ferry_sources: set[int] = set()
 
     to_check = [i for i in range(n) if i not in fz_set]
     logger.info(
         f"Probing {len(to_check)} onsens against "
-        f"'{nodes[ref].name}' for ferry usage..."
+        f"{len(fz)} ferry-zone references..."
     )
 
     for idx, i in enumerate(to_check):
-        try:
-            if _check_route_for_ferry(
-                nodes[i].lon, nodes[i].lat,
-                nodes[ref].lon, nodes[ref].lat,
-            ):
-                ferry_sources.append(i)
-        except Exception:
-            pass
-        if idx < len(to_check) - 1:
+        for ref in fz:
+            try:
+                if _check_route_for_ferry(
+                    nodes[i].lon, nodes[i].lat,
+                    nodes[ref].lon, nodes[ref].lat,
+                ):
+                    ferry_sources.add(i)
+                    break  # no need to check other refs
+            except Exception:
+                pass
             time_mod.sleep(OSRM_REQUEST_DELAY)
+        else:
+            # Only sleep between onsens if we checked
+            # all refs without finding a ferry
+            if idx < len(to_check) - 1:
+                time_mod.sleep(OSRM_REQUEST_DELAY)
 
     logger.info(
         f"Ferry probe: {len(ferry_sources)} of "
