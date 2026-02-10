@@ -54,6 +54,7 @@ class TrailConfig:
         116,                          # Sakurajima (OSRM can't route)
         165, 24, 175, 228, 12, 11,   # Shimabara / Unzen area
         217, 96, 246, 205,            # User-excluded (Miyazaki south coast)
+        189, 231, 100, 224, 95,       # East coast Kyushu (Hyuga/Saito area)
     })
     beppu_pattern: str = "別府"
 
