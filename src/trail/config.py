@@ -35,12 +35,21 @@ class TrailConfig:
     # Routing
     use_osrm: bool = True
     osrm_cache_path: str = field(
-        default_factory=lambda: os.path.join(PATHS.DATA_DIR, "cache", "osrm_distances.json")
+        default_factory=lambda: os.path.join(
+            PATHS.DATA_DIR, "cache", "osrm_distances.json",
+        )
     )
     osrm_geometry_cache_path: str = field(
-        default_factory=lambda: os.path.join(PATHS.DATA_DIR, "cache", "osrm_geometries.json")
+        default_factory=lambda: os.path.join(
+            PATHS.DATA_DIR, "cache", "osrm_geometries.json",
+        )
     )
-    haversine_road_factor: float = 1.3  # Fallback multiplier when OSRM disabled
+    osrm_ferry_cache_path: str = field(
+        default_factory=lambda: os.path.join(
+            PATHS.DATA_DIR, "cache", "osrm_ferry_pairs.json",
+        )
+    )
+    haversine_road_factor: float = 1.3
     refresh_distances: bool = False  # Force re-fetch from OSRM
 
     # Data classification

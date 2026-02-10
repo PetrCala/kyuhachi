@@ -372,118 +372,126 @@ def _check_route_for_ferry(
 FERRY_PENALTY_KM = 50_000.0
 
 
-def _check_pair(
-    nodes: list[OnsenNode], i: int, j: int,
-) -> bool:
-    """Check one (i, j) pair for ferry usage. Returns True if ferry."""
-    try:
-        return _check_route_for_ferry(
-            nodes[i].lon, nodes[i].lat,
-            nodes[j].lon, nodes[j].lat,
-        )
-    except Exception as e:
-        logger.debug(
-            f"Ferry check failed for "
-            f"{nodes[i].name} → {nodes[j].name}: {e}"
-        )
-        return False
-
-
-def detect_ferry_pairs(
+def _find_ferry_zone_indices(
     nodes: list[OnsenNode],
-    matrix: np.ndarray,
-    route_indices: list[int] | None = None,
-) -> list[tuple[int, int]]:
-    """Detect node pairs whose OSRM route uses a ferry.
+) -> list[int]:
+    """Identify node indices that sit in a known ferry zone.
 
-    Checks consecutive pairs along route_indices.  When a ferry
-    is found between A and B, *expands* the search: checks every
-    other node against both A and B so the entire ferry corridor
-    is penalised in a single pass.
-
-    Returns list of (i, j) index pairs that use ferries.
+    Currently detects the Shimabara peninsula (Unzen / Obama /
+    Shimabara) — the only area in Kyushu where OSRM foot routing
+    shortcuts across Shimabara Bay via ferry.
     """
-    if route_indices is None:
-        return []
+    keywords = ("島原", "雲仙", "小浜")
+    indices: list[int] = []
+    for i, n in enumerate(nodes):
+        text = f"{n.area_name}{n.name}{n.address}"
+        if any(kw in text for kw in keywords):
+            indices.append(i)
+    if indices:
+        names = [nodes[i].name for i in indices]
+        logger.info(
+            f"Ferry-zone onsens ({len(indices)}): "
+            + ", ".join(names)
+        )
+    return indices
 
+
+def scan_ferry_pairs(
+    nodes: list[OnsenNode],
+    cache_path: str = "",
+    refresh: bool = False,
+) -> list[tuple[int, int]]:
+    """Pre-optimisation ferry scan with caching.
+
+    For each non-ferry-zone onsen, checks one probe route to a
+    ferry-zone reference.  If the probe uses a ferry, ALL pairs
+    from that onsen to every ferry-zone onsen are flagged (both
+    directions).
+
+    Total OSRM calls = N (one per non-ferry-zone onsen), cached
+    after first run.
+    """
     n = len(nodes)
-    pairs_to_check: list[tuple[int, int]] = []
-    for k in range(len(route_indices) - 1):
-        i, j = route_indices[k], route_indices[k + 1]
-        pairs_to_check.append((i, j))
-
-    if not pairs_to_check:
+    fz = _find_ferry_zone_indices(nodes)
+    if not fz:
         return []
 
+    ref = fz[0]  # probe target
+
+    # --- Try cache ---
+    node_ids = sorted(nd.id for nd in nodes)
+    cache_key = json.dumps(node_ids)
+
+    if cache_path and not refresh and os.path.exists(cache_path):
+        try:
+            with open(cache_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if data.get("key") == cache_key:
+                pairs = [tuple(p) for p in data["pairs"]]
+                logger.info(
+                    f"Loaded {len(pairs)} ferry pairs "
+                    f"from cache"
+                )
+                return pairs
+        except Exception as e:
+            logger.warning(f"Ferry cache load failed: {e}")
+
+    # --- Probe each non-ferry-zone onsen ---
+    fz_set = set(fz)
+    ferry_sources: list[int] = []  # indices that ferry to ref
+
+    to_check = [i for i in range(n) if i not in fz_set]
     logger.info(
-        f"Checking {len(pairs_to_check)} consecutive pairs "
-        f"for ferry usage..."
+        f"Probing {len(to_check)} onsens against "
+        f"'{nodes[ref].name}' for ferry usage..."
     )
 
-    ferry_set: set[tuple[int, int]] = set()
-    # Track nodes already fully expanded so we don't repeat
-    expanded_nodes: set[int] = set()
-
-    for idx, (i, j) in enumerate(pairs_to_check):
-        if (i, j) in ferry_set:
-            continue
-
-        uses_ferry = _check_pair(nodes, i, j)
-        if idx < len(pairs_to_check) - 1:
+    for idx, i in enumerate(to_check):
+        try:
+            if _check_route_for_ferry(
+                nodes[i].lon, nodes[i].lat,
+                nodes[ref].lon, nodes[ref].lat,
+            ):
+                ferry_sources.append(i)
+        except Exception:
+            pass
+        if idx < len(to_check) - 1:
             time_mod.sleep(OSRM_REQUEST_DELAY)
 
-        if not uses_ferry:
-            continue
+    logger.info(
+        f"Ferry probe: {len(ferry_sources)} of "
+        f"{len(to_check)} onsens route via ferry"
+    )
 
-        ferry_set.add((i, j))
-        logger.warning(
-            f"Ferry detected: {nodes[i].name} → "
-            f"{nodes[j].name} "
-            f"({matrix[i][j]:.1f} km)"
-        )
-
-        # Expand: check every other node against both
-        # endpoints of this ferry crossing.
-        for endpoint in (i, j):
-            if endpoint in expanded_nodes:
-                continue
-            expanded_nodes.add(endpoint)
-            logger.info(
-                f"Expanding ferry search around "
-                f"'{nodes[endpoint].name}' "
-                f"(checking {n - 1} peers)..."
-            )
-            for other in range(n):
-                if other == endpoint:
-                    continue
-                if matrix[other][endpoint] >= FERRY_PENALTY_KM:
-                    continue
-                pair_fwd = (other, endpoint)
-                pair_rev = (endpoint, other)
-                if pair_fwd in ferry_set and pair_rev in ferry_set:
-                    continue
-
-                hit = _check_pair(nodes, other, endpoint)
-                time_mod.sleep(OSRM_REQUEST_DELAY)
-                if hit:
-                    ferry_set.add(pair_fwd)
-                    ferry_set.add(pair_rev)
-
-            count = sum(
-                1 for a, b in ferry_set
-                if a == endpoint or b == endpoint
-            )
-            logger.info(
-                f"Expansion complete for "
-                f"'{nodes[endpoint].name}': "
-                f"{count} ferry pairs"
-            )
+    # --- Build complete pair list ---
+    ferry_pairs: list[tuple[int, int]] = []
+    for src in ferry_sources:
+        for dst in fz:
+            ferry_pairs.append((src, dst))
+            ferry_pairs.append((dst, src))
 
     logger.info(
-        f"Ferry check complete: "
-        f"{len(ferry_set)} directed pairs found"
+        f"Total ferry pairs to penalise: {len(ferry_pairs)}"
     )
-    return list(ferry_set)
+
+    # --- Save cache ---
+    if cache_path:
+        os.makedirs(
+            os.path.dirname(cache_path), exist_ok=True
+        )
+        data = {
+            "key": cache_key,
+            "ferry_zone_ids": [nodes[i].id for i in fz],
+            "ferry_source_ids": [
+                nodes[i].id for i in ferry_sources
+            ],
+            "pairs": ferry_pairs,
+        }
+        with open(cache_path, "w", encoding="utf-8") as f:
+            json.dump(data, f)
+        logger.info(f"Saved ferry pair cache to {cache_path}")
+
+    return ferry_pairs
 
 
 def penalize_ferry_pairs(

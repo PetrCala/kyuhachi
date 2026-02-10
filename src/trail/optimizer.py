@@ -19,9 +19,9 @@ from src.trail.config import TrailConfig
 from src.trail.models import OnsenNode
 from src.trail.routing import (
     build_distance_matrix,
-    detect_ferry_pairs,
     haversine,
     penalize_ferry_pairs,
+    scan_ferry_pairs,
 )
 
 
@@ -356,54 +356,30 @@ def run_optimization(
         refresh=config.refresh_distances,
     )
 
-    # Iterative optimize-then-verify loop to eliminate ferry routes.
-    # After each optimization pass, check consecutive pairs for ferry
-    # usage.  If found, penalize those pairs and re-optimize.
-    max_ferry_iterations = 5
-    all_ferry_pairs: list[tuple[int, int]] = []
-
-    for ferry_iter in range(max_ferry_iterations):
-        route_indices = optimize_route(
-            nodes=nodes,
-            distance_matrix=dist_matrix,
-            mandatory_indices=mandatory_indices,
-            start_index=start_index,
-            end_index=end_index,
-            target_count=config.target_onsen_count,
-            time_limit_seconds=config.solver_time_limit_seconds,
+    # Pre-optimisation ferry scan: identify all pairs whose
+    # OSRM route crosses a ferry and set them to a huge penalty
+    # so the solver never picks them.
+    if config.use_osrm:
+        ferry_pairs = scan_ferry_pairs(
+            nodes,
+            cache_path=config.osrm_ferry_cache_path,
+            refresh=config.refresh_distances,
         )
+        if ferry_pairs:
+            dist_matrix = penalize_ferry_pairs(
+                dist_matrix, ferry_pairs,
+            )
 
-        if not config.use_osrm:
-            break  # No ferry risk with haversine
-
-        # Check consecutive pairs for ferry usage
-        new_ferry = detect_ferry_pairs(
-            nodes, dist_matrix, route_indices,
-        )
-
-        if not new_ferry:
-            if ferry_iter > 0:
-                logger.info(
-                    f"Ferry-free route found after "
-                    f"{ferry_iter + 1} iterations "
-                    f"({len(all_ferry_pairs)} pairs penalized)"
-                )
-            break
-
-        all_ferry_pairs.extend(new_ferry)
-        dist_matrix = penalize_ferry_pairs(
-            dist_matrix, new_ferry,
-        )
-        logger.info(
-            f"Ferry iteration {ferry_iter + 1}: "
-            f"penalized {len(new_ferry)} pairs, "
-            f"re-optimizing..."
-        )
-    else:
-        logger.warning(
-            f"Still found ferry routes after "
-            f"{max_ferry_iterations} iterations"
-        )
+    # Run optimizer
+    route_indices = optimize_route(
+        nodes=nodes,
+        distance_matrix=dist_matrix,
+        mandatory_indices=mandatory_indices,
+        start_index=start_index,
+        end_index=end_index,
+        target_count=config.target_onsen_count,
+        time_limit_seconds=config.solver_time_limit_seconds,
+    )
 
     # Convert indices to OnsenNode objects
     ordered_onsens = [nodes[i] for i in route_indices]
