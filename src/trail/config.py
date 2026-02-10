@@ -53,6 +53,7 @@ class TrailConfig:
         90,                           # Amakusa (OSRM can't route)
         116,                          # Sakurajima (OSRM can't route)
         165, 24, 175, 228, 12, 11,   # Shimabara / Unzen area
+        217, 96, 246, 205,            # User-excluded (Miyazaki south coast)
     })
     beppu_pattern: str = "別府"
 
