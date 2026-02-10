@@ -44,7 +44,7 @@ class TrailConfig:
     refresh_distances: bool = False  # Force re-fetch from OSRM
 
     # Data classification
-    island_ids: frozenset[int] = frozenset({176, 237, 130, 219})
+    island_ids: frozenset[int] = frozenset({176, 237, 130, 219, 90})
     beppu_pattern: str = "別府"
 
     # Output
