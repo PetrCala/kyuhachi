@@ -372,6 +372,23 @@ def _check_route_for_ferry(
 FERRY_PENALTY_KM = 50_000.0
 
 
+def _check_pair(
+    nodes: list[OnsenNode], i: int, j: int,
+) -> bool:
+    """Check one (i, j) pair for ferry usage. Returns True if ferry."""
+    try:
+        return _check_route_for_ferry(
+            nodes[i].lon, nodes[i].lat,
+            nodes[j].lon, nodes[j].lat,
+        )
+    except Exception as e:
+        logger.debug(
+            f"Ferry check failed for "
+            f"{nodes[i].name} → {nodes[j].name}: {e}"
+        )
+        return False
+
+
 def detect_ferry_pairs(
     nodes: list[OnsenNode],
     matrix: np.ndarray,
@@ -379,63 +396,94 @@ def detect_ferry_pairs(
 ) -> list[tuple[int, int]]:
     """Detect node pairs whose OSRM route uses a ferry.
 
-    If route_indices is given, only consecutive pairs along that
-    route are checked (fast).  Otherwise every matrix entry that
-    looks plausible is checked (slow — N² calls).
+    Checks consecutive pairs along route_indices.  When a ferry
+    is found between A and B, *expands* the search: checks every
+    other node against both A and B so the entire ferry corridor
+    is penalised in a single pass.
 
     Returns list of (i, j) index pairs that use ferries.
     """
-    pairs_to_check: list[tuple[int, int]] = []
+    if route_indices is None:
+        return []
 
-    if route_indices is not None:
-        # Only check consecutive pairs in the route
-        for k in range(len(route_indices) - 1):
-            i, j = route_indices[k], route_indices[k + 1]
-            pairs_to_check.append((i, j))
-    else:
-        # Check all pairs — very slow, use sparingly
-        n = len(nodes)
-        for i in range(n):
-            for j in range(i + 1, n):
-                if matrix[i][j] < FERRY_PENALTY_KM:
-                    pairs_to_check.append((i, j))
+    n = len(nodes)
+    pairs_to_check: list[tuple[int, int]] = []
+    for k in range(len(route_indices) - 1):
+        i, j = route_indices[k], route_indices[k + 1]
+        pairs_to_check.append((i, j))
 
     if not pairs_to_check:
         return []
 
     logger.info(
-        f"Checking {len(pairs_to_check)} node pairs "
+        f"Checking {len(pairs_to_check)} consecutive pairs "
         f"for ferry usage..."
     )
 
-    ferry_pairs: list[tuple[int, int]] = []
-    for idx, (i, j) in enumerate(pairs_to_check):
-        try:
-            uses_ferry = _check_route_for_ferry(
-                nodes[i].lon, nodes[i].lat,
-                nodes[j].lon, nodes[j].lat,
-            )
-            if uses_ferry:
-                ferry_pairs.append((i, j))
-                logger.warning(
-                    f"Ferry detected: {nodes[i].name} → "
-                    f"{nodes[j].name} "
-                    f"({matrix[i][j]:.1f} km)"
-                )
-        except Exception as e:
-            logger.debug(
-                f"Ferry check failed for "
-                f"{nodes[i].name} → {nodes[j].name}: {e}"
-            )
+    ferry_set: set[tuple[int, int]] = set()
+    # Track nodes already fully expanded so we don't repeat
+    expanded_nodes: set[int] = set()
 
+    for idx, (i, j) in enumerate(pairs_to_check):
+        if (i, j) in ferry_set:
+            continue
+
+        uses_ferry = _check_pair(nodes, i, j)
         if idx < len(pairs_to_check) - 1:
             time_mod.sleep(OSRM_REQUEST_DELAY)
 
+        if not uses_ferry:
+            continue
+
+        ferry_set.add((i, j))
+        logger.warning(
+            f"Ferry detected: {nodes[i].name} → "
+            f"{nodes[j].name} "
+            f"({matrix[i][j]:.1f} km)"
+        )
+
+        # Expand: check every other node against both
+        # endpoints of this ferry crossing.
+        for endpoint in (i, j):
+            if endpoint in expanded_nodes:
+                continue
+            expanded_nodes.add(endpoint)
+            logger.info(
+                f"Expanding ferry search around "
+                f"'{nodes[endpoint].name}' "
+                f"(checking {n - 1} peers)..."
+            )
+            for other in range(n):
+                if other == endpoint:
+                    continue
+                if matrix[other][endpoint] >= FERRY_PENALTY_KM:
+                    continue
+                pair_fwd = (other, endpoint)
+                pair_rev = (endpoint, other)
+                if pair_fwd in ferry_set and pair_rev in ferry_set:
+                    continue
+
+                hit = _check_pair(nodes, other, endpoint)
+                time_mod.sleep(OSRM_REQUEST_DELAY)
+                if hit:
+                    ferry_set.add(pair_fwd)
+                    ferry_set.add(pair_rev)
+
+            count = sum(
+                1 for a, b in ferry_set
+                if a == endpoint or b == endpoint
+            )
+            logger.info(
+                f"Expansion complete for "
+                f"'{nodes[endpoint].name}': "
+                f"{count} ferry pairs"
+            )
+
     logger.info(
-        f"Ferry check complete: {len(ferry_pairs)} of "
-        f"{len(pairs_to_check)} pairs use ferries"
+        f"Ferry check complete: "
+        f"{len(ferry_set)} directed pairs found"
     )
-    return ferry_pairs
+    return list(ferry_set)
 
 
 def penalize_ferry_pairs(
