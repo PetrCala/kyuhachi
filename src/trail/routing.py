@@ -226,17 +226,19 @@ def _save_cache(cache_path: str, nodes: list[OnsenNode], matrix: np.ndarray) -> 
 
 
 def _osrm_route_request(
-    from_lon: float, from_lat: float, to_lon: float, to_lat: float
+    from_lon: float, from_lat: float, to_lon: float, to_lat: float,
+    reject_ferry: bool = True,
 ) -> Optional[list[list[float]]]:
     """Fetch walking route geometry between two points.
 
-    Returns list of [lat, lon] pairs (Folium order), or None on failure.
+    Returns list of [lat, lon] pairs (Folium order), or None on failure
+    or if the route uses a ferry (when reject_ferry=True).
     """
     url = (
         f"{OSRM_BASE_URL}/route/v1/foot/"
         f"{from_lon},{from_lat};{to_lon},{to_lat}"
     )
-    params = {"overview": "full", "geometries": "geojson"}
+    params = {"overview": "full", "geometries": "geojson", "steps": "true"}
 
     response = requests.get(url, params=params, timeout=30)
     response.raise_for_status()
@@ -245,8 +247,23 @@ def _osrm_route_request(
     if data.get("code") != "Ok" or not data.get("routes"):
         return None
 
+    route = data["routes"][0]
+
+    # Check for ferry usage in route steps
+    if reject_ferry:
+        for leg in route.get("legs", []):
+            for step in leg.get("steps", []):
+                if step.get("mode") == "ferry":
+                    ferry_name = step.get("name", "unknown ferry")
+                    ferry_km = step.get("distance", 0) / 1000
+                    logger.debug(
+                        f"Route rejected: uses ferry '{ferry_name}' "
+                        f"({ferry_km:.1f} km)"
+                    )
+                    return None
+
     # GeoJSON coordinates are [lon, lat]; flip to [lat, lon] for Folium
-    coords = data["routes"][0]["geometry"]["coordinates"]
+    coords = route["geometry"]["coordinates"]
     return [[lat, lon] for lon, lat in coords]
 
 
@@ -318,6 +335,119 @@ def fetch_route_geometries(
         with open(cache_path, "w", encoding="utf-8") as f:
             json.dump(cache, f)
         logger.info(f"Saved geometry cache ({len(cache)} routes)")
+
+
+def _check_route_for_ferry(
+    from_lon: float, from_lat: float,
+    to_lon: float, to_lat: float,
+) -> bool:
+    """Check if an OSRM walking route between two points uses a ferry.
+
+    Returns True if the route uses a ferry, False otherwise.
+    """
+    url = (
+        f"{OSRM_BASE_URL}/route/v1/foot/"
+        f"{from_lon},{from_lat};{to_lon},{to_lat}"
+    )
+    params = {"overview": "false", "steps": "true"}
+
+    response = requests.get(url, params=params, timeout=30)
+    response.raise_for_status()
+    data = response.json()
+
+    if data.get("code") != "Ok" or not data.get("routes"):
+        return False
+
+    for leg in data["routes"][0].get("legs", []):
+        for step in leg.get("steps", []):
+            if step.get("mode") == "ferry":
+                return True
+    return False
+
+
+# Penalty distance for pairs that require a ferry (effectively
+# unreachable on foot).  Must be large enough that the optimizer
+# never chooses this edge, but not so large it overflows int32
+# when converted to metres inside OR-Tools.
+FERRY_PENALTY_KM = 50_000.0
+
+
+def detect_ferry_pairs(
+    nodes: list[OnsenNode],
+    matrix: np.ndarray,
+    route_indices: list[int] | None = None,
+) -> list[tuple[int, int]]:
+    """Detect node pairs whose OSRM route uses a ferry.
+
+    If route_indices is given, only consecutive pairs along that
+    route are checked (fast).  Otherwise every matrix entry that
+    looks plausible is checked (slow — N² calls).
+
+    Returns list of (i, j) index pairs that use ferries.
+    """
+    pairs_to_check: list[tuple[int, int]] = []
+
+    if route_indices is not None:
+        # Only check consecutive pairs in the route
+        for k in range(len(route_indices) - 1):
+            i, j = route_indices[k], route_indices[k + 1]
+            pairs_to_check.append((i, j))
+    else:
+        # Check all pairs — very slow, use sparingly
+        n = len(nodes)
+        for i in range(n):
+            for j in range(i + 1, n):
+                if matrix[i][j] < FERRY_PENALTY_KM:
+                    pairs_to_check.append((i, j))
+
+    if not pairs_to_check:
+        return []
+
+    logger.info(
+        f"Checking {len(pairs_to_check)} node pairs "
+        f"for ferry usage..."
+    )
+
+    ferry_pairs: list[tuple[int, int]] = []
+    for idx, (i, j) in enumerate(pairs_to_check):
+        try:
+            uses_ferry = _check_route_for_ferry(
+                nodes[i].lon, nodes[i].lat,
+                nodes[j].lon, nodes[j].lat,
+            )
+            if uses_ferry:
+                ferry_pairs.append((i, j))
+                logger.warning(
+                    f"Ferry detected: {nodes[i].name} → "
+                    f"{nodes[j].name} "
+                    f"({matrix[i][j]:.1f} km)"
+                )
+        except Exception as e:
+            logger.debug(
+                f"Ferry check failed for "
+                f"{nodes[i].name} → {nodes[j].name}: {e}"
+            )
+
+        if idx < len(pairs_to_check) - 1:
+            time_mod.sleep(OSRM_REQUEST_DELAY)
+
+    logger.info(
+        f"Ferry check complete: {len(ferry_pairs)} of "
+        f"{len(pairs_to_check)} pairs use ferries"
+    )
+    return ferry_pairs
+
+
+def penalize_ferry_pairs(
+    matrix: np.ndarray,
+    ferry_pairs: list[tuple[int, int]],
+) -> np.ndarray:
+    """Set ferry pair distances to a huge penalty (both directions)."""
+    matrix = matrix.copy()
+    for i, j in ferry_pairs:
+        matrix[i][j] = FERRY_PENALTY_KM
+        matrix[j][i] = FERRY_PENALTY_KM
+    return matrix
 
 
 def build_distance_matrix(
