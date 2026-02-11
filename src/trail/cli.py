@@ -105,7 +105,12 @@ def cmd_trail_plan(args: argparse.Namespace) -> None:
 
     # Step 5: Generate map
     map_path = os.path.join(output_dir, "trail_map.html")
-    generate_map(trail, all_nodes=nodes, output_path=map_path)
+    generate_map(
+        trail,
+        all_nodes=nodes,
+        output_path=map_path,
+        clock_markers=getattr(args, "clock_markers", False),
+    )
     paths["map"] = map_path
 
     # Print summary
@@ -189,7 +194,12 @@ def add_trail_subparser(subparsers: argparse._SubParsersAction) -> None:
         help="End date (YYYY-MM-DD, default: 2026-12-03)",
     )
     plan_parser.add_argument(
-        "--output", default=None, help="Output directory (default: output/)"
+        "--output", default=None,
+        help="Output directory (default: output/)",
+    )
+    plan_parser.add_argument(
+        "--clock-markers", action="store_true",
+        help="Use 24h clock icons showing open hours",
     )
 
     # trail info

@@ -21,6 +21,7 @@ def generate_map(
     trail: Trail,
     all_nodes: list[OnsenNode] | None = None,
     output_path: str = "output/trail_map.html",
+    clock_markers: bool = False,
 ) -> str:
     """Generate an interactive Folium map of the trail.
 
@@ -67,16 +68,41 @@ def generate_map(
                 hours_preview = onsen.raw_business_hours.split("\n")[0][:50]
                 popup_html += f"Hours: {hours_preview}<br>"
 
-            folium.CircleMarker(
-                location=[onsen.lat, onsen.lon],
-                radius=8,
-                popup=folium.Popup(popup_html, max_width=300),
-                tooltip=f"#{onsen_counter} {onsen.name}",
-                color="green",
-                fill=True,
-                fill_color="green",
-                fill_opacity=0.7,
-            ).add_to(visited_group)
+            marker_added = False
+            if clock_markers:
+                from src.trail.clock_icon import make_clock_icon
+
+                icon = make_clock_icon(
+                    onsen.usage_time, variant="visited"
+                )
+                if icon is not None:
+                    folium.Marker(
+                        location=[onsen.lat, onsen.lon],
+                        popup=folium.Popup(
+                            popup_html, max_width=300
+                        ),
+                        tooltip=(
+                            f"#{onsen_counter} {onsen.name}"
+                        ),
+                        icon=icon,
+                    ).add_to(visited_group)
+                    marker_added = True
+
+            if not marker_added:
+                folium.CircleMarker(
+                    location=[onsen.lat, onsen.lon],
+                    radius=8,
+                    popup=folium.Popup(
+                        popup_html, max_width=300
+                    ),
+                    tooltip=(
+                        f"#{onsen_counter} {onsen.name}"
+                    ),
+                    color="green",
+                    fill=True,
+                    fill_color="green",
+                    fill_opacity=0.7,
+                ).add_to(visited_group)
 
     # Add route polylines (one per segment, colored by day)
     for day in trail.days:
@@ -118,16 +144,43 @@ def generate_map(
                     fill_opacity=0.5,
                 ).add_to(excluded_group)
             else:
-                folium.CircleMarker(
-                    location=[node.lat, node.lon],
-                    radius=5,
-                    popup=f"<b>{node.display_name}</b><br>{node.prefecture}<br>Not visited",
-                    tooltip=f"Skipped: {node.name}",
-                    color="gray",
-                    fill=True,
-                    fill_color="gray",
-                    fill_opacity=0.4,
-                ).add_to(skipped_group)
+                skipped_popup = (
+                    f"<b>{node.display_name}</b><br>"
+                    f"{node.prefecture}<br>Not visited"
+                )
+                skip_added = False
+                if clock_markers:
+                    from src.trail.clock_icon import (
+                        make_clock_icon,
+                    )
+
+                    icon = make_clock_icon(
+                        node.usage_time, variant="skipped"
+                    )
+                    if icon is not None:
+                        folium.Marker(
+                            location=[node.lat, node.lon],
+                            popup=skipped_popup,
+                            tooltip=(
+                                f"Skipped: {node.name}"
+                            ),
+                            icon=icon,
+                        ).add_to(skipped_group)
+                        skip_added = True
+
+                if not skip_added:
+                    folium.CircleMarker(
+                        location=[node.lat, node.lon],
+                        radius=5,
+                        popup=skipped_popup,
+                        tooltip=(
+                            f"Skipped: {node.name}"
+                        ),
+                        color="gray",
+                        fill=True,
+                        fill_color="gray",
+                        fill_opacity=0.4,
+                    ).add_to(skipped_group)
 
     # Start and end markers
     if trail.ordered_onsens:
