@@ -34,8 +34,9 @@ app/dist/
 app/.env*.local
 
 # Firebase
-firebase/firebase-debug.log
+*-debug.log
 firebase/.runtimeconfig.json
+firebase/node_modules/
 functions/lib/
 functions/node_modules/
 

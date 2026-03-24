@@ -1,0 +1,50 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Onsen catalog — read-only for any authenticated user
+    // Writes go through the data repo service account, never the app
+    match /onsens/{kyuhachiId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    // Catalog metadata — read-only for any authenticated user
+    match /catalog_meta/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    // Challenge type definitions — read-only for any authenticated user
+    match /challenge_types/{typeId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    // User documents and all subcollections — owner only
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      match /challenges/{challengeId} {
+        allow read, write: if isOwner(userId);
+
+        match /visits/{onsenId} {
+          allow read, write: if isOwner(userId);
+        }
+      }
+
+      match /route_plans/{planId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+  }
+}
