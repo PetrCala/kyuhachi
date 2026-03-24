@@ -49,10 +49,13 @@ Do not challenge these without explicit instruction.
 ## Locked architectural decisions
 
 - **Stable IDs:** Every onsen has a `kyuhachiId` (UUID) that never changes. Upstream IDs from 88onsen.com are unstable and live only in the separate data repo. The app never sees upstream IDs.
-- **Challenge snapshots:** When a user creates a challenge, `snapshotOnsenIds` is frozen at creation. Catalog changes never mutate existing challenges.
+- **Challenge model:** The challenge is "visit any 88 onsens from the official eligible pool (~155)." It is NOT a fixed list of specific onsens. `eligibleOnsenIds` in `challenge_types` defines the pool; `snapshotEligibleOnsenIds` on the user's challenge is frozen at creation. Completion = unique eligible visits ≥ 88.
+- **Challenge snapshots:** `snapshotEligibleOnsenIds` is frozen at challenge creation. Catalog changes never mutate existing challenges.
 - **Onsen documents are never deleted.** Deprecated onsens get `isActive: false`.
 - **No direct write path through Functions for standard user operations** in Phase 1. Firestore rules enforce ownership. Functions are for triggers and admin operations only.
 - **Offline-first:** Firestore offline persistence enabled from day one. This is not optional.
+- **Route plans:** Independent from challenges. A challenge has an optional `activePlanId` (freely switchable); completion logic ignores it.
+- **Tiers:** Bronze/silver/gold. Conditions involve transport restrictions, time frame, and visit count. Exact thresholds TBD — do not hardcode them. Load from `challenge_types` in Firestore. Transport is user-reported per visit (`structuredData.transportUsed: boolean`).
 
 ---
 
