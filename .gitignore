@@ -22,8 +22,9 @@ build/
 # Generated output
 output/
 
-# OSRM distance cache
+# OSRM distance cache (original location and archived location)
 data/cache/
+_archive/data/cache/
 
 # Local files
 local/
