@@ -38,9 +38,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "23dcdc94-a680-4d6b-bdee-2123a5f5e294"
+        "projectId": "52439120-a3fd-4ee0-a853-893741b69ea0"
       }
     },
-    "owner": "kiroku-team"
+    "owner": "petr.cala"
   }
 }
