@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Kyuhachi",
+    "slug": "kyuhachi",
+    "scheme": "kyuhachi",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.kyuhachi.app",
+      "usesAppleSignIn": true
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "@react-native-firebase/app",
+        {
+          "ios": {
+            "googleServicesFile": "./GoogleService-Info.plist"
+          }
+        }
+      ],
+      "@react-native-firebase/auth",
+      "@react-native-firebase/app-check",
+      "expo-apple-authentication"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
