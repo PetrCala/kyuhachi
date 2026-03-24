@@ -1,0 +1,8 @@
+{
+  "name": "kyuhachi-monorepo",
+  "private": true,
+  "workspaces": [
+    "app",
+    "shared"
+  ]
+}
