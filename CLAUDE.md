@@ -20,7 +20,7 @@ Nothing has been implemented yet. Phase 0 tasks:
 - [ ] Write shared TypeScript types in `shared/src/types/`
 - [ ] Write Firestore security rules + emulator tests in `firebase/`
 - [ ] Configure EAS Build (dev profile, real iOS device)
-- [ ] Configure GitHub Actions (PR checks + TestFlight deploy on merge to main)
+- [ ] Configure GitHub Actions (PR checks + TestFlight deploy on merge to master)
 - [ ] Write ADRs 001–006 in `docs/adr/`
 - [ ] Write `docs/specs/firestore-data-model.md`
 

@@ -505,7 +505,7 @@ docs/specs/phase0-foundation.md
 - [ ] Write initial Firestore rules tests
 - [ ] Configure EAS (`eas.json`) with development/preview/production profiles
 - [ ] Write GitHub Actions: PR checks (lint, typecheck, rules tests)
-- [ ] Write GitHub Actions: merge to main → EAS preview → TestFlight
+- [ ] Write GitHub Actions: merge to master → EAS preview → TestFlight
 - [ ] Write ADRs 001–006
 - [ ] Write `docs/specs/firestore-data-model.md`
 
