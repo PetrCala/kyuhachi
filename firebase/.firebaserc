@@ -1,6 +1,6 @@
 {
   "projects": {
     "default": "kyuhachi-dev",
-    "production": "kyuhachi-prod"
+    "production": "kyuhachi-fddcc"
   }
 }
