@@ -4,27 +4,38 @@
 
 An iOS-first mobile app for the 九州八十八湯 (Kyushu 88 hot springs) challenge. Small audience, low maintenance budget, production-quality.
 
-**Current repo state:** Python prototype being repurposed into the main app/backend repo. Python code is being archived; new structure is being established.
+**Current repo state:** Phase 0 complete. Foundation is in place. Starting Phase 1.
 
 Full implementation plan: [docs/implementation-plan.md](docs/implementation-plan.md)
 
 ---
 
-## Current phase: Phase 0 — Foundation
+## Current phase: Phase 1 — Catalog, Map, Auth
 
-Nothing has been implemented yet. Phase 0 tasks:
+Phase 0 is complete. Phase 1 scope:
 
-- [ ] Archive Python code to `_archive/`
-- [ ] Create Firebase project (dev + prod), enable Firestore/Auth/Storage/Functions/App Check
-- [ ] Initialize Expo app in `app/` with Expo Router + `@react-native-firebase`
-- [ ] Write shared TypeScript types in `shared/src/types/`
-- [ ] Write Firestore security rules + emulator tests in `firebase/`
-- [ ] Configure EAS Build (dev profile, real iOS device)
-- [ ] Configure GitHub Actions (PR checks + TestFlight deploy on merge to master)
-- [ ] Write ADRs 001–006 in `docs/adr/`
-- [ ] Write `docs/specs/firestore-data-model.md`
+- [ ] Sign in with Apple + email/password auth screens
+- [ ] `onUserCreated` Function: create `/users/{uid}` document on first sign-in
+- [ ] Onsen catalog published to Firestore dev (data repo task: one-time Python publish)
+- [ ] Onsen list screen (searchable by name)
+- [ ] Onsen detail screen (all metadata fields)
+- [ ] Interactive map with onsen markers + tap → detail
+- [ ] Offline catalog caching (Firestore persistence, already enabled)
+- [ ] Catalog version check on launch
 
-See Phase 0 full checklist and first 10 tasks in the implementation plan.
+**Phase 1 acceptance criteria:**
+
+- User can sign in on a real device
+- Map loads all active onsen markers
+- Tap marker → callout → detail screen
+- Offline: cached catalog visible with no network
+
+**Blocking before Phase 1 can start (data repo tasks):**
+
+- Assign stable `kyuhachiId` to all 144 onsens → `onsen_id_map.json`
+- Run initial Firestore publish (SQLite → Firestore dev)
+
+See full checklist in the implementation plan.
 
 ---
 
