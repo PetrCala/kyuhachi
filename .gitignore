@@ -11,6 +11,7 @@ _archive/data/cache/
 # Local files
 local/
 output/
+**-firebase-adminsdk-*.json
 
 # OS
 .DS_Store
