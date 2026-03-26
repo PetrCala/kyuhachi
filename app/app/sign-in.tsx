@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import auth from '@react-native-firebase/auth';
+import { colors, spacing, typography, radii } from '../src/theme';
 
 type Mode = 'sign-in' | 'create-account';
 
@@ -72,7 +73,7 @@ export default function SignIn() {
         <AppleAuthentication.AppleAuthenticationButton
           buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
           buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-          cornerRadius={8}
+          cornerRadius={radii.md}
           style={styles.appleButton}
           onPress={handleAppleSignIn}
         />
@@ -130,61 +131,61 @@ export default function SignIn() {
 const styles = StyleSheet.create({
   outer: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   container: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: spacing[8],
   },
   title: {
-    fontSize: 26,
-    fontWeight: '700',
+    fontSize: typography.sizes.xxl,
+    fontWeight: typography.weights.bold,
     textAlign: 'center',
-    marginBottom: 48,
+    marginBottom: spacing[12],
   },
   appleButton: {
     width: '100%',
-    height: 44,
+    height: 44, // Apple HIG minimum touch target
   },
   divider: {
     textAlign: 'center',
-    marginVertical: 20,
-    color: '#999',
-    fontSize: 14,
+    marginVertical: spacing[5],
+    color: colors.textPlaceholder,
+    fontSize: typography.sizes.sm,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 12,
-    fontSize: 16,
-    backgroundColor: '#fafafa',
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    marginBottom: spacing[3],
+    fontSize: typography.sizes.md,
+    backgroundColor: colors.backgroundElevated,
   },
   button: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 8,
-    paddingVertical: 14,
-    marginTop: 4,
-    marginBottom: 16,
+    backgroundColor: colors.actionPrimary,
+    borderRadius: radii.md,
+    paddingVertical: spacing[4],
+    marginTop: spacing[1],
+    marginBottom: spacing[4],
   },
   buttonDisabled: {
     opacity: 0.4,
   },
   buttonText: {
-    color: '#fff',
+    color: colors.actionPrimaryText,
     textAlign: 'center',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
   },
   toggle: {
-    paddingVertical: 8,
+    paddingVertical: spacing[2],
   },
   toggleText: {
     textAlign: 'center',
-    color: '#555',
-    fontSize: 14,
+    color: colors.textTertiary,
+    fontSize: typography.sizes.sm,
   },
 });

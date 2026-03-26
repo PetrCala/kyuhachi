@@ -1,6 +1,7 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import { useAuth } from '../src/context/AuthContext';
+import { colors, spacing, typography, radii } from '../src/theme';
 
 export default function Home() {
   const { user } = useAuth();
@@ -21,28 +22,28 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
-    padding: 24,
+    backgroundColor: colors.background,
+    padding: spacing[6],
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    marginBottom: 8,
+    fontSize: typography.sizes.xxxl,
+    fontWeight: typography.weights.bold,
+    marginBottom: spacing[2],
   },
   subtitle: {
-    fontSize: 14,
-    color: '#888',
-    marginBottom: 40,
+    fontSize: typography.sizes.sm,
+    color: colors.textMuted,
+    marginBottom: spacing[10],
   },
   signOut: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[2],
   },
   signOutText: {
-    fontSize: 14,
-    color: '#333',
+    fontSize: typography.sizes.sm,
+    color: colors.textSecondary,
   },
 });

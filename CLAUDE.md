@@ -106,6 +106,48 @@ Do not challenge these without explicit instruction.
 
 ---
 
+## Styling
+
+### Rules (enforceable)
+
+1. **No color literals outside `src/theme/colors.ts`.** Every color in a component file must come from `colors.*`. No hex codes, no `'white'`, no `'black'`.
+2. **No raw spacing numbers.** Every `padding`, `margin`, and `gap` must use `spacing[N]` from `src/theme/spacing.ts`.
+3. **No raw `fontSize` or `fontWeight` literals.** Use `typography.sizes.*` and `typography.weights.*`.
+4. **No raw `borderRadius` literals.** Use `radii.*` from `src/theme/radii.ts`.
+5. **Always use `StyleSheet.create()`.** Never pass inline style objects `style={{ ... }}` with literal values. The only exception is values that are genuinely computed at runtime (e.g. dynamic widths from layout events).
+6. **`StyleSheet.create()` goes at the bottom of the file**, after the component. Never declare it inside the component function body.
+7. **No component library.** Vanilla RN `StyleSheet` + theme tokens only. Do not add `@rneui`, `tamagui`, `gluestack`, `nativewind`, or any other UI or CSS-in-JS library.
+8. **Dark mode is deferred.** Do not add `useColorScheme()` or any light/dark branching in Phase 1–2.
+
+### Token location
+
+All tokens live in `app/src/theme/`:
+
+| File | Contents |
+|---|---|
+| `colors.ts` | Raw palette + semantic color aliases |
+| `spacing.ts` | Spacing scale (4pt base grid, keys 1–12) |
+| `typography.ts` | Font sizes (`sizes.*`) and weights (`weights.*`) |
+| `radii.ts` | Border radii (`sm` / `md` / `lg` / `xl` / `full`) |
+| `shadows.ts` | iOS shadow presets (`sm` / `md` / `lg`) |
+| `index.ts` | Barrel re-export |
+
+Import from screens and components:
+
+```typescript
+import { colors, spacing, typography, radii, shadows } from '../src/theme';
+```
+
+(Adjust the relative path depth as needed.)
+
+### Style organization
+
+- Each file owns its own `StyleSheet.create()`. Never share a stylesheet across files.
+- Style key names use camelCase, named by role: `container`, `title`, `primaryButton`, `inputField`.
+- Shadows are applied via spread: `style={[styles.card, shadows.md]}`.
+
+---
+
 ## Key files to read before implementing anything
 
 - `docs/implementation-plan.md` — full architecture plan
