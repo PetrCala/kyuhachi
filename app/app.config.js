@@ -28,6 +28,14 @@ module.exports = {
   plugins: [
     "expo-router",
     [
+      "expo-build-properties",
+      {
+        ios: {
+          useFrameworks: "static",
+        },
+      },
+    ],
+    [
       "@react-native-firebase/app",
       {
         ios: { googleServicesFile },
