@@ -1,4 +1,5 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
 import auth from '@react-native-firebase/auth';
 import { useAuth } from '../src/context/AuthContext';
 import { colors, spacing, typography, radii } from '../src/theme';
@@ -10,6 +11,9 @@ export default function Home() {
     <View style={styles.container}>
       <Text style={styles.title}>Kyuhachi</Text>
       <Text style={styles.subtitle}>{user?.email ?? user?.displayName ?? ''}</Text>
+      <Pressable style={styles.primaryButton} onPress={() => router.push('/onsens')}>
+        <Text style={styles.primaryButtonText}>温泉一覧</Text>
+      </Pressable>
       <Pressable style={styles.signOut} onPress={() => auth().signOut()}>
         <Text style={styles.signOutText}>Sign out</Text>
       </Pressable>
@@ -34,6 +38,18 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     color: colors.textMuted,
     marginBottom: spacing[10],
+  },
+  primaryButton: {
+    backgroundColor: colors.actionPrimary,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[3],
+    marginBottom: spacing[3],
+  },
+  primaryButtonText: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
+    color: colors.actionPrimaryText,
   },
   signOut: {
     borderWidth: 1,

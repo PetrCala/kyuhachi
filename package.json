@@ -4,5 +4,8 @@
 	"workspaces": [
 		"app",
 		"shared"
-	]
+	],
+	"devDependencies": {
+		"@types/react": "~19.2.2"
+	}
 }
