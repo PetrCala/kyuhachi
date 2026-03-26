@@ -27,7 +27,7 @@ module.exports = function withAllowNonModularIncludes(config) {
         `  ${MARKER}`,
         '  installer.pods_project.targets.each do |target|',
         '    target.build_configurations.each do |build_config|',
-        "      build_config.build_settings['ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'",
+        "      build_config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'",
         '    end',
         '  end',
       ].join('\n');
