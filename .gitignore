@@ -44,3 +44,6 @@ functions/node_modules/
 # Credentials (never commit)
 app/GoogleService-Info.plist
 app/google-services.json
+
+
+.claude/worktrees/
