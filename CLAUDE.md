@@ -33,7 +33,7 @@ Phase 0 is complete. Phase 1 scope:
 **Blocking before Phase 1 can start (data repo tasks):**
 
 - Assign stable `kyuhachiId` to all 144 onsens → `onsen_id_map.json`
-- Run initial Firestore publish (SQLite → Firestore dev)
+- Run initial Firestore publish (SQLite → Firestore)
 
 See full checklist in the implementation plan.
 

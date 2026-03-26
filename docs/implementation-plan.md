@@ -352,7 +352,7 @@ The challenge is: visit any 88 onsens from the official eligible pool. The pool 
 **Scope:**
 
 - Sign in with Apple + email/password auth screens
-- Onsen catalog published to Firestore dev (data repo: one-time Python publish from SQLite)
+- Onsen catalog published to Firestore (data repo: one-time Python publish from SQLite)
 - Onsen list screen (searchable by name)
 - Onsen detail screen (all metadata)
 - Interactive map with onsen markers + tap → detail
@@ -512,7 +512,7 @@ docs/specs/phase0-foundation.md
 ### First 10 tasks in order
 
 1. Archive Python code to `_archive/` (one commit)
-2. Create Firebase project (dev + prod), enable Firestore/Auth/Storage/Functions/App Check, upgrade to Blaze plan
+2. Create Firebase project, enable Firestore/Auth/Storage/Functions/App Check, upgrade to Blaze plan
 3. Initialize Expo app in `app/` (TypeScript, Expo Router, `@react-native-firebase` config plugin)
 4. Write all shared TypeScript types in `shared/src/types/` — this is blocking for everything else
 5. Write Firestore security rules + emulator tests — this is blocking for Phase 1 correctness
