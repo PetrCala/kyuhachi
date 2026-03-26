@@ -1,3 +1,5 @@
+<!-- Summary in docs/skills.md. Run /update-skills-docs after modifying this file. -->
+
 Read CLAUDE.md (specifically the ## Styling section), then audit every .tsx and .ts file in app/ for styling violations. Do not audit files inside app/node_modules/.
 
 Check for each of the following violations:

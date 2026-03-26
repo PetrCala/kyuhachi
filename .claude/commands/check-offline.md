@@ -1,3 +1,5 @@
+<!-- Summary in docs/skills.md. Run /update-skills-docs after modifying this file. -->
+
 Audit app/ for compliance with the offline-first requirement from CLAUDE.md.
 
 Read CLAUDE.md (the offline strategy section) and docs/implementation-plan.md (section 6: Offline/Data Sync Strategy) first.

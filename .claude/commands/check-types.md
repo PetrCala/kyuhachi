@@ -1,3 +1,5 @@
+<!-- Summary in docs/skills.md. Run /update-skills-docs after modifying this file. -->
+
 Enforce the rule from CLAUDE.md: "Do not write any code before the relevant types in shared/src/types/ exist."
 
 Read shared/src/types/ to understand what types currently exist.

@@ -150,6 +150,7 @@ import { colors, spacing, typography, radii, shadows } from '../src/theme';
 
 ## Key files to read before implementing anything
 
+- `docs/skills.md` — available slash commands for common tasks
 - `docs/implementation-plan.md` — full architecture plan
 - `docs/specs/firestore-data-model.md` — Firestore schema (write this in Phase 0)
 - `shared/src/types/` — all TypeScript types (write these in Phase 0)

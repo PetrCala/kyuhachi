@@ -1,3 +1,5 @@
+<!-- Summary in docs/skills.md. Run /update-skills-docs after modifying this file. -->
+
 Run a pre-PR audit for this branch against the rules in CLAUDE.md.
 
 First, identify what changed: run `git diff main...HEAD --name-only` to see the affected files. Read CLAUDE.md in full.

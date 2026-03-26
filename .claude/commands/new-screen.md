@@ -1,3 +1,5 @@
+<!-- Summary in docs/skills.md. Run /update-skills-docs after modifying this file. -->
+
 Create a new Expo Router screen at the file path given in $ARGUMENTS.
 
 Before creating the file:
