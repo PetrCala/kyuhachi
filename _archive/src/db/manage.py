@@ -72,7 +72,7 @@ def seed_from_json(url: str) -> None:
 
             if existing:
                 # Update seed fields only (don't overwrite scraped data)
-                existing.onsen_area_name = entry["onsenti"]
+                existing.onsen_area_name = entry["onsenchi"]
                 existing.facility_name = entry["shisetsu"]
                 existing.address = entry["address"]
                 existing.latitude = entry["lat"]
@@ -81,7 +81,7 @@ def seed_from_json(url: str) -> None:
             else:
                 onsen = Onsen(
                     id=onsen_id,
-                    onsen_area_name=entry["onsenti"],
+                    onsen_area_name=entry["onsenchi"],
                     facility_name=entry["shisetsu"],
                     address=entry["address"],
                     latitude=entry["lat"],
