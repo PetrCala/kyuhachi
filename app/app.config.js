@@ -44,6 +44,7 @@ module.exports = {
     "@react-native-firebase/auth",
     "@react-native-firebase/app-check",
     "expo-apple-authentication",
+    "./plugins/withAllowNonModularIncludes",
   ],
   experiments: {
     typedRoutes: true,
