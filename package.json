@@ -5,6 +5,9 @@
 		"app",
 		"shared"
 	],
+	"scripts": {
+		"deploy:functions": "firebase deploy --only functions"
+	},
 	"devDependencies": {
 		"@types/react": "~19.2.2"
 	}
