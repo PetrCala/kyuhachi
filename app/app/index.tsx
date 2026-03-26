@@ -14,6 +14,9 @@ export default function Home() {
       <Pressable style={styles.primaryButton} onPress={() => router.push('/onsens')}>
         <Text style={styles.primaryButtonText}>温泉一覧</Text>
       </Pressable>
+      <Pressable style={styles.primaryButton} onPress={() => router.push('/map')}>
+        <Text style={styles.primaryButtonText}>地図</Text>
+      </Pressable>
       <Pressable style={styles.signOut} onPress={() => auth().signOut()}>
         <Text style={styles.signOutText}>Sign out</Text>
       </Pressable>
