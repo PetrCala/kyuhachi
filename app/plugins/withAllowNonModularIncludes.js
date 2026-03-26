@@ -28,6 +28,9 @@ module.exports = function withAllowNonModularIncludes(config) {
         '  installer.pods_project.targets.each do |target|',
         '    target.build_configurations.each do |build_config|',
         "      build_config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'",
+        "      if target.name.include?('React-Core')",
+        "        build_config.build_settings['DEFINES_MODULE'] = 'NO'",
+        '      end',
         '    end',
         '  end',
       ].join('\n');
