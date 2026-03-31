@@ -26,6 +26,21 @@ const en = {
   'onsenList.emptySearch': 'No onsens matching "{{query}}"',
   'onsenList.emptyData': 'No onsen data',
 
+  // challenge
+  'challenge.startTitle': 'Start Your Challenge',
+  'challenge.startDescription':
+    'Visit 88 of the eligible hot springs across Kyushu to complete the challenge.',
+  'challenge.startButton': 'Start Challenge',
+  'challenge.startingButton': 'Starting...',
+  'challenge.defaultName': 'My Challenge',
+  'challenge.errorLoad': 'Failed to load challenge type',
+  'challenge.errorCreate': 'Failed to create challenge',
+
+  // home (challenge state)
+  'home.progress': '{{visited}}/{{total}}',
+  'home.noChallenge': 'No active challenge',
+  'home.startChallenge': 'Start Challenge',
+
   // onsen detail
   'onsenDetail.notFound': 'Onsen not found',
   'onsenDetail.archived': 'Archived',

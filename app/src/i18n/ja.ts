@@ -28,6 +28,21 @@ const ja: Record<keyof typeof en, string> = {
   'onsenList.emptySearch': '「{{query}}」に一致する温泉はありません',
   'onsenList.emptyData': '温泉データがありません',
 
+  // challenge
+  'challenge.startTitle': 'チャレンジを始めよう',
+  'challenge.startDescription':
+    '九州各地の対象温泉の中から88箇所を訪問して、チャレンジを達成しましょう。',
+  'challenge.startButton': 'チャレンジ開始',
+  'challenge.startingButton': '作成中...',
+  'challenge.defaultName': 'マイチャレンジ',
+  'challenge.errorLoad': 'チャレンジタイプの読み込みに失敗しました',
+  'challenge.errorCreate': 'チャレンジの作成に失敗しました',
+
+  // home (challenge state)
+  'home.progress': '{{visited}}/{{total}}',
+  'home.noChallenge': 'チャレンジ未開始',
+  'home.startChallenge': 'チャレンジ開始',
+
   // onsen detail
   'onsenDetail.notFound': '温泉が見つかりませんでした',
   'onsenDetail.archived': '廃止',
