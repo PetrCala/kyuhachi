@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Stack, router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import firestore from '@react-native-firebase/firestore';
 import type { OnsenDocument } from '@kyuhachi/shared';
@@ -17,6 +18,7 @@ const KYUSHU_REGION = {
 };
 
 export default function MapScreen() {
+  const { t } = useTranslation();
   const [onsens, setOnsens] = useState<OnsenRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -38,7 +40,7 @@ export default function MapScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: '地図', headerShown: true }} />
+      <Stack.Screen options={{ title: t('map.title'), headerShown: true }} />
       {loading ? (
         <View style={styles.centered}>
           <ActivityIndicator />

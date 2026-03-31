@@ -11,6 +11,8 @@ Check for each of the following violations:
 5. **Inline style literals** — any `style={{ ... }}` containing literal values (runtime-computed values and percentage strings like `'100%'` are acceptable exceptions)
 6. **StyleSheet inside component** — any `StyleSheet.create()` declared inside a component function body instead of at module level
 
+7. **Hardcoded user-facing strings** — any string literal used as button text, placeholder, title, label, or error message that is not wrapped in `t()` from `react-i18next`. Firestore data (onsen names, addresses) is exempt.
+
 For each violation found: print the file path, line number, the offending code, and the correct token to use as a fix.
 
 Then fix every violation. Do not change any logic, markup, or non-style code.

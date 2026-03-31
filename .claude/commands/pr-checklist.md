@@ -30,6 +30,11 @@ Then check each of the following. Report PASS, FAIL, or SKIP (if the check is no
 - [ ] No code assumes the catalog is loaded on first render
 - [ ] No operation that should work offline (catalog browse, viewing visits/challenges) requires network
 
+### Internationalization
+- [ ] Every new user-facing string uses `t('key')` from `useTranslation()` — no hardcoded labels, placeholders, titles, or error messages
+- [ ] New keys exist in both `app/src/i18n/en.ts` and `app/src/i18n/ja.ts`
+- [ ] Key names follow `screenName.keyRole` format
+
 ### Platform
 - [ ] No `Platform.OS === 'android'` blocks or Android-specific workarounds
 - [ ] No imports from `_archive/`

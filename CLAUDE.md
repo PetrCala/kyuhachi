@@ -148,6 +148,36 @@ import { colors, spacing, typography, radii, shadows } from '../src/theme';
 
 ---
 
+## Internationalization
+
+### i18n rules (enforceable)
+
+1. **No hardcoded user-facing strings in component files.** Every label, placeholder, title, button text, and error message must use `t('key')` from `useTranslation()`. The only exception is Firestore data (onsen names, addresses, etc.) which stays untranslated.
+2. **Every key must exist in both `en.ts` and `ja.ts`.** `ja.ts` is typed as `Record<keyof typeof en, string>` — a missing or extra key is a compile error.
+3. **Key naming:** `screenName.keyRole` format (e.g. `signIn.emailPlaceholder`, `onsenDetail.labelAddress`). Screen prefixes match the file name. Use `common.*` only for strings genuinely shared across 3+ screens.
+4. **No i18n abstractions beyond `useTranslation()`.** No wrapper hooks, no custom `<T>` component. Call `t()` directly.
+5. **Do not translate Firestore content.** Onsen data is in Japanese and displayed as-is.
+
+### Translation file location
+
+All translation files live in `app/src/i18n/`:
+
+| File | Contents |
+|---|---|
+| `en.ts` | English translations (fallback language) |
+| `ja.ts` | Japanese translations (typed as `typeof en`) |
+| `index.ts` | `i18next` config + `expo-localization` device detection |
+
+Import in screens:
+
+```typescript
+import { useTranslation } from 'react-i18next';
+// inside the component:
+const { t } = useTranslation();
+```
+
+---
+
 ## Key files to read before implementing anything
 
 - `docs/skills.md` — available slash commands for common tasks

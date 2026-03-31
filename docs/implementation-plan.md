@@ -370,6 +370,26 @@ The challenge is: visit any 88 onsens from the official eligible pool. The pool 
 
 ---
 
+### Phase 1.5: Localization
+
+**Scope:**
+
+- `i18next` + `react-i18next` + `expo-localization` setup
+- English and Japanese translation files for all existing UI strings
+- Retrofit all existing screens to use `t()` from `useTranslation()`
+- Device locale detection with English fallback
+
+**Non-goals:** Runtime language picker, per-screen lazy loading, Firestore content translation.
+
+**Acceptance criteria:**
+
+- Simulator set to Japanese: all UI chrome in Japanese
+- Simulator set to English: all UI chrome in English
+- Simulator set to any unsupported locale: falls back to English
+- TypeScript compile error if a key exists in `en.ts` but not `ja.ts` (or vice versa)
+
+---
+
 ### Phase 2: Challenges and Visits
 
 **Scope:**

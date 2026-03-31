@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import auth from '@react-native-firebase/auth';
 import { colors, spacing, typography, radii } from '../src/theme';
@@ -16,6 +17,7 @@ import { colors, spacing, typography, radii } from '../src/theme';
 type Mode = 'sign-in' | 'create-account';
 
 export default function SignIn() {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<Mode>('sign-in');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,7 +39,7 @@ export default function SignIn() {
       if (error instanceof Error && 'code' in error && (error as { code: string }).code === 'ERR_REQUEST_CANCELED') {
         return; // user dismissed the Apple sheet
       }
-      Alert.alert('Sign in failed', error instanceof Error ? error.message : 'Unknown error');
+      Alert.alert(t('signIn.alertFailedSignIn'), error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -53,7 +55,7 @@ export default function SignIn() {
         await auth().createUserWithEmailAndPassword(email.trim(), password);
       }
     } catch (error: unknown) {
-      const title = mode === 'sign-in' ? 'Sign in failed' : 'Account creation failed';
+      const title = mode === 'sign-in' ? t('signIn.alertFailedSignIn') : t('signIn.alertFailedCreate');
       Alert.alert(title, error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setLoading(false);
@@ -68,7 +70,7 @@ export default function SignIn() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.container}>
-        <Text style={styles.title}>九州八十八湯</Text>
+        <Text style={styles.title}>{t('signIn.title')}</Text>
 
         <AppleAuthentication.AppleAuthenticationButton
           buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
@@ -78,11 +80,11 @@ export default function SignIn() {
           onPress={handleAppleSignIn}
         />
 
-        <Text style={styles.divider}>or</Text>
+        <Text style={styles.divider}>{t('signIn.divider')}</Text>
 
         <TextInput
           style={styles.input}
-          placeholder="Email"
+          placeholder={t('signIn.emailPlaceholder')}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
@@ -93,7 +95,7 @@ export default function SignIn() {
         />
         <TextInput
           style={styles.input}
-          placeholder="Password"
+          placeholder={t('signIn.passwordPlaceholder')}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -108,7 +110,7 @@ export default function SignIn() {
           disabled={!canSubmit}
         >
           <Text style={styles.buttonText}>
-            {mode === 'sign-in' ? 'Sign in' : 'Create account'}
+            {mode === 'sign-in' ? t('signIn.submitSignIn') : t('signIn.submitCreate')}
           </Text>
         </Pressable>
 
@@ -119,8 +121,8 @@ export default function SignIn() {
         >
           <Text style={styles.toggleText}>
             {mode === 'sign-in'
-              ? "Don't have an account? Create one"
-              : 'Already have an account? Sign in'}
+              ? t('signIn.toggleToCreate')
+              : t('signIn.toggleToSignIn')}
           </Text>
         </Pressable>
       </View>

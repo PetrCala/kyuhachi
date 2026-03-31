@@ -14,6 +14,8 @@ The new file must:
 - Have a `StyleSheet.create()` at the bottom of the file (after the component), never inside the function body
 - Include a `container` style: `{ flex: 1, backgroundColor: colors.background }`
 - Contain no placeholder comments, no TODO comments, and no unused imports
+- Import `useTranslation` from `react-i18next`, call `const { t } = useTranslation()` at the top of the component, and use `t('screenName.key')` for all user-facing strings
+- Add all new translation keys to both `app/src/i18n/en.ts` and `app/src/i18n/ja.ts`
 - Follow strict TypeScript — no implicit `any`
 
 If the path contains a dynamic segment (e.g. `[id]`), read the relevant type from `shared/src/types/` and type the route params using `useLocalSearchParams<{ id: string }>()` from `expo-router`.

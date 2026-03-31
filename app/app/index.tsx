@@ -1,24 +1,26 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import auth from '@react-native-firebase/auth';
 import { useAuth } from '../src/context/AuthContext';
 import { colors, spacing, typography, radii } from '../src/theme';
 
 export default function Home() {
+  const { t } = useTranslation();
   const { user } = useAuth();
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Kyuhachi</Text>
+      <Text style={styles.title}>{t('home.title')}</Text>
       <Text style={styles.subtitle}>{user?.email ?? user?.displayName ?? ''}</Text>
       <Pressable style={styles.primaryButton} onPress={() => router.push('/onsens')}>
-        <Text style={styles.primaryButtonText}>温泉一覧</Text>
+        <Text style={styles.primaryButtonText}>{t('home.onsenList')}</Text>
       </Pressable>
       <Pressable style={styles.primaryButton} onPress={() => router.push('/map')}>
-        <Text style={styles.primaryButtonText}>地図</Text>
+        <Text style={styles.primaryButtonText}>{t('home.map')}</Text>
       </Pressable>
       <Pressable style={styles.signOut} onPress={() => auth().signOut()}>
-        <Text style={styles.signOutText}>Sign out</Text>
+        <Text style={styles.signOutText}>{t('home.signOut')}</Text>
       </Pressable>
     </View>
   );

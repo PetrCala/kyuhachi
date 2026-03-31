@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import firestore from '@react-native-firebase/firestore';
 import type { OnsenDocument } from '@kyuhachi/shared';
 import { COLLECTIONS } from '@kyuhachi/shared';
@@ -17,6 +18,7 @@ import { colors, spacing, typography, radii } from '../../src/theme';
 type OnsenRow = OnsenDocument & { id: string };
 
 export default function OnsenList() {
+  const { t } = useTranslation();
   const [onsens, setOnsens] = useState<OnsenRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -47,11 +49,11 @@ export default function OnsenList() {
 
   return (
     <>
-      <Stack.Screen options={{ title: '温泉一覧', headerShown: true }} />
+      <Stack.Screen options={{ title: t('onsenList.title'), headerShown: true }} />
       <View style={styles.container}>
         <TextInput
           style={styles.searchInput}
-          placeholder="温泉を検索…"
+          placeholder={t('onsenList.searchPlaceholder')}
           placeholderTextColor={colors.textPlaceholder}
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -81,8 +83,8 @@ export default function OnsenList() {
             ListEmptyComponent={
               <Text style={styles.empty}>
                 {searchQuery.trim()
-                  ? `「${searchQuery}」に一致する温泉はありません`
-                  : '温泉データがありません'}
+                  ? t('onsenList.emptySearch', { query: searchQuery })
+                  : t('onsenList.emptyData')}
               </Text>
             }
             contentContainerStyle={filtered.length === 0 && styles.emptyContainer}

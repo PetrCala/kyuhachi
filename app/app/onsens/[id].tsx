@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import firestore from '@react-native-firebase/firestore';
 import type { OnsenDocument } from '@kyuhachi/shared';
 import { COLLECTIONS } from '@kyuhachi/shared';
@@ -27,6 +28,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 }
 
 export default function OnsenDetail() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [onsen, setOnsen] = useState<OnsenWithId | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,7 +59,7 @@ export default function OnsenDetail() {
       <>
         <Stack.Screen options={{ title: '', headerShown: true }} />
         <View style={styles.centered}>
-          <Text style={styles.errorText}>温泉が見つかりませんでした</Text>
+          <Text style={styles.errorText}>{t('onsenDetail.notFound')}</Text>
         </View>
       </>
     );
@@ -82,18 +84,18 @@ export default function OnsenDetail() {
           </Text>
           {!onsen.isActive && (
             <View style={styles.archivedBadge}>
-              <Text style={styles.archivedText}>廃止</Text>
+              <Text style={styles.archivedText}>{t('onsenDetail.archived')}</Text>
             </View>
           )}
         </View>
 
         <View style={styles.section}>
-          <InfoRow label="住所" value={onsen.address} />
-          {onsen.phone && <InfoRow label="電話" value={onsen.phone} />}
-          {onsen.admissionFee && <InfoRow label="料金" value={onsen.admissionFee} />}
-          {onsen.springQuality && <InfoRow label="泉質" value={onsen.springQuality} />}
+          <InfoRow label={t('onsenDetail.labelAddress')} value={onsen.address} />
+          {onsen.phone && <InfoRow label={t('onsenDetail.labelPhone')} value={onsen.phone} />}
+          {onsen.admissionFee && <InfoRow label={t('onsenDetail.labelFee')} value={onsen.admissionFee} />}
+          {onsen.springQuality && <InfoRow label={t('onsenDetail.labelSpringQuality')} value={onsen.springQuality} />}
           {onsen.businessHours && (
-            <InfoRow label="営業時間" value={onsen.businessHours.raw} />
+            <InfoRow label={t('onsenDetail.labelHours')} value={onsen.businessHours.raw} />
           )}
         </View>
 
