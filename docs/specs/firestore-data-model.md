@@ -47,6 +47,7 @@ The onsen catalog. Written exclusively by the data repo's publish script via ser
 | `updatedAt` | `Timestamp` | Most recent publish timestamp |
 
 **Invariants:**
+
 - `kyuhachiId` never changes once assigned
 - Documents are never deleted; deprecated onsens get `isActive: false`
 - `lat` and `lng` are always present (required for map rendering)
@@ -152,9 +153,11 @@ A user's in-progress or completed challenge. A user may have multiple challenges
 | `createdAt` | `Timestamp` | — |
 
 **Derived (not stored):**
+
 - `visitCount` — derived client-side by counting visits in the subcollection where `onsenId ∈ snapshotEligibleOnsenIds`. Not stored on the challenge document. Re-evaluate if performance becomes a problem at hundreds of users.
 
 **Invariants:**
+
 - `snapshotEligibleOnsenIds` is written at creation and never mutated
 - `completedAt` is set by Function only, not by the client
 - At most one challenge per user should have `isDefault: true`
@@ -190,6 +193,7 @@ A single visit record within a challenge.
 `structuredData` fields beyond these four are not defined until Phase 2 implementation. Do not add fields speculatively.
 
 **Invariants:**
+
 - Document ID equals the `kyuhachiId` of the visited onsen — structural deduplication, no rules required
 - A visit document can be overwritten (user edits their visit); `createdAt` reflects first creation, `updatedAt` reflects last write
 - Visits to onsens not in `snapshotEligibleOnsenIds` are allowed (user may log any visit) but do not count toward challenge completion
@@ -214,6 +218,7 @@ A named ordered list of onsens representing a walking route. Independent from ch
 | `updatedAt` | `Timestamp` | — |
 
 **Invariants:**
+
 - Route plans do not affect challenge completion in any way
 - A challenge's `activePlanId` references a route plan but the relationship is cosmetic; changing or deleting a plan does not affect the challenge
 
@@ -239,7 +244,13 @@ The `photoUrl` field on the visit document stores the full download URL after up
 
 ## Indexes
 
-No composite indexes are required in Phase 1. The default single-field indexes are sufficient for all current query patterns. Add to `firebase/firestore.indexes.json` when composite queries are introduced.
+One composite index exists for the onsen catalog query:
+
+| Collection | Fields                                      | Query scope |
+|------------|---------------------------------------------|-------------|
+| `onsens`   | `isActive` ASC, `areaName` ASC, `name` ASC | COLLECTION  |
+
+Defined in `firebase/firestore.indexes.json`. Add new indexes there when composite queries are introduced.
 
 ---
 

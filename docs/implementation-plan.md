@@ -332,7 +332,7 @@ The challenge is: visit any 88 onsens from the official eligible pool. The pool 
 
 ## 7. Phased Implementation Plan
 
-### Phase 0: Foundation
+### Phase 0: Foundation ✅ Complete
 
 **Scope:** Repo cleanup, Expo init, Firebase setup, EAS, CI/CD, ADRs, types, rules.
 
@@ -347,11 +347,12 @@ The challenge is: visit any 88 onsens from the official eligible pool. The pool 
 
 ---
 
-### Phase 1: Catalog, Map, Auth
+### Phase 1: Catalog, Map, Auth ✅ Complete
 
 **Scope:**
 
 - Sign in with Apple + email/password auth screens
+- `onUserCreated` Function: create `/users/{uid}` document on first sign-in
 - Onsen catalog published to Firestore (data repo: one-time Python publish from SQLite)
 - Onsen list screen (searchable by name)
 - Onsen detail screen (all metadata)
@@ -370,7 +371,7 @@ The challenge is: visit any 88 onsens from the official eligible pool. The pool 
 
 ---
 
-### Phase 1.5: Localization
+### Phase 1.5: Localization ✅ Complete
 
 **Scope:**
 
@@ -390,7 +391,7 @@ The challenge is: visit any 88 onsens from the official eligible pool. The pool 
 
 ---
 
-### Phase 2: Challenges and Visits
+### Phase 2: Challenges and Visits 🔄 In progress
 
 **Scope:**
 
@@ -501,11 +502,15 @@ docs/specs/phase0-foundation.md
 
 5. **Audience:** Members of the public attempting the challenge. Expected: low tens to hundreds of users.
 
+### Resolved (Phase 2)
+
+6. **Visit deduplication:** One visit per onsen per challenge. Visit document ID = `kyuhachiId`, so writing a second visit overwrites the first. Only unique onsens count toward the 88. Implemented via structural deduplication (doc ID).
+
+7. **Structured visit fields:** Confirmed and implemented: `rating` (1–5), `waterTemp` (string), `duration` (minutes), `transportUsed` (boolean). All nullable. Defined in `shared/src/types/challenge.ts` as `VisitStructuredData`.
+
 ### Still unresolved
 
 - **Tier thresholds:** Exact conditions for gold/silver/bronze (visit count requirements, transport use limits, time windows). Must be decided before Phase 2 ships; the `challenge_types` document needs real values.
-- **Visit deduplication:** One visit per onsen per challenge assumed. Confirm: if a user visits the same onsen twice in the same challenge, does only the first visit count toward the 88? (Assumed yes — second visit overwrites/is ignored for completion purposes, but may still be recordable as a separate entry.)
-- **Structured visit fields:** Confirmed fields: rating (1–5), waterTemp (string), duration (minutes), transportUsed (boolean). Anything to add before types are written?
 
 ---
 
@@ -513,31 +518,31 @@ docs/specs/phase0-foundation.md
 
 ### Phase 0 checklist — this repo
 
-- [ ] Archive Python code: move `src/`, `scripts/`, `pyproject.toml`, `poetry.lock`, `data/`, `artifacts/`, `output/` to `_archive/`
-- [ ] Remove `onsens.json`, `onsens.csv` from repo root
-- [ ] `npx create-expo-app@latest app --template blank-typescript`
-- [ ] Configure `@react-native-firebase` via Expo config plugin
-- [ ] Configure Expo Router
-- [ ] Create `shared/` package with initial type stubs from Firestore model
-- [ ] Write `firebase/firestore.rules` (deny-all except auth reads on onsens)
-- [ ] Write `firebase/storage.rules`
-- [ ] Configure Firebase Emulator (`firebase.json`)
-- [ ] Write initial Firestore rules tests
-- [ ] Configure EAS (`eas.json`) with development/preview/production profiles
-- [ ] Write GitHub Actions: PR checks (lint, typecheck, rules tests)
-- [ ] Write GitHub Actions: merge to master → EAS preview → TestFlight
-- [ ] Write ADRs 001–006
-- [ ] Write `docs/specs/firestore-data-model.md`
+- [x] Archive Python code: move `src/`, `scripts/`, `pyproject.toml`, `poetry.lock`, `data/`, `artifacts/`, `output/` to `_archive/`
+- [x] Remove `onsens.json`, `onsens.csv` from repo root
+- [x] `npx create-expo-app@latest app --template blank-typescript`
+- [x] Configure `@react-native-firebase` via Expo config plugin
+- [x] Configure Expo Router
+- [x] Create `shared/` package with initial type stubs from Firestore model
+- [x] Write `firebase/firestore.rules` (deny-all except auth reads on onsens)
+- [x] Write `firebase/storage.rules`
+- [x] Configure Firebase Emulator (`firebase.json`)
+- [x] Write initial Firestore rules tests
+- [x] Configure EAS (`eas.json`) with development/preview/production profiles
+- [x] Write GitHub Actions: PR checks (lint, typecheck, rules tests)
+- [x] Write GitHub Actions: merge to master → EAS preview → TestFlight
+- [x] Write ADRs 001–006
+- [x] Write `docs/specs/firestore-data-model.md`
 
 ### First 10 tasks in order
 
-1. Archive Python code to `_archive/` (one commit)
-2. Create Firebase project, enable Firestore/Auth/Storage/Functions/App Check, upgrade to Blaze plan
-3. Initialize Expo app in `app/` (TypeScript, Expo Router, `@react-native-firebase` config plugin)
-4. Write all shared TypeScript types in `shared/src/types/` — this is blocking for everything else
-5. Write Firestore security rules + emulator tests — this is blocking for Phase 1 correctness
-6. Configure EAS Build dev profile; get working dev client on real iOS device
-7. Configure GitHub Actions (PR checks + TestFlight on merge)
-8. In data repo: assign stable `kyuhachiId` to all 144 onsens; generate `onsen_id_map.json`
-9. In data repo: write and run initial Firestore publish script (SQLite → Firestore dev)
-10. Implement Firebase Auth flow (Sign in with Apple + email/password; `onUserCreated` Function; auth gate)
+1. ~~Archive Python code to `_archive/` (one commit)~~ ✅
+2. ~~Create Firebase project, enable Firestore/Auth/Storage/Functions/App Check, upgrade to Blaze plan~~ ✅
+3. ~~Initialize Expo app in `app/` (TypeScript, Expo Router, `@react-native-firebase` config plugin)~~ ✅
+4. ~~Write all shared TypeScript types in `shared/src/types/` — this is blocking for everything else~~ ✅
+5. ~~Write Firestore security rules + emulator tests — this is blocking for Phase 1 correctness~~ ✅
+6. ~~Configure EAS Build dev profile; get working dev client on real iOS device~~ ✅
+7. ~~Configure GitHub Actions (PR checks + TestFlight on merge)~~ ✅
+8. ~~In data repo: assign stable `kyuhachiId` to all 144 onsens; generate `onsen_id_map.json`~~ ✅
+9. ~~In data repo: write and run initial Firestore publish script (SQLite → Firestore dev)~~ ✅
+10. ~~Implement Firebase Auth flow (Sign in with Apple + email/password; `onUserCreated` Function; auth gate)~~ ✅
