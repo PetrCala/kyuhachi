@@ -41,7 +41,12 @@ const en = {
   'home.noChallenge': 'No active challenge',
   'home.startChallenge': 'Start Challenge',
 
-  // onsen detail
+  // challenge progress
+  'challengeProgress.title': 'Challenge Progress',
+  'challengeProgress.visited': 'Visited',
+  'challengeProgress.notVisited': 'Not visited',
+
+  // onsen detail (visit)
   'onsenDetail.notFound': 'Onsen not found',
   'onsenDetail.archived': 'Archived',
   'onsenDetail.labelAddress': 'Address',
@@ -49,6 +54,8 @@ const en = {
   'onsenDetail.labelFee': 'Admission Fee',
   'onsenDetail.labelSpringQuality': 'Spring Quality',
   'onsenDetail.labelHours': 'Business Hours',
+  'onsenDetail.markVisited': 'Mark as Visited',
+  'onsenDetail.visited': 'Visited ✓',
 } as const;
 
 export default en;

@@ -43,7 +43,12 @@ const ja: Record<keyof typeof en, string> = {
   'home.noChallenge': 'チャレンジ未開始',
   'home.startChallenge': 'チャレンジ開始',
 
-  // onsen detail
+  // challenge progress
+  'challengeProgress.title': 'チャレンジ進捗',
+  'challengeProgress.visited': '訪問済み',
+  'challengeProgress.notVisited': '未訪問',
+
+  // onsen detail (visit)
   'onsenDetail.notFound': '温泉が見つかりませんでした',
   'onsenDetail.archived': '廃止',
   'onsenDetail.labelAddress': '住所',
@@ -51,6 +56,8 @@ const ja: Record<keyof typeof en, string> = {
   'onsenDetail.labelFee': '料金',
   'onsenDetail.labelSpringQuality': '泉質',
   'onsenDetail.labelHours': '営業時間',
+  'onsenDetail.markVisited': '訪問済みにする',
+  'onsenDetail.visited': '訪問済み ✓',
 } as const;
 
 export default ja;

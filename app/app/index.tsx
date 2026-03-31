@@ -118,12 +118,15 @@ export default function Home() {
       <Text style={styles.subtitle}>{user?.email ?? user?.displayName ?? ''}</Text>
 
       {hasChallenge === true && (
-        <View style={styles.challengeSection}>
+        <Pressable
+          style={styles.challengeSection}
+          onPress={() => router.push('/challenge')}
+        >
           <Text style={styles.challengeName}>{challengeName}</Text>
           <Text style={styles.progress}>
             {t('home.progress', { visited: visitCount, total: completionCount })}
           </Text>
-        </View>
+        </Pressable>
       )}
 
       {hasChallenge === false && (

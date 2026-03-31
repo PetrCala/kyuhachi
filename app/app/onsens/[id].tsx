@@ -8,12 +8,14 @@ import {
   StyleSheet,
   Linking,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import firestore from '@react-native-firebase/firestore';
-import type { OnsenDocument } from '@kyuhachi/shared';
-import { COLLECTIONS } from '@kyuhachi/shared';
+import type { OnsenDocument, UserDocument } from '@kyuhachi/shared';
+import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
+import { useAuth } from '../../src/context/AuthContext';
 import { colors, spacing, typography, radii } from '../../src/theme';
 
 type OnsenWithId = OnsenDocument & { id: string };
@@ -29,10 +31,15 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 
 export default function OnsenDetail() {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [onsen, setOnsen] = useState<OnsenWithId | null>(null);
   const [loading, setLoading] = useState(true);
+  const [challengeId, setChallengeId] = useState<string | null>(null);
+  const [isVisited, setIsVisited] = useState(false);
+  const [marking, setMarking] = useState(false);
 
+  // Listen to onsen document
   useEffect(() => {
     if (!id) return;
     const unsubscribe = firestore()
@@ -43,14 +50,84 @@ export default function OnsenDetail() {
           setOnsen(doc.exists() ? { id: doc.id, ...(doc.data() as OnsenDocument) } : null);
           setLoading(false);
         },
-        (error) => {
-          console.error('Failed to subscribe to onsen detail', error);
+        () => {
           setOnsen(null);
           setLoading(false);
         }
       );
     return unsubscribe;
   }, [id]);
+
+  // Listen to user's default challenge and visit state
+  useEffect(() => {
+    if (!user || !id) return;
+
+    let unsubVisit: (() => void) | null = null;
+
+    const unsubUser = firestore()
+      .collection(COLLECTIONS.USERS)
+      .doc(user.uid)
+      .onSnapshot((doc) => {
+        const data = doc.data() as UserDocument | undefined;
+        const defChallengeId = data?.defaultChallengeId ?? null;
+        setChallengeId(defChallengeId);
+
+        unsubVisit?.();
+        unsubVisit = null;
+
+        if (!defChallengeId) {
+          setIsVisited(false);
+          return;
+        }
+
+        unsubVisit = firestore()
+          .collection(COLLECTIONS.USERS)
+          .doc(user.uid)
+          .collection(SUBCOLLECTIONS.CHALLENGES)
+          .doc(defChallengeId)
+          .collection(SUBCOLLECTIONS.VISITS)
+          .doc(id)
+          .onSnapshot((visitDoc) => {
+            setIsVisited(visitDoc.exists());
+          });
+      });
+
+    return () => {
+      unsubVisit?.();
+      unsubUser();
+    };
+  }, [user, id]);
+
+  async function handleMarkVisited() {
+    if (!user || !challengeId || !id) return;
+    setMarking(true);
+    try {
+      await firestore()
+        .collection(COLLECTIONS.USERS)
+        .doc(user.uid)
+        .collection(SUBCOLLECTIONS.CHALLENGES)
+        .doc(challengeId)
+        .collection(SUBCOLLECTIONS.VISITS)
+        .doc(id)
+        .set({
+          visitedAt: firestore.FieldValue.serverTimestamp(),
+          notes: null,
+          photoUrl: null,
+          structuredData: {
+            rating: null,
+            waterTemp: null,
+            duration: null,
+            transportUsed: null,
+          },
+          createdAt: firestore.FieldValue.serverTimestamp(),
+          updatedAt: firestore.FieldValue.serverTimestamp(),
+        });
+    } catch (error) {
+      Alert.alert('Error', error instanceof Error ? error.message : '');
+    } finally {
+      setMarking(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -111,6 +188,24 @@ export default function OnsenDetail() {
             <Pressable onPress={() => Linking.openURL(onsen.websiteUrl!)}>
               <Text style={styles.websiteLink}>{onsen.websiteUrl}</Text>
             </Pressable>
+          </View>
+        )}
+
+        {challengeId && (
+          <View style={styles.visitSection}>
+            {isVisited ? (
+              <View style={styles.visitedBadge}>
+                <Text style={styles.visitedText}>{t('onsenDetail.visited')}</Text>
+              </View>
+            ) : (
+              <Pressable
+                style={[styles.visitButton, marking && styles.visitButtonDisabled]}
+                onPress={handleMarkVisited}
+                disabled={marking}
+              >
+                <Text style={styles.visitButtonText}>{t('onsenDetail.markVisited')}</Text>
+              </Pressable>
+            )}
           </View>
         )}
       </ScrollView>
@@ -197,5 +292,35 @@ const styles = StyleSheet.create({
     color: colors.actionPrimary,
     textDecorationLine: 'underline',
     paddingVertical: spacing[2],
+  },
+  visitSection: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[6],
+    alignItems: 'center',
+  },
+  visitButton: {
+    backgroundColor: colors.actionPrimary,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing[8],
+    paddingVertical: spacing[4],
+  },
+  visitButtonDisabled: {
+    opacity: 0.4,
+  },
+  visitButtonText: {
+    color: colors.actionPrimaryText,
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
+  },
+  visitedBadge: {
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[3],
+  },
+  visitedText: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.medium,
+    color: colors.textTertiary,
   },
 });
