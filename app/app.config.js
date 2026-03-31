@@ -47,9 +47,9 @@ module.exports = {
     "./plugins/withAllowNonModularIncludes",
     "react-native-maps",
   ],
-  experiments: {
-    typedRoutes: true,
-  },
+  // Expo Router typed route generation breaks in this npm workspace layout:
+  // Expo CLI resolves from the repo root, but expo-router is nested under
+  // app/node_modules, so the generator cannot resolve expo-router/_ctx-shared.
   extra: {
     router: {},
     eas: {
