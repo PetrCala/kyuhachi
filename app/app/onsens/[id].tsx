@@ -38,10 +38,17 @@ export default function OnsenDetail() {
     const unsubscribe = firestore()
       .collection(COLLECTIONS.ONSENS)
       .doc(id)
-      .onSnapshot((doc) => {
-        setOnsen(doc.exists() ? { id: doc.id, ...(doc.data() as OnsenDocument) } : null);
-        setLoading(false);
-      });
+      .onSnapshot(
+        (doc) => {
+          setOnsen(doc.exists() ? { id: doc.id, ...(doc.data() as OnsenDocument) } : null);
+          setLoading(false);
+        },
+        (error) => {
+          console.error('Failed to subscribe to onsen detail', error);
+          setOnsen(null);
+          setLoading(false);
+        }
+      );
     return unsubscribe;
   }, [id]);
 

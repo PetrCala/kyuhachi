@@ -33,50 +33,78 @@ export default function Home() {
     const unsubUser = firestore()
       .collection(COLLECTIONS.USERS)
       .doc(user.uid)
-      .onSnapshot((doc) => {
-        const data = doc.data() as UserDocument | undefined;
-        const challengeId = data?.defaultChallengeId ?? null;
+      .onSnapshot(
+        (doc) => {
+          const data = doc.data() as UserDocument | undefined;
+          const challengeId = data?.defaultChallengeId ?? null;
 
-        cleanupInner();
+          cleanupInner();
 
-        if (!challengeId) {
-          setHasChallenge(false);
+          if (!challengeId) {
+            setHasChallenge(false);
+            setChallengeName(null);
+            setVisitCount(0);
+            return;
+          }
+
+          setHasChallenge(true);
+
+          unsubChallenge = firestore()
+            .collection(COLLECTIONS.USERS)
+            .doc(user.uid)
+            .collection(SUBCOLLECTIONS.CHALLENGES)
+            .doc(challengeId)
+            .onSnapshot(
+              (challengeDoc) => {
+                if (!challengeDoc.exists()) {
+                  setChallengeName(null);
+                  setVisitCount(0);
+                  return;
+                }
+
+                const challenge = challengeDoc.data() as ChallengeDocument;
+                setChallengeName(challenge.name);
+                setCompletionCount(
+                  challenge.snapshotEligibleOnsenIds.length >= 88
+                    ? 88
+                    : challenge.snapshotEligibleOnsenIds.length
+                );
+
+                unsubVisits?.();
+                unsubVisits = firestore()
+                  .collection(COLLECTIONS.USERS)
+                  .doc(user.uid)
+                  .collection(SUBCOLLECTIONS.CHALLENGES)
+                  .doc(challengeId)
+                  .collection(SUBCOLLECTIONS.VISITS)
+                  .onSnapshot(
+                    (visitsSnap) => {
+                      const eligibleSet = new Set(challenge.snapshotEligibleOnsenIds);
+                      const eligible = visitsSnap.docs.filter((d) => eligibleSet.has(d.id));
+                      setVisitCount(eligible.length);
+                    },
+                    (error) => {
+                      console.error('Failed to subscribe to challenge visits', error);
+                      setVisitCount(0);
+                    }
+                  );
+              },
+              (error) => {
+                console.error('Failed to subscribe to default challenge', error);
+                setChallengeName(null);
+                setVisitCount(0);
+                setHasChallenge(null);
+              }
+            );
+        },
+        (error) => {
+          console.error('Failed to subscribe to user profile', error);
+          cleanupInner();
+          setHasChallenge(null);
           setChallengeName(null);
           setVisitCount(0);
-          return;
         }
-
-        setHasChallenge(true);
-
-        unsubChallenge = firestore()
-          .collection(COLLECTIONS.USERS)
-          .doc(user.uid)
-          .collection(SUBCOLLECTIONS.CHALLENGES)
-          .doc(challengeId)
-          .onSnapshot((challengeDoc) => {
-            if (!challengeDoc.exists()) return;
-            const challenge = challengeDoc.data() as ChallengeDocument;
-            setChallengeName(challenge.name);
-            setCompletionCount(
-              challenge.snapshotEligibleOnsenIds.length >= 88
-                ? 88
-                : challenge.snapshotEligibleOnsenIds.length
-            );
-
-            unsubVisits?.();
-            unsubVisits = firestore()
-              .collection(COLLECTIONS.USERS)
-              .doc(user.uid)
-              .collection(SUBCOLLECTIONS.CHALLENGES)
-              .doc(challengeId)
-              .collection(SUBCOLLECTIONS.VISITS)
-              .onSnapshot((visitsSnap) => {
-                const eligibleSet = new Set(challenge.snapshotEligibleOnsenIds);
-                const eligible = visitsSnap.docs.filter((d) => eligibleSet.has(d.id));
-                setVisitCount(eligible.length);
-              });
-          });
-      });
+      );
 
     return () => {
       cleanupInner();
