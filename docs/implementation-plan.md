@@ -391,7 +391,7 @@ The challenge is: visit any 88 onsens from the official eligible pool. The pool 
 
 ---
 
-### Phase 2: Challenges and Visits 🔄 In progress
+### Phase 2: Challenges and Visits ✅ Complete
 
 **Scope:**
 
