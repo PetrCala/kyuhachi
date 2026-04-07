@@ -39,6 +39,7 @@ export default function ChallengeProgress() {
   const [visitedIds, setVisitedIds] = useState<Set<string>>(new Set());
   const [visits, setVisits] = useState<Map<string, VisitDocument>>(new Map());
   const [tiers, setTiers] = useState<Tier[]>([]);
+  const [completionCount, setCompletionCount] = useState<number | null>(null);
   const [onsenMap, setOnsenMap] = useState<Map<string, { name: string; areaName: string }>>(
     new Map()
   );
@@ -118,16 +119,21 @@ export default function ChallengeProgress() {
   useEffect(() => {
     if (!challenge) {
       setTiers([]);
+      setCompletionCount(null);
       return;
     }
     const unsub = firestore()
       .collection(COLLECTIONS.CHALLENGE_TYPES)
       .doc(challenge.typeId)
       .onSnapshot((doc) => {
-        if (doc.exists()) {
-          const data = doc.data() as ChallengeTypeDocument;
-          setTiers(data.tiers ?? []);
+        if (!doc.exists()) {
+          setTiers([]);
+          setCompletionCount(null);
+          return;
         }
+        const data = doc.data() as ChallengeTypeDocument;
+        setTiers(data.tiers ?? []);
+        setCompletionCount(data.completionCount);
       });
     return unsub;
   }, [challenge?.typeId]);
@@ -283,12 +289,20 @@ export default function ChallengeProgress() {
       <View style={styles.container}>
         <View style={styles.headerSection}>
           <Text style={styles.challengeName}>{challenge.name}</Text>
-          <Text style={styles.progress}>
-            {t('home.progress', {
-              visited: eligibleVisitCount,
-              total: 88,
-            })}
-          </Text>
+          {completionCount !== null && (
+            <Text style={styles.progress}>
+              {t('home.progress', {
+                visited: eligibleVisitCount,
+                total: completionCount,
+              })}
+            </Text>
+          )}
+          <Pressable
+            style={styles.rulesButton}
+            onPress={() => router.push('/challenge/rules')}
+          >
+            <Text style={styles.rulesButtonText}>{t('challengeRules.title')}</Text>
+          </Pressable>
         </View>
 
         {tiers.length > 0 && (
@@ -415,6 +429,18 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.xxxl,
     fontWeight: typography.weights.bold,
     color: colors.textPrimary,
+  },
+  rulesButton: {
+    marginTop: spacing[3],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: radii.full,
+  },
+  rulesButtonText: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    color: colors.textSecondary,
   },
   tierSection: {
     paddingHorizontal: spacing[4],
