@@ -50,6 +50,9 @@ const ja: Record<keyof typeof en, string> = {
   'challengeProgress.tiers': '称号',
   'challengeProgress.tierEligible': '達成',
   'challengeProgress.tierNotEligible': '未達成',
+  'challengeProgress.claimTier': '{{tier}}を申請',
+  'challengeProgress.claimedTier': '取得済み: {{tier}}',
+  'challengeProgress.upgradeTier': '{{tier}}にアップグレード',
 
   // onsen detail (visit)
   'onsenDetail.notFound': '温泉が見つかりませんでした',

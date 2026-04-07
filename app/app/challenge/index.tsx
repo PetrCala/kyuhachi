@@ -6,6 +6,7 @@ import {
   Pressable,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -33,6 +34,7 @@ interface OnsenRow {
 export default function ChallengeProgress() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const [challengeId, setChallengeId] = useState<string | null>(null);
   const [challenge, setChallenge] = useState<ChallengeDocument | null>(null);
   const [visitedIds, setVisitedIds] = useState<Set<string>>(new Set());
   const [visits, setVisits] = useState<Map<string, VisitDocument>>(new Map());
@@ -61,11 +63,12 @@ export default function ChallengeProgress() {
       .doc(user.uid)
       .onSnapshot((doc) => {
         const data = doc.data() as UserDocument | undefined;
-        const challengeId = data?.defaultChallengeId ?? null;
+        const defChallengeId = data?.defaultChallengeId ?? null;
+        setChallengeId(defChallengeId);
 
         cleanupInner();
 
-        if (!challengeId) {
+        if (!defChallengeId) {
           setChallenge(null);
           setLoading(false);
           return;
@@ -75,7 +78,7 @@ export default function ChallengeProgress() {
           .collection(COLLECTIONS.USERS)
           .doc(user.uid)
           .collection(SUBCOLLECTIONS.CHALLENGES)
-          .doc(challengeId)
+          .doc(defChallengeId)
           .onSnapshot((challengeDoc) => {
             if (!challengeDoc.exists()) {
               setChallenge(null);
@@ -91,7 +94,7 @@ export default function ChallengeProgress() {
               .collection(COLLECTIONS.USERS)
               .doc(user.uid)
               .collection(SUBCOLLECTIONS.CHALLENGES)
-              .doc(challengeId)
+              .doc(defChallengeId)
               .collection(SUBCOLLECTIONS.VISITS)
               .onSnapshot((visitsSnap) => {
                 setVisitedIds(new Set(visitsSnap.docs.map((d) => d.id)));
@@ -224,6 +227,36 @@ export default function ChallengeProgress() {
     });
   }
 
+  // Tiers are ordered best → worst; first eligible is the highest
+  const highestEligibleTier = useMemo(() => {
+    return tiers.find((tier) => isTierEligible(tier)) ?? null;
+  }, [tiers, eligibleVisitCount, transportUseCount, daysSinceStart]);
+
+  const canUpgrade = useMemo(() => {
+    if (!challenge?.claimedTier || !highestEligibleTier) return false;
+    const claimedIndex = tiers.findIndex((t) => t.id === challenge.claimedTier);
+    const highestIndex = tiers.findIndex((t) => t.id === highestEligibleTier.id);
+    // Lower index = better tier (ordered best → worst)
+    return highestIndex < claimedIndex;
+  }, [challenge?.claimedTier, highestEligibleTier, tiers]);
+
+  async function handleClaimTier(tierId: string) {
+    if (!user || !challengeId) return;
+    try {
+      await firestore()
+        .collection(COLLECTIONS.USERS)
+        .doc(user.uid)
+        .collection(SUBCOLLECTIONS.CHALLENGES)
+        .doc(challengeId)
+        .update({
+          claimedTier: tierId,
+          updatedAt: firestore.FieldValue.serverTimestamp(),
+        });
+    } catch (error) {
+      Alert.alert('Error', error instanceof Error ? error.message : '');
+    }
+  }
+
   if (loading) {
     return (
       <>
@@ -281,6 +314,49 @@ export default function ChallengeProgress() {
                 </View>
               );
             })}
+          </View>
+        )}
+
+        {tiers.length > 0 && challenge.claimedTier && !canUpgrade && (
+          <View style={styles.claimSection}>
+            <View style={styles.claimedBadge}>
+              <Text style={styles.claimedBadgeText}>
+                {t('challengeProgress.claimedTier', {
+                  tier: tiers.find((t) => t.id === challenge.claimedTier)?.name ?? challenge.claimedTier,
+                })}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {highestEligibleTier && !challenge.claimedTier && (
+          <View style={styles.claimSection}>
+            <Pressable
+              style={styles.claimButton}
+              onPress={() => handleClaimTier(highestEligibleTier.id)}
+            >
+              <Text style={styles.claimButtonText}>
+                {t('challengeProgress.claimTier', { tier: highestEligibleTier.name })}
+              </Text>
+            </Pressable>
+          </View>
+        )}
+
+        {highestEligibleTier && canUpgrade && (
+          <View style={styles.claimSection}>
+            <Text style={styles.claimedCurrentText}>
+              {t('challengeProgress.claimedTier', {
+                tier: tiers.find((t) => t.id === challenge.claimedTier)?.name ?? challenge.claimedTier,
+              })}
+            </Text>
+            <Pressable
+              style={styles.claimButton}
+              onPress={() => handleClaimTier(highestEligibleTier.id)}
+            >
+              <Text style={styles.claimButtonText}>
+                {t('challengeProgress.upgradeTier', { tier: highestEligibleTier.name })}
+              </Text>
+            </Pressable>
           </View>
         )}
 
@@ -384,6 +460,40 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.medium,
     color: colors.textPlaceholder,
     marginLeft: spacing[2],
+  },
+  claimSection: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.separator,
+    alignItems: 'center',
+  },
+  claimedBadge: {
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+  },
+  claimedBadgeText: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
+    color: colors.actionPrimary,
+  },
+  claimedCurrentText: {
+    fontSize: typography.sizes.sm,
+    color: colors.textMuted,
+    marginBottom: spacing[2],
+  },
+  claimButton: {
+    backgroundColor: colors.actionPrimary,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[3],
+  },
+  claimButtonText: {
+    color: colors.actionPrimaryText,
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
   },
   row: {
     flexDirection: 'row',

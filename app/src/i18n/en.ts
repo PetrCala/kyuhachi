@@ -48,6 +48,9 @@ const en = {
   'challengeProgress.tiers': 'Tiers',
   'challengeProgress.tierEligible': 'Eligible',
   'challengeProgress.tierNotEligible': 'Not yet',
+  'challengeProgress.claimTier': 'Claim {{tier}}',
+  'challengeProgress.claimedTier': 'Claimed: {{tier}}',
+  'challengeProgress.upgradeTier': 'Upgrade to {{tier}}',
 
   // onsen detail (visit)
   'onsenDetail.notFound': 'Onsen not found',
