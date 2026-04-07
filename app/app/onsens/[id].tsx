@@ -11,10 +11,13 @@ import {
   Alert,
   TextInput,
   Switch,
+  ActionSheetIOS,
 } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import firestore from '@react-native-firebase/firestore';
+import storage from '@react-native-firebase/storage';
+import * as ImagePicker from 'expo-image-picker';
 import type { OnsenDocument, UserDocument, VisitDocument } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
 import { useAuth } from '../../src/context/AuthContext';
@@ -41,6 +44,7 @@ export default function OnsenDetail() {
   const [visitData, setVisitData] = useState<VisitDocument | null>(null);
   const [marking, setMarking] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   // Form state for visit editing
   const [notes, setNotes] = useState('');
@@ -177,6 +181,51 @@ export default function OnsenDetail() {
     }
   }
 
+  async function uploadPhoto(uri: string) {
+    if (!user || !challengeId || !id) return;
+    setUploading(true);
+    try {
+      const ref = storage().ref(`visits/${user.uid}/${challengeId}_${id}/photo.jpg`);
+      await ref.putFile(uri);
+      const downloadUrl = await ref.getDownloadURL();
+      await firestore()
+        .collection(COLLECTIONS.USERS)
+        .doc(user.uid)
+        .collection(SUBCOLLECTIONS.CHALLENGES)
+        .doc(challengeId)
+        .collection(SUBCOLLECTIONS.VISITS)
+        .doc(id)
+        .update({
+          photoUrl: downloadUrl,
+          updatedAt: firestore.FieldValue.serverTimestamp(),
+        });
+    } catch (error) {
+      Alert.alert('Error', error instanceof Error ? error.message : '');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function handleAddPhoto() {
+    ActionSheetIOS.showActionSheetWithOptions(
+      {
+        options: [t('onsenDetail.cancel'), t('onsenDetail.takePhoto'), t('onsenDetail.chooseFromLibrary')],
+        cancelButtonIndex: 0,
+      },
+      async (buttonIndex) => {
+        let result: ImagePicker.ImagePickerResult | null = null;
+        if (buttonIndex === 1) {
+          result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.7 });
+        } else if (buttonIndex === 2) {
+          result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 });
+        }
+        if (result && !result.canceled && result.assets[0]) {
+          uploadPhoto(result.assets[0].uri);
+        }
+      },
+    );
+  }
+
   if (loading) {
     return (
       <>
@@ -254,6 +303,24 @@ export default function OnsenDetail() {
         {challengeId && visitData && (
           <View style={styles.visitDetailSection}>
             <Text style={styles.visitedHeader}>{t('onsenDetail.visited')}</Text>
+
+            {visitData.photoUrl && (
+              <Image
+                source={{ uri: visitData.photoUrl }}
+                style={styles.visitPhoto}
+                resizeMode="cover"
+              />
+            )}
+            {uploading ? (
+              <View style={styles.uploadingRow}>
+                <ActivityIndicator size="small" color={colors.actionPrimary} />
+                <Text style={styles.uploadingText}>{t('onsenDetail.uploading')}</Text>
+              </View>
+            ) : (
+              <Pressable style={styles.addPhotoButton} onPress={handleAddPhoto}>
+                <Text style={styles.addPhotoText}>{t('onsenDetail.addPhoto')}</Text>
+              </Pressable>
+            )}
 
             <Text style={styles.fieldLabel}>{t('onsenDetail.labelRating')}</Text>
             <View style={styles.starRow}>
@@ -426,6 +493,39 @@ const styles = StyleSheet.create({
   visitDetailSection: {
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[4],
+  },
+  visitPhoto: {
+    width: '100%',
+    height: 200,
+    borderRadius: radii.md,
+    marginBottom: spacing[3],
+    backgroundColor: colors.backgroundSecondary,
+  },
+  addPhotoButton: {
+    borderWidth: 1,
+    borderColor: colors.separator,
+    borderRadius: radii.md,
+    borderStyle: 'dashed',
+    paddingVertical: spacing[3],
+    alignItems: 'center',
+    marginBottom: spacing[3],
+  },
+  addPhotoText: {
+    fontSize: typography.sizes.sm,
+    color: colors.actionPrimary,
+    fontWeight: typography.weights.medium,
+  },
+  uploadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[2],
+    paddingVertical: spacing[3],
+    marginBottom: spacing[3],
+  },
+  uploadingText: {
+    fontSize: typography.sizes.sm,
+    color: colors.textMuted,
   },
   visitedHeader: {
     fontSize: typography.sizes.lg,

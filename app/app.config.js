@@ -46,6 +46,13 @@ module.exports = {
     "expo-apple-authentication",
     "./plugins/withAllowNonModularIncludes",
     "react-native-maps",
+    [
+      "expo-image-picker",
+      {
+        "cameraPermission": "Allow Kyuhachi to access your camera to take visit photos.",
+        "photosPermission": "Allow Kyuhachi to access your photos to add visit photos."
+      }
+    ],
   ],
   // Expo Router typed route generation breaks in this npm workspace layout:
   // Expo CLI resolves from the repo root, but expo-router is nested under

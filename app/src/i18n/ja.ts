@@ -68,6 +68,11 @@ const ja: Record<keyof typeof en, string> = {
   'onsenDetail.notesPlaceholder': '訪問の感想を書きましょう',
   'onsenDetail.waterTempPlaceholder': '例: 42°C',
   'onsenDetail.durationPlaceholder': '分',
+  'onsenDetail.addPhoto': '写真を追加',
+  'onsenDetail.takePhoto': '写真を撮る',
+  'onsenDetail.chooseFromLibrary': 'ライブラリから選択',
+  'onsenDetail.uploading': 'アップロード中...',
+  'onsenDetail.cancel': 'キャンセル',
 } as const;
 
 export default ja;

@@ -66,6 +66,11 @@ const en = {
   'onsenDetail.notesPlaceholder': 'How was your visit?',
   'onsenDetail.waterTempPlaceholder': 'e.g. 42°C',
   'onsenDetail.durationPlaceholder': 'minutes',
+  'onsenDetail.addPhoto': 'Add Photo',
+  'onsenDetail.takePhoto': 'Take Photo',
+  'onsenDetail.chooseFromLibrary': 'Choose from Library',
+  'onsenDetail.uploading': 'Uploading...',
+  'onsenDetail.cancel': 'Cancel',
 } as const;
 
 export default en;
