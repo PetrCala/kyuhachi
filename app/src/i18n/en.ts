@@ -45,6 +45,9 @@ const en = {
   'challengeProgress.title': 'Challenge Progress',
   'challengeProgress.visited': 'Visited',
   'challengeProgress.notVisited': 'Not visited',
+  'challengeProgress.tiers': 'Tiers',
+  'challengeProgress.tierEligible': 'Eligible',
+  'challengeProgress.tierNotEligible': 'Not yet',
 
   // onsen detail (visit)
   'onsenDetail.notFound': 'Onsen not found',

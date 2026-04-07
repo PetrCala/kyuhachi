@@ -10,7 +10,15 @@ import {
 import { Stack, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import firestore from '@react-native-firebase/firestore';
-import type { UserDocument, ChallengeDocument, OnsenDocument } from '@kyuhachi/shared';
+import type {
+  UserDocument,
+  ChallengeDocument,
+  ChallengeTypeDocument,
+  OnsenDocument,
+  Tier,
+  TierCondition,
+  VisitDocument,
+} from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
 import { useAuth } from '../../src/context/AuthContext';
 import { colors, spacing, typography, radii } from '../../src/theme';
@@ -27,6 +35,8 @@ export default function ChallengeProgress() {
   const { user } = useAuth();
   const [challenge, setChallenge] = useState<ChallengeDocument | null>(null);
   const [visitedIds, setVisitedIds] = useState<Set<string>>(new Set());
+  const [visits, setVisits] = useState<Map<string, VisitDocument>>(new Map());
+  const [tiers, setTiers] = useState<Tier[]>([]);
   const [onsenMap, setOnsenMap] = useState<Map<string, { name: string; areaName: string }>>(
     new Map()
   );
@@ -85,6 +95,11 @@ export default function ChallengeProgress() {
               .collection(SUBCOLLECTIONS.VISITS)
               .onSnapshot((visitsSnap) => {
                 setVisitedIds(new Set(visitsSnap.docs.map((d) => d.id)));
+                const visitMap = new Map<string, VisitDocument>();
+                for (const doc of visitsSnap.docs) {
+                  visitMap.set(doc.id, doc.data() as VisitDocument);
+                }
+                setVisits(visitMap);
                 setLoading(false);
               });
           });
@@ -95,6 +110,24 @@ export default function ChallengeProgress() {
       unsubUser();
     };
   }, [user]);
+
+  // Listen to challenge type for tiers
+  useEffect(() => {
+    if (!challenge) {
+      setTiers([]);
+      return;
+    }
+    const unsub = firestore()
+      .collection(COLLECTIONS.CHALLENGE_TYPES)
+      .doc(challenge.typeId)
+      .onSnapshot((doc) => {
+        if (doc.exists()) {
+          const data = doc.data() as ChallengeTypeDocument;
+          setTiers(data.tiers ?? []);
+        }
+      });
+    return unsub;
+  }, [challenge?.typeId]);
 
   // Fetch onsen display data for eligible IDs
   useEffect(() => {
@@ -158,6 +191,39 @@ export default function ChallengeProgress() {
     return [...visitedIds].filter((id) => eligible.has(id)).length;
   }, [challenge, visitedIds]);
 
+  const transportUseCount = useMemo(() => {
+    if (!challenge) return 0;
+    const eligible = new Set(challenge.snapshotEligibleOnsenIds);
+    let count = 0;
+    for (const [id, visit] of visits) {
+      if (eligible.has(id) && visit.structuredData.transportUsed === true) {
+        count++;
+      }
+    }
+    return count;
+  }, [challenge, visits]);
+
+  const daysSinceStart = useMemo(() => {
+    if (!challenge?.startDate) return 0;
+    const start = challenge.startDate.toDate();
+    return Math.floor((Date.now() - start.getTime()) / (1000 * 60 * 60 * 24));
+  }, [challenge?.startDate]);
+
+  function isTierEligible(tier: Tier): boolean {
+    return tier.conditions.every((cond: TierCondition) => {
+      switch (cond.type) {
+        case 'minVisits':
+          return eligibleVisitCount >= cond.value;
+        case 'maxTransportUses':
+          return transportUseCount <= cond.value;
+        case 'maxCalendarDays':
+          return daysSinceStart <= cond.value;
+        default:
+          return false;
+      }
+    });
+  }
+
   if (loading) {
     return (
       <>
@@ -191,6 +257,32 @@ export default function ChallengeProgress() {
             })}
           </Text>
         </View>
+
+        {tiers.length > 0 && (
+          <View style={styles.tierSection}>
+            <Text style={styles.tierTitle}>{t('challengeProgress.tiers')}</Text>
+            {tiers.map((tier) => {
+              const eligible = isTierEligible(tier);
+              return (
+                <View key={tier.id} style={styles.tierRow}>
+                  <View style={styles.tierInfo}>
+                    <Text style={[styles.tierName, !eligible && styles.tierDimmed]}>
+                      {tier.name}
+                    </Text>
+                    <Text style={[styles.tierSummary, !eligible && styles.tierDimmed]}>
+                      {tier.conditionSummary}
+                    </Text>
+                  </View>
+                  <Text style={eligible ? styles.tierEligibleBadge : styles.tierNotEligibleBadge}>
+                    {eligible
+                      ? t('challengeProgress.tierEligible')
+                      : t('challengeProgress.tierNotEligible')}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        )}
 
         <FlatList
           data={rows}
@@ -247,6 +339,51 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.xxxl,
     fontWeight: typography.weights.bold,
     color: colors.textPrimary,
+  },
+  tierSection: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.separator,
+  },
+  tierTitle: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    color: colors.textMuted,
+    marginBottom: spacing[3],
+  },
+  tierRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing[3],
+  },
+  tierInfo: {
+    flex: 1,
+  },
+  tierName: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
+    color: colors.textPrimary,
+    marginBottom: spacing[1],
+  },
+  tierSummary: {
+    fontSize: typography.sizes.sm,
+    color: colors.textMuted,
+  },
+  tierDimmed: {
+    opacity: 0.4,
+  },
+  tierEligibleBadge: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
+    color: colors.actionPrimary,
+    marginLeft: spacing[2],
+  },
+  tierNotEligibleBadge: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
+    color: colors.textPlaceholder,
+    marginLeft: spacing[2],
   },
   row: {
     flexDirection: 'row',

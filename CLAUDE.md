@@ -19,10 +19,10 @@ Phases 0, 1, and 1.5 are complete. Phase 2 progress:
 - [x] Default challenge auto-selected on launch
 - [x] Challenge progress screen (visit count vs 88, eligible onsen list with visited/unvisited)
 - [x] Mark onsen as visited (creates visit document)
-- [ ] Visit detail screen (notes, rating, water temp, duration, transport used)
-- [ ] Visit photo (camera + library, compressed before upload)
-- [ ] `onVisitCreated` Function: set `completedAt` when visit count reaches 88
-- [ ] Tier eligibility display
+- [x] Visit detail screen (notes, rating, water temp, duration, transport used)
+- [x] Visit photo (camera + library, compressed before upload)
+- [x] `onVisitCreated` Function: set `completedAt` when visit count reaches 88
+- [x] Tier eligibility display
 - [ ] Tier claim
 
 **Phase 2 acceptance criteria:**
