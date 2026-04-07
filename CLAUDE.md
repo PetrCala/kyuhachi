@@ -4,33 +4,25 @@
 
 An iOS-first mobile app for the 九州八十八湯 (Kyushu 88 hot springs) challenge. Small audience, low maintenance budget, production-quality.
 
-**Current repo state:** Phase 1 and 1.5 complete. Phase 2 (Challenges and Visits) in progress.
+**Current repo state:** Phases 0–2 complete. Ready for Phase 3 (Route Plans and Challenge Rules).
 
 Full implementation plan: [docs/implementation-plan.md](docs/implementation-plan.md)
 
 ---
 
-## Current phase: Phase 2 — Challenges and Visits
+## Current phase: Phase 3 — Route Plans and Challenge Rules
 
-Phases 0, 1, and 1.5 are complete. Phase 2 progress:
+Phases 0, 1, 1.5, and 2 are complete. Phase 3 scope:
 
-- [x] Challenge type seeded in Firestore (`kyushu-88`)
-- [x] Challenge creation screen (snapshot of eligible pool frozen at creation)
-- [x] Default challenge auto-selected on launch
-- [x] Challenge progress screen (visit count vs 88, eligible onsen list with visited/unvisited)
-- [x] Mark onsen as visited (creates visit document)
-- [x] Visit detail screen (notes, rating, water temp, duration, transport used)
-- [x] Visit photo (camera + library, compressed before upload)
-- [x] `onVisitCreated` Function: set `completedAt` when visit count reaches 88
-- [x] Tier eligibility display
-- [ ] Tier claim
+- [ ] Challenge rules/tiers screen (driven by Firestore data, not hardcoded)
+- [ ] Create a named route plan (ordered onsen list)
+- [ ] Display route plan on map as polyline (straight-line connections)
+- [ ] Associate a route plan with the active challenge (`activePlanId`)
+- [ ] Switch which plan is the active plan for a challenge
+- [ ] Route plan list (view/delete)
+- [ ] Multiple challenges per user (UI for creating a second challenge)
 
-**Phase 2 acceptance criteria:**
-
-- Visiting creates correct visit document
-- Photo stores at correct Storage path; URL saved to visit
-- Completion triggers after 88th eligible visit
-- Offline visit creation queues and syncs correctly
+**Phase 3 non-goals:** Shared route plans, turn-by-turn navigation, stats.
 
 ---
 
