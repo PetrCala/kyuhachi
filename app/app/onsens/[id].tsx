@@ -9,11 +9,13 @@ import {
   Linking,
   ActivityIndicator,
   Alert,
+  TextInput,
+  Switch,
 } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import firestore from '@react-native-firebase/firestore';
-import type { OnsenDocument, UserDocument } from '@kyuhachi/shared';
+import type { OnsenDocument, UserDocument, VisitDocument } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
 import { useAuth } from '../../src/context/AuthContext';
 import { colors, spacing, typography, radii } from '../../src/theme';
@@ -36,8 +38,16 @@ export default function OnsenDetail() {
   const [onsen, setOnsen] = useState<OnsenWithId | null>(null);
   const [loading, setLoading] = useState(true);
   const [challengeId, setChallengeId] = useState<string | null>(null);
-  const [isVisited, setIsVisited] = useState(false);
+  const [visitData, setVisitData] = useState<VisitDocument | null>(null);
   const [marking, setMarking] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Form state for visit editing
+  const [notes, setNotes] = useState('');
+  const [rating, setRating] = useState<number | null>(null);
+  const [waterTemp, setWaterTemp] = useState('');
+  const [duration, setDuration] = useState('');
+  const [transportUsed, setTransportUsed] = useState(false);
 
   // Listen to onsen document
   useEffect(() => {
@@ -76,7 +86,7 @@ export default function OnsenDetail() {
         unsubVisit = null;
 
         if (!defChallengeId) {
-          setIsVisited(false);
+          setVisitData(null);
           return;
         }
 
@@ -88,7 +98,17 @@ export default function OnsenDetail() {
           .collection(SUBCOLLECTIONS.VISITS)
           .doc(id)
           .onSnapshot((visitDoc) => {
-            setIsVisited(visitDoc.exists());
+            if (visitDoc.exists()) {
+              const data = visitDoc.data() as VisitDocument;
+              setVisitData(data);
+              setNotes(data.notes ?? '');
+              setRating(data.structuredData.rating);
+              setWaterTemp(data.structuredData.waterTemp ?? '');
+              setDuration(data.structuredData.duration != null ? String(data.structuredData.duration) : '');
+              setTransportUsed(data.structuredData.transportUsed ?? false);
+            } else {
+              setVisitData(null);
+            }
           });
       });
 
@@ -126,6 +146,34 @@ export default function OnsenDetail() {
       Alert.alert('Error', error instanceof Error ? error.message : '');
     } finally {
       setMarking(false);
+    }
+  }
+
+  async function handleSaveVisit() {
+    if (!user || !challengeId || !id) return;
+    setSaving(true);
+    try {
+      await firestore()
+        .collection(COLLECTIONS.USERS)
+        .doc(user.uid)
+        .collection(SUBCOLLECTIONS.CHALLENGES)
+        .doc(challengeId)
+        .collection(SUBCOLLECTIONS.VISITS)
+        .doc(id)
+        .update({
+          notes: notes || null,
+          structuredData: {
+            rating,
+            waterTemp: waterTemp || null,
+            duration: duration ? Number(duration) : null,
+            transportUsed: transportUsed || null,
+          },
+          updatedAt: firestore.FieldValue.serverTimestamp(),
+        });
+    } catch (error) {
+      Alert.alert('Error', error instanceof Error ? error.message : '');
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -191,21 +239,84 @@ export default function OnsenDetail() {
           </View>
         )}
 
-        {challengeId && (
+        {challengeId && !visitData && (
           <View style={styles.visitSection}>
-            {isVisited ? (
-              <View style={styles.visitedBadge}>
-                <Text style={styles.visitedText}>{t('onsenDetail.visited')}</Text>
-              </View>
-            ) : (
-              <Pressable
-                style={[styles.visitButton, marking && styles.visitButtonDisabled]}
-                onPress={handleMarkVisited}
-                disabled={marking}
-              >
-                <Text style={styles.visitButtonText}>{t('onsenDetail.markVisited')}</Text>
-              </Pressable>
-            )}
+            <Pressable
+              style={[styles.visitButton, marking && styles.visitButtonDisabled]}
+              onPress={handleMarkVisited}
+              disabled={marking}
+            >
+              <Text style={styles.visitButtonText}>{t('onsenDetail.markVisited')}</Text>
+            </Pressable>
+          </View>
+        )}
+
+        {challengeId && visitData && (
+          <View style={styles.visitDetailSection}>
+            <Text style={styles.visitedHeader}>{t('onsenDetail.visited')}</Text>
+
+            <Text style={styles.fieldLabel}>{t('onsenDetail.labelRating')}</Text>
+            <View style={styles.starRow}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Pressable
+                  key={star}
+                  onPress={() => setRating(rating === star ? null : star)}
+                  hitSlop={4}
+                >
+                  <Text style={[styles.star, star <= (rating ?? 0) && styles.starFilled]}>
+                    ★
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Text style={styles.fieldLabel}>{t('onsenDetail.labelNotes')}</Text>
+            <TextInput
+              style={styles.notesInput}
+              value={notes}
+              onChangeText={setNotes}
+              placeholder={t('onsenDetail.notesPlaceholder')}
+              placeholderTextColor={colors.textTertiary}
+              multiline
+            />
+
+            <Text style={styles.fieldLabel}>{t('onsenDetail.labelWaterTemp')}</Text>
+            <TextInput
+              style={styles.fieldInput}
+              value={waterTemp}
+              onChangeText={setWaterTemp}
+              placeholder={t('onsenDetail.waterTempPlaceholder')}
+              placeholderTextColor={colors.textTertiary}
+            />
+
+            <Text style={styles.fieldLabel}>{t('onsenDetail.labelDuration')}</Text>
+            <TextInput
+              style={styles.fieldInput}
+              value={duration}
+              onChangeText={setDuration}
+              placeholder={t('onsenDetail.durationPlaceholder')}
+              placeholderTextColor={colors.textTertiary}
+              keyboardType="numeric"
+            />
+
+            <View style={styles.switchRow}>
+              <Text style={styles.fieldLabel}>{t('onsenDetail.labelTransport')}</Text>
+              <Switch
+                value={transportUsed}
+                onValueChange={setTransportUsed}
+                trackColor={{ false: colors.backgroundSecondary, true: colors.actionPrimary }}
+              />
+            </View>
+
+            <Pressable
+              style={[styles.saveButton, saving && styles.visitButtonDisabled]}
+              onPress={handleSaveVisit}
+              disabled={saving}
+            >
+              <Text style={styles.saveButtonText}>
+                {saving ? t('onsenDetail.saving') : t('onsenDetail.saveButton')}
+              </Text>
+            </Pressable>
           </View>
         )}
       </ScrollView>
@@ -312,15 +423,70 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
   },
-  visitedBadge: {
-    backgroundColor: colors.backgroundSecondary,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[3],
+  visitDetailSection: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
   },
-  visitedText: {
-    fontSize: typography.sizes.md,
+  visitedHeader: {
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.bold,
+    color: colors.textPrimary,
+    marginBottom: spacing[4],
+  },
+  fieldLabel: {
+    fontSize: typography.sizes.sm,
     fontWeight: typography.weights.medium,
-    color: colors.textTertiary,
+    color: colors.textMuted,
+    marginBottom: spacing[1],
+    marginTop: spacing[3],
+  },
+  starRow: {
+    flexDirection: 'row',
+    gap: spacing[2],
+    marginBottom: spacing[2],
+  },
+  star: {
+    fontSize: typography.sizes.xxl,
+    color: colors.backgroundSecondary,
+  },
+  starFilled: {
+    color: colors.actionPrimary,
+  },
+  notesInput: {
+    borderWidth: 1,
+    borderColor: colors.separator,
+    borderRadius: radii.md,
+    padding: spacing[3],
+    fontSize: typography.sizes.sm,
+    color: colors.textPrimary,
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  fieldInput: {
+    borderWidth: 1,
+    borderColor: colors.separator,
+    borderRadius: radii.md,
+    padding: spacing[3],
+    fontSize: typography.sizes.sm,
+    color: colors.textPrimary,
+  },
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: spacing[3],
+    marginBottom: spacing[4],
+  },
+  saveButton: {
+    backgroundColor: colors.actionPrimary,
+    borderRadius: radii.md,
+    paddingVertical: spacing[3],
+    alignItems: 'center',
+    marginTop: spacing[4],
+  },
+  saveButtonText: {
+    color: colors.actionPrimaryText,
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
   },
 });

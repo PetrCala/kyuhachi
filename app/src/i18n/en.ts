@@ -56,6 +56,16 @@ const en = {
   'onsenDetail.labelHours': 'Business Hours',
   'onsenDetail.markVisited': 'Mark as Visited',
   'onsenDetail.visited': 'Visited ✓',
+  'onsenDetail.labelNotes': 'Notes',
+  'onsenDetail.labelRating': 'Rating',
+  'onsenDetail.labelWaterTemp': 'Water Temp',
+  'onsenDetail.labelDuration': 'Duration',
+  'onsenDetail.labelTransport': 'Used Transport',
+  'onsenDetail.saveButton': 'Save',
+  'onsenDetail.saving': 'Saving...',
+  'onsenDetail.notesPlaceholder': 'How was your visit?',
+  'onsenDetail.waterTempPlaceholder': 'e.g. 42°C',
+  'onsenDetail.durationPlaceholder': 'minutes',
 } as const;
 
 export default en;

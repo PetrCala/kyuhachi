@@ -58,6 +58,16 @@ const ja: Record<keyof typeof en, string> = {
   'onsenDetail.labelHours': '営業時間',
   'onsenDetail.markVisited': '訪問済みにする',
   'onsenDetail.visited': '訪問済み ✓',
+  'onsenDetail.labelNotes': 'メモ',
+  'onsenDetail.labelRating': '評価',
+  'onsenDetail.labelWaterTemp': '湯温',
+  'onsenDetail.labelDuration': '滞在時間',
+  'onsenDetail.labelTransport': '交通機関利用',
+  'onsenDetail.saveButton': '保存',
+  'onsenDetail.saving': '保存中...',
+  'onsenDetail.notesPlaceholder': '訪問の感想を書きましょう',
+  'onsenDetail.waterTempPlaceholder': '例: 42°C',
+  'onsenDetail.durationPlaceholder': '分',
 } as const;
 
 export default ja;
