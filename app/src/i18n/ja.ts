@@ -53,6 +53,17 @@ const ja: Record<keyof typeof en, string> = {
   'challengeProgress.claimTier': '{{tier}}を申請',
   'challengeProgress.claimedTier': '取得済み: {{tier}}',
   'challengeProgress.upgradeTier': '{{tier}}にアップグレード',
+  'challengeRules.title': 'ルール',
+  'challengeRules.rulesHeading': 'チャレンジルール',
+  'challengeRules.tiersHeading': '称号条件',
+  'challengeRules.condition.minVisits_one': '対象温泉を{{count}}箇所以上訪問',
+  'challengeRules.condition.minVisits_other': '対象温泉を{{count}}箇所以上訪問',
+  'challengeRules.condition.maxTransportUses.none': '動力付き交通機関を使わない',
+  'challengeRules.condition.maxTransportUses.limit_one': '動力付き交通機関の利用は{{count}}回まで',
+  'challengeRules.condition.maxTransportUses.limit_other': '動力付き交通機関の利用は{{count}}回まで',
+  'challengeRules.condition.maxCalendarDays_one': '{{count}}日以内に達成',
+  'challengeRules.condition.maxCalendarDays_other': '{{count}}日以内に達成',
+  'challengeRules.conditionUnknown': '{{type}}: {{value}}',
 
   // onsen detail (visit)
   'onsenDetail.notFound': '温泉が見つかりませんでした',
