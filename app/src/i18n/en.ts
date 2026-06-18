@@ -56,11 +56,11 @@ const en = {
   'challengeRules.tiersHeading': 'Tier Conditions',
   'challengeRules.condition.minVisits_one': 'Visit at least {{count}} eligible onsen',
   'challengeRules.condition.minVisits_other': 'Visit at least {{count}} eligible onsens',
-  'challengeRules.condition.maxTransportUses.none': 'Do not use motorized transport',
-  'challengeRules.condition.maxTransportUses.limit_one':
-    'Use motorized transport at most {{count}} time',
-  'challengeRules.condition.maxTransportUses.limit_other':
-    'Use motorized transport at most {{count}} times',
+  'challengeRules.condition.maxFasterVisits.none': 'No shortcuts (no faster transport)',
+  'challengeRules.condition.maxFasterVisits.limit_one':
+    'Use a faster mode at most {{count}} time',
+  'challengeRules.condition.maxFasterVisits.limit_other':
+    'Use a faster mode at most {{count}} times',
   'challengeRules.condition.maxCalendarDays_one': 'Finish within {{count}} calendar day',
   'challengeRules.condition.maxCalendarDays_other': 'Finish within {{count}} calendar days',
   'challengeRules.conditionUnknown': '{{type}}: {{value}}',

@@ -42,11 +42,11 @@ export default function ChallengeRulesScreen() {
     switch (condition.type) {
       case 'minVisits':
         return t('challengeRules.condition.minVisits', { count: condition.value });
-      case 'maxTransportUses':
+      case 'maxFasterVisits':
         if (condition.value === 0) {
-          return t('challengeRules.condition.maxTransportUses.none');
+          return t('challengeRules.condition.maxFasterVisits.none');
         }
-        return t('challengeRules.condition.maxTransportUses.limit', { count: condition.value });
+        return t('challengeRules.condition.maxFasterVisits.limit', { count: condition.value });
       case 'maxCalendarDays':
         return t('challengeRules.condition.maxCalendarDays', { count: condition.value });
       default:
