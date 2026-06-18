@@ -71,6 +71,18 @@ const en = {
   'challengeNew.heading': 'Which challenge will you take on?',
   'challengeNew.hint': 'Tap a challenge to see its tiers and rules, then start.',
 
+  // challenge list / switcher
+  'challengeList.title': 'Challenges',
+  'challengeList.hint': 'Tap a challenge to make it active.',
+  'challengeList.active': 'Active',
+  'challengeList.delete': 'Delete',
+  'challengeList.deleteTitle': 'Delete challenge?',
+  'challengeList.deleteMessage': 'This permanently deletes "{{name}}" and all its visits.',
+  'challengeList.deleteConfirm': 'Delete',
+  'challengeList.cancel': 'Cancel',
+  'challengeList.errorDelete': 'Failed to delete challenge',
+  'challengeList.errorSwitch': 'Failed to switch challenge',
+
   // onsen detail (visit)
   'onsenDetail.notFound': 'Onsen not found',
   'onsenDetail.archived': 'Archived',

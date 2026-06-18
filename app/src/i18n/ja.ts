@@ -71,6 +71,18 @@ const ja: Record<keyof typeof en, string> = {
   'challengeNew.heading': 'どのチャレンジに挑戦しますか？',
   'challengeNew.hint': 'チャレンジをタップして称号とルールを確認し、開始しましょう。',
 
+  // challenge list / switcher
+  'challengeList.title': 'チャレンジ一覧',
+  'challengeList.hint': 'チャレンジをタップして使用中に切り替えます。',
+  'challengeList.active': '使用中',
+  'challengeList.delete': '削除',
+  'challengeList.deleteTitle': 'チャレンジを削除しますか？',
+  'challengeList.deleteMessage': '「{{name}}」とそのすべての訪問記録を完全に削除します。',
+  'challengeList.deleteConfirm': '削除',
+  'challengeList.cancel': 'キャンセル',
+  'challengeList.errorDelete': 'チャレンジの削除に失敗しました',
+  'challengeList.errorSwitch': 'チャレンジの切り替えに失敗しました',
+
   // onsen detail (visit)
   'onsenDetail.notFound': '温泉が見つかりませんでした',
   'onsenDetail.archived': '廃止',
