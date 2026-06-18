@@ -182,7 +182,7 @@ The `data/mappings/onsen_id_map.json` file is the most critical piece of the dat
   isDefault: boolean
   snapshotEligibleOnsenIds: string[]   # frozen at creation — the pool the user is working from
   snapshotCatalogVersion: number
-  activePlanId: string | null          # optional: which route_plan the user is currently following
+  activeRouteId: string | null         # optional: which imported route the user is currently following
                                        # user can change this freely; challenge completion ignores it
   claimedTier: string | null           # set by user at completion (self-reported)
   completedAt: Timestamp | null        # set by Function when visitCount >= completionCount
@@ -212,9 +212,16 @@ The `data/mappings/onsen_id_map.json` file is the most critical piece of the dat
 # To query all visits across challenges for a user: collection group query on "visits"
 # filtered by userId (add userId field to the document if needed for group queries).
 
-/users/{userId}/route_plans/{planId}
-  name: string
-  onsenIds: string[]                   # ordered list of kyuhachiIds
+/users/{userId}/routes/{routeId}
+  # An externally-authored GPS track imported from a .gpx/.kml/.tcx file.
+  # NOT built in-app, NOT a list of onsens. Parsed on import to a simplified
+  # track + metadata; the raw file is not stored (re-import to change a route).
+  name: string                         # from the track <name>, else the imported filename
+  sourceFormat: "gpx" | "kml" | "tcx"
+  points: { lat: number; lng: number }[]  # ordered, simplified track points (≤ ~1500)
+  pointCount: number
+  bounds: { minLat, minLng, maxLat, maxLng }
+  distanceMeters: number | null        # haversine sum
   createdAt: Timestamp
   updatedAt: Timestamp
 ```
@@ -293,7 +300,7 @@ The challenge is: visit any 88 onsens from the official eligible pool. The pool 
 - If an onsen is later deprecated (`isActive: false`): visits to it still count (already in snapshot), but it displays as "archived"
 - If new onsens are added to the official list: existing challenges are unaffected (snapshot is frozen); new challenges will include them
 - If onsens are removed from the official list: existing challenges still count visits to them (snapshot is frozen)
-- Route plans (`activePlanId`) are a convenience — they do not affect completion logic at all. User can switch plans freely.
+- Routes (`activeRouteId`) are a convenience — they do not affect completion logic at all. User can switch routes freely.
 
 ---
 
@@ -303,7 +310,7 @@ The challenge is: visit any 88 onsens from the official eligible pool. The pool 
 
 - Browse full onsen catalog (list + detail)
 - View challenges and visits
-- View saved route plans
+- View imported routes
 - Create a visit (queued, synced when online)
 - Map with cached markers
 
@@ -311,7 +318,7 @@ The challenge is: visit any 88 onsens from the official eligible pool. The pool 
 
 - All onsen documents
 - User's challenges and visits
-- Route plans
+- Imported routes
 - `catalog_meta/current`
 - Onsen images (via `expo-image` disk cache)
 
@@ -417,21 +424,21 @@ The challenge is: visit any 88 onsens from the official eligible pool. The pool 
 
 ---
 
-### Phase 3: Route Plans and Challenge Rules
+### Phase 3: Routes and Challenge Rules
 
 **Scope:**
 
 - Challenge rules/tiers screen (driven by Firestore data, not hardcoded)
-- Create a named route plan (ordered onsen list)
-- Display route plan on map as polyline (straight-line connections)
-- Associate a route plan with the active challenge (`activePlanId`): "I am following this route for my challenge"
-- Switch which plan is the active plan for a challenge (freely changeable, no effect on completion)
-- Route plan list (view/delete)
+- Import an externally-authored route from a `.gpx`/`.kml`/`.tcx` file (parsed to a simplified track + metadata, stored in Firestore; raw file not kept)
+- Display an imported route on the map as a polyline
+- Associate an imported route with the active challenge (`activeRouteId`): "I am following this route for my challenge"
+- Switch which route is active for a challenge (freely changeable, no effect on completion)
+- Route list (view/rename/delete)
 - Multiple challenges per user (UI for creating a second challenge)
 
-**Non-goals:** Shared route plans, turn-by-turn navigation, stats.
+**Non-goals:** Shared routes, in-app route authoring, turn-by-turn navigation, stats.
 
-**Key constraint:** Route plan association is cosmetic. A challenge is completed by visiting 88 eligible onsens regardless of whether a plan exists or which one is active.
+**Key constraint:** Route association is cosmetic. A challenge is completed by visiting 88 eligible onsens regardless of whether a route exists or which one is active.
 
 ---
 
@@ -496,7 +503,7 @@ docs/specs/phase0-foundation.md
 
 2. **Completion tiers:** Bronze/silver/gold style. Conditions involve transport restrictions, time frame, and visit count. Exact thresholds TBD. Conditions are user-reported (app tracks what it can verify: visit count, date range; transport is self-reported per visit). → Model uses flexible `conditions` array in `challenge_types`; user claims a tier via `claimedTier`; app shows eligibility based on recorded data.
 
-3. **Route plans vs challenges:** Independent. A challenge can optionally reference an active route plan (`activePlanId`) but completion ignores it. User can switch plans freely. → `activePlanId: string | null` on challenge document.
+3. **Routes vs challenges:** Independent. A challenge can optionally reference an active imported route (`activeRouteId`) but completion ignores it. User can switch routes freely. → `activeRouteId: string | null` on challenge document.
 
 4. **Ship date:** No deadline. No rush.
 

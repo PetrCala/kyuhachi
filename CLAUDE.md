@@ -4,25 +4,25 @@
 
 An iOS-first mobile app for the 九州八十八湯 (Kyushu 88 hot springs) challenge. Small audience, low maintenance budget, production-quality.
 
-**Current repo state:** Phases 0–2 complete. Ready for Phase 3 (Route Plans and Challenge Rules).
+**Current repo state:** Phases 0–2 complete. Ready for Phase 3 (Routes and Challenge Rules).
 
 Full implementation plan: [docs/implementation-plan.md](docs/implementation-plan.md)
 
 ---
 
-## Current phase: Phase 3 — Route Plans and Challenge Rules
+## Current phase: Phase 3 — Routes and Challenge Rules
 
 Phases 0, 1, 1.5, and 2 are complete. Phase 3 scope:
 
 - [ ] Challenge rules/tiers screen (driven by Firestore data, not hardcoded)
-- [ ] Create a named route plan (ordered onsen list)
-- [ ] Display route plan on map as polyline (straight-line connections)
-- [ ] Associate a route plan with the active challenge (`activePlanId`)
-- [ ] Switch which plan is the active plan for a challenge
-- [ ] Route plan list (view/delete)
+- [ ] Import an externally-authored route from a `.gpx`/`.kml`/`.tcx` file (parsed to a simplified track + metadata, stored in Firestore)
+- [ ] Display an imported route on the map as a polyline
+- [ ] Associate an imported route with the active challenge (`activeRouteId`)
+- [ ] Switch which route is active for a challenge
+- [ ] Route list (view/rename/delete)
 - [ ] Multiple challenges per user (UI for creating a second challenge)
 
-**Phase 3 non-goals:** Shared route plans, turn-by-turn navigation, stats.
+**Phase 3 non-goals:** Shared routes, in-app route authoring, turn-by-turn navigation, stats.
 
 ---
 
@@ -52,7 +52,7 @@ Do not challenge these without explicit instruction.
 - **Onsen documents are never deleted.** Deprecated onsens get `isActive: false`.
 - **No direct write path through Functions for standard user operations** in Phase 1. Firestore rules enforce ownership. Functions are for triggers and admin operations only.
 - **Offline-first:** Firestore offline persistence enabled from day one. This is not optional.
-- **Route plans:** Independent from challenges. A challenge has an optional `activePlanId` (freely switchable); completion logic ignores it.
+- **Routes:** Externally-authored GPS tracks the user **imports** from `.gpx`/`.kml`/`.tcx` files (not built in-app, not lists of onsens). Parsed on import to a simplified coordinate track + metadata and stored in Firestore (the raw file is not kept). Independent from challenges. A challenge has an optional `activeRouteId` (freely switchable); completion logic ignores it.
 - **Tiers:** Bronze/silver/gold. Conditions involve transport restrictions, time frame, and visit count. Exact thresholds TBD — do not hardcode them. Load from `challenge_types` in Firestore. Transport is user-reported per visit (`structuredData.transportUsed: boolean`).
 
 ---

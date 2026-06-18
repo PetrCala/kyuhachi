@@ -71,11 +71,11 @@ export interface ChallengeDocument {
   snapshotEligibleOnsenIds: string[]
   snapshotCatalogVersion: number
   /**
-   * Optional reference to the route plan the user is currently following.
+   * Optional reference to the imported route the user is currently following.
    * Cosmetic only — challenge completion ignores this field.
    * User can change this freely.
    */
-  activePlanId: string | null
+  activeRouteId: string | null
   /** Set by user at completion (self-reported) */
   claimedTier: string | null
   /** Set by onVisitCreated Function when unique eligible visits >= completionCount */
@@ -138,19 +138,28 @@ export interface VisitDocument {
 }
 
 // ---------------------------------------------------------------------------
-// Route plans
+// Routes
 // ---------------------------------------------------------------------------
 
 /**
- * /users/{userId}/route_plans/{planId}
+ * /users/{userId}/routes/{routeId}
  *
- * Independent from challenges. A challenge may reference a plan via activePlanId,
+ * An externally-authored GPS track the user imports from a .gpx/.kml/.tcx file.
+ * Routes are NOT built in-app and are NOT lists of onsens. On import the file is
+ * parsed to a simplified coordinate track plus metadata; the raw file is not kept
+ * (re-import to change a route).
+ *
+ * Independent from challenges. A challenge may reference a route via activeRouteId,
  * but completion logic ignores it entirely.
  */
-export interface RoutePlanDocument {
+export interface RouteDocument {
   name: string
-  /** Ordered list of kyuhachiIds */
-  onsenIds: string[]
+  sourceFormat: "gpx" | "kml" | "tcx"
+  /** Ordered, simplified track points. */
+  points: { lat: number; lng: number }[]
+  pointCount: number
+  bounds: { minLat: number; minLng: number; maxLat: number; maxLng: number }
+  distanceMeters: number | null
   createdAt: Timestamp
   updatedAt: Timestamp
 }

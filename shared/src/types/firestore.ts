@@ -23,7 +23,7 @@ export const COLLECTIONS = {
 export const SUBCOLLECTIONS = {
 	CHALLENGES: "challenges",
 	VISITS: "visits",
-	ROUTE_PLANS: "route_plans",
+	ROUTES: "routes",
 } as const
 
 export const CATALOG_META_DOC_ID = "current"

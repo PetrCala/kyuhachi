@@ -14,7 +14,7 @@ export type {
   ChallengeDocument,
   VisitStructuredData,
   VisitDocument,
-  RoutePlanDocument,
+  RouteDocument,
   TransportMode,
 } from './types/challenge';
 

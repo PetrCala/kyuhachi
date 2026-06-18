@@ -72,7 +72,7 @@ export default function ChallengePreview() {
         isDefault: true,
         snapshotEligibleOnsenIds: challengeType.eligibleOnsenIds,
         snapshotCatalogVersion: catalogVersion,
-        activePlanId: null,
+        activeRouteId: null,
         claimedTier: null,
         completedAt: null,
         createdAt: firestore.FieldValue.serverTimestamp(),

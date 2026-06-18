@@ -83,6 +83,14 @@ const en = {
   'challengeList.errorDelete': 'Failed to delete challenge',
   'challengeList.errorSwitch': 'Failed to switch challenge',
 
+  // routes (import)
+  'routes.import': 'Import route',
+  'routes.importing': 'Importing…',
+  'routes.importErrorTitle': 'Import failed',
+  'routes.importErrorFormat': 'Unsupported file type. Choose a .gpx, .kml, or .tcx file.',
+  'routes.importErrorNoTrack': 'No track found in this file.',
+  'routes.importErrorParse': 'Couldn’t read this file. It may be corrupted or not a valid GPS track.',
+
   // onsen detail (visit)
   'onsenDetail.notFound': 'Onsen not found',
   'onsenDetail.archived': 'Archived',
