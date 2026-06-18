@@ -316,9 +316,9 @@ export default function ChallengeProgress() {
             </Pressable>
             <Pressable
               style={styles.pillButton}
-              onPress={() => router.push('/challenge/new')}
+              onPress={() => router.push('/challenge/list')}
             >
-              <Text style={styles.pillButtonText}>{t('challengeProgress.newChallenge')}</Text>
+              <Text style={styles.pillButtonText}>{t('challengeList.title')}</Text>
             </Pressable>
           </View>
         </View>
