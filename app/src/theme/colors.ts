@@ -18,6 +18,11 @@ const palette = {
   gray600: '#888888',
   gray700: '#555555',
   gray800: '#333333',
+
+  // Tier metals (challenge badges)
+  gold:   '#b8893b',
+  silver: '#8a8a8f',
+  bronze: '#a9663a',
 } as const;
 
 export const colors = {
@@ -41,6 +46,11 @@ export const colors = {
   // Borders
   border:    palette.gray300, // input borders, card outlines
   separator: palette.gray200, // list dividers
+
+  // Tier badges (challenge tiers: bronze / silver / gold)
+  tierGold:   palette.gold,
+  tierSilver: palette.silver,
+  tierBronze: palette.bronze,
 } as const;
 
 export type Color = keyof typeof colors;

@@ -51,6 +51,7 @@ const en = {
   'challengeProgress.claimTier': 'Claim {{tier}}',
   'challengeProgress.claimedTier': 'Claimed: {{tier}}',
   'challengeProgress.upgradeTier': 'Upgrade to {{tier}}',
+  'challengeProgress.newChallenge': 'New Challenge',
   'challengeRules.title': 'Rules',
   'challengeRules.rulesHeading': 'Challenge Rules',
   'challengeRules.tiersHeading': 'Tier Conditions',
@@ -64,6 +65,11 @@ const en = {
   'challengeRules.condition.maxCalendarDays_one': 'Finish within {{count}} calendar day',
   'challengeRules.condition.maxCalendarDays_other': 'Finish within {{count}} calendar days',
   'challengeRules.conditionUnknown': '{{type}}: {{value}}',
+
+  // challenge type picker
+  'challengeNew.title': 'Choose a Challenge',
+  'challengeNew.heading': 'Which challenge will you take on?',
+  'challengeNew.hint': 'Tap a challenge to see its tiers and rules, then start.',
 
   // onsen detail (visit)
   'onsenDetail.notFound': 'Onsen not found',

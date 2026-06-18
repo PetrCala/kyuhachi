@@ -1,27 +1,48 @@
 import { useState, useEffect } from 'react';
-import { View, Text, Pressable, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import firestore from '@react-native-firebase/firestore';
 import type { ChallengeTypeDocument } from '@kyuhachi/shared';
-import { COLLECTIONS, SUBCOLLECTIONS, CATALOG_META_DOC_ID } from '@kyuhachi/shared';
-import { useAuth } from '../../src/context/AuthContext';
+import { COLLECTIONS, TRANSPORT_MODES } from '@kyuhachi/shared';
+import { TierBadge } from '../../src/components/TierBadge';
 import { colors, spacing, typography, radii } from '../../src/theme';
 
-export default function NewChallenge() {
+interface ChallengeTypeRow {
+  id: string;
+  type: ChallengeTypeDocument;
+}
+
+export default function ChooseChallengeType() {
   const { t } = useTranslation();
-  const { user } = useAuth();
-  const [challengeType, setChallengeType] = useState<ChallengeTypeDocument | null>(null);
+  const [types, setTypes] = useState<ChallengeTypeRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     const unsubscribe = firestore()
       .collection(COLLECTIONS.CHALLENGE_TYPES)
-      .doc('kyushu-88')
+      .where('isActive', '==', true)
       .onSnapshot(
-        (doc) => {
-          setChallengeType(doc.exists() ? (doc.data() as ChallengeTypeDocument) : null);
+        (snap) => {
+          const rows = snap.docs.map((doc) => ({
+            id: doc.id,
+            type: doc.data() as ChallengeTypeDocument,
+          }));
+          // Easiest first: a higher baseMode rank means a more permissive
+          // challenge (car > public > bicycle > foot).
+          rows.sort(
+            (a, b) =>
+              TRANSPORT_MODES.indexOf(b.type.baseMode) -
+              TRANSPORT_MODES.indexOf(a.type.baseMode)
+          );
+          setTypes(rows);
           setLoading(false);
         },
         () => setLoading(false)
@@ -29,63 +50,10 @@ export default function NewChallenge() {
     return unsubscribe;
   }, []);
 
-  async function handleCreate() {
-    if (!user || !challengeType) return;
-    setCreating(true);
-    try {
-      // Read current catalog version
-      const catalogSnap = await firestore()
-        .collection(COLLECTIONS.CATALOG_META)
-        .doc(CATALOG_META_DOC_ID)
-        .get();
-      const catalogVersion = catalogSnap.exists()
-        ? (catalogSnap.data()?.version as number) ?? 1
-        : 1;
-
-      const batch = firestore().batch();
-
-      // Create challenge document
-      const challengeRef = firestore()
-        .collection(COLLECTIONS.USERS)
-        .doc(user.uid)
-        .collection(SUBCOLLECTIONS.CHALLENGES)
-        .doc();
-
-      batch.set(challengeRef, {
-        typeId: 'kyushu-88',
-        name: t('challenge.defaultName'),
-        startDate: firestore.FieldValue.serverTimestamp(),
-        isDefault: true,
-        snapshotEligibleOnsenIds: challengeType.eligibleOnsenIds,
-        snapshotCatalogVersion: catalogVersion,
-        activePlanId: null,
-        claimedTier: null,
-        completedAt: null,
-        createdAt: firestore.FieldValue.serverTimestamp(),
-      });
-
-      // Update user's defaultChallengeId
-      const userRef = firestore()
-        .collection(COLLECTIONS.USERS)
-        .doc(user.uid);
-      batch.update(userRef, { defaultChallengeId: challengeRef.id });
-
-      await batch.commit();
-      router.replace('/');
-    } catch (error) {
-      Alert.alert(
-        t('challenge.errorCreate'),
-        error instanceof Error ? error.message : ''
-      );
-    } finally {
-      setCreating(false);
-    }
-  }
-
   if (loading) {
     return (
       <>
-        <Stack.Screen options={{ title: '', headerShown: true }} />
+        <Stack.Screen options={{ title: t('challengeNew.title'), headerShown: true }} />
         <View style={styles.centered}>
           <ActivityIndicator />
         </View>
@@ -93,10 +61,10 @@ export default function NewChallenge() {
     );
   }
 
-  if (!challengeType) {
+  if (types.length === 0) {
     return (
       <>
-        <Stack.Screen options={{ title: '', headerShown: true }} />
+        <Stack.Screen options={{ title: t('challengeNew.title'), headerShown: true }} />
         <View style={styles.centered}>
           <Text style={styles.errorText}>{t('challenge.errorLoad')}</Text>
         </View>
@@ -106,27 +74,31 @@ export default function NewChallenge() {
 
   return (
     <>
-      <Stack.Screen options={{ title: '', headerShown: true }} />
-      <View style={styles.container}>
-        <Text style={styles.title}>{t('challenge.startTitle')}</Text>
-        <Text style={styles.challengeName}>{challengeType.name}</Text>
-        <Text style={styles.description}>{t('challenge.startDescription')}</Text>
-        <Text style={styles.eligibleCount}>
-          {t('home.progress', {
-            visited: 0,
-            total: challengeType.completionCount,
-          })}
-        </Text>
-        <Pressable
-          style={[styles.startButton, creating && styles.startButtonDisabled]}
-          onPress={handleCreate}
-          disabled={creating}
-        >
-          <Text style={styles.startButtonText}>
-            {creating ? t('challenge.startingButton') : t('challenge.startButton')}
-          </Text>
-        </Pressable>
-      </View>
+      <Stack.Screen options={{ title: t('challengeNew.title'), headerShown: true }} />
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <Text style={styles.heading}>{t('challengeNew.heading')}</Text>
+        <Text style={styles.hint}>{t('challengeNew.hint')}</Text>
+
+        {types.map(({ id, type }) => (
+          <Pressable
+            key={id}
+            style={styles.card}
+            onPress={() => router.push({ pathname: '/challenge/preview', params: { typeId: id } })}
+          >
+            <View style={styles.cardText}>
+              <Text style={styles.cardName}>{type.name}</Text>
+              <Text style={styles.cardDescription} numberOfLines={2}>
+                {type.description}
+              </Text>
+            </View>
+            <View style={styles.tierDots}>
+              {type.tiers.map((tier) => (
+                <TierBadge key={tier.id} tierId={tier.id} size={spacing[3]} />
+              ))}
+            </View>
+          </Pressable>
+        ))}
+      </ScrollView>
     </>
   );
 }
@@ -144,50 +116,50 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     backgroundColor: colors.background,
-    paddingHorizontal: spacing[8],
   },
-  title: {
-    fontSize: typography.sizes.xxl,
-    fontWeight: typography.weights.bold,
-    color: colors.textPrimary,
-    marginBottom: spacing[4],
-    textAlign: 'center',
-  },
-  challengeName: {
-    fontSize: typography.sizes.xl,
-    fontWeight: typography.weights.semibold,
-    color: colors.textSecondary,
-    marginBottom: spacing[4],
-  },
-  description: {
-    fontSize: typography.sizes.md,
-    color: colors.textTertiary,
-    textAlign: 'center',
-    marginBottom: spacing[6],
-    lineHeight: 24,
-  },
-  eligibleCount: {
-    fontSize: typography.sizes.xxxl,
-    fontWeight: typography.weights.bold,
-    color: colors.textPrimary,
-    marginBottom: spacing[10],
-  },
-  startButton: {
-    backgroundColor: colors.actionPrimary,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing[8],
+  content: {
+    paddingHorizontal: spacing[4],
     paddingVertical: spacing[4],
+    paddingBottom: spacing[8],
   },
-  startButtonDisabled: {
-    opacity: 0.4,
+  heading: {
+    fontSize: typography.sizes.xl,
+    fontWeight: typography.weights.bold,
+    color: colors.textPrimary,
+    marginBottom: spacing[2],
   },
-  startButtonText: {
-    color: colors.actionPrimaryText,
+  hint: {
+    fontSize: typography.sizes.sm,
+    color: colors.textMuted,
+    marginBottom: spacing[5],
+  },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: radii.lg,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
+    marginBottom: spacing[3],
+  },
+  cardText: {
+    flex: 1,
+    marginRight: spacing[3],
+  },
+  cardName: {
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
-    textAlign: 'center',
+    color: colors.textPrimary,
+    marginBottom: spacing[1],
+  },
+  cardDescription: {
+    fontSize: typography.sizes.sm,
+    color: colors.textMuted,
+    lineHeight: 20,
+  },
+  tierDots: {
+    flexDirection: 'row',
+    gap: spacing[1],
   },
 });

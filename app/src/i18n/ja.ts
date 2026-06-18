@@ -53,6 +53,7 @@ const ja: Record<keyof typeof en, string> = {
   'challengeProgress.claimTier': '{{tier}}を申請',
   'challengeProgress.claimedTier': '取得済み: {{tier}}',
   'challengeProgress.upgradeTier': '{{tier}}にアップグレード',
+  'challengeProgress.newChallenge': '新しいチャレンジ',
   'challengeRules.title': 'ルール',
   'challengeRules.rulesHeading': 'チャレンジルール',
   'challengeRules.tiersHeading': '称号条件',
@@ -64,6 +65,11 @@ const ja: Record<keyof typeof en, string> = {
   'challengeRules.condition.maxCalendarDays_one': '{{count}}日以内に達成',
   'challengeRules.condition.maxCalendarDays_other': '{{count}}日以内に達成',
   'challengeRules.conditionUnknown': '{{type}}: {{value}}',
+
+  // challenge type picker
+  'challengeNew.title': 'チャレンジを選ぶ',
+  'challengeNew.heading': 'どのチャレンジに挑戦しますか？',
+  'challengeNew.hint': 'チャレンジをタップして称号とルールを確認し、開始しましょう。',
 
   // onsen detail (visit)
   'onsenDetail.notFound': '温泉が見つかりませんでした',
