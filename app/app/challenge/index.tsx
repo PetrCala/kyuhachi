@@ -302,12 +302,25 @@ export default function ChallengeProgress() {
               })}
             </Text>
           )}
-          <Pressable
-            style={styles.rulesButton}
-            onPress={() => router.push('/challenge/rules')}
-          >
-            <Text style={styles.rulesButtonText}>{t('challengeRules.title')}</Text>
-          </Pressable>
+          <View style={styles.headerActions}>
+            <Pressable
+              style={styles.pillButton}
+              onPress={() =>
+                router.push({
+                  pathname: '/challenge/rules',
+                  params: { typeId: challenge.typeId },
+                })
+              }
+            >
+              <Text style={styles.pillButtonText}>{t('challengeRules.title')}</Text>
+            </Pressable>
+            <Pressable
+              style={styles.pillButton}
+              onPress={() => router.push('/challenge/new')}
+            >
+              <Text style={styles.pillButtonText}>{t('challengeProgress.newChallenge')}</Text>
+            </Pressable>
+          </View>
         </View>
 
         {tiers.length > 0 && (
@@ -435,14 +448,18 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.bold,
     color: colors.textPrimary,
   },
-  rulesButton: {
+  headerActions: {
+    flexDirection: 'row',
+    gap: spacing[2],
     marginTop: spacing[3],
+  },
+  pillButton: {
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[2],
     backgroundColor: colors.backgroundSecondary,
     borderRadius: radii.full,
   },
-  rulesButtonText: {
+  pillButtonText: {
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.semibold,
     color: colors.textSecondary,
