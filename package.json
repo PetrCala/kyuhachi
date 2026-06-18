@@ -9,6 +9,7 @@
 		"deploy:functions": "firebase deploy --only functions"
 	},
 	"devDependencies": {
-		"@types/react": "~19.2.2"
+		"@types/react": "~19.2.2",
+		"typescript": "~5.9.2"
 	}
 }
