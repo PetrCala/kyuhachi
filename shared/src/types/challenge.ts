@@ -6,7 +6,7 @@ import type { Timestamp } from "./firestore"
 
 export type TierConditionType =
   | "minVisits"
-  | "maxTransportUses"
+  | "maxFasterVisits"
   | "maxCalendarDays"
 
 export interface TierCondition {
@@ -37,6 +37,13 @@ export interface ChallengeTypeDocument {
   eligibleOnsenIds: string[]
   /** Number of eligible onsens required to complete the challenge (88) */
   completionCount: number
+  /**
+   * The challenge's intended transport ceiling. A visit reaching an onsen by a
+   * faster mode than this (later in TRANSPORT_MODES) is a "shortcut", counted by
+   * `maxFasterVisits` tier conditions. e.g. "foot" for walk-only, "car" for the
+   * unrestricted challenge (where nothing is faster, so there are no shortcuts).
+   */
+  baseMode: TransportMode
   /** Ordered best → worst */
   tiers: Tier[]
   /** Prose rules for display on the challenge rules screen */
@@ -81,17 +88,21 @@ export interface ChallengeDocument {
 // ---------------------------------------------------------------------------
 
 /**
- * How the user reached an onsen, self-reported. Ordered by permissiveness:
- * `foot` (most restrictive) → `car` (least). `foot` and `bicycle` are
- * non-motorized; `public` and `car` are motorized.
+ * How the user reached an onsen, self-reported. Ordered slowest → fastest:
+ * `foot` < `bicycle` < `public` < `car`. Each challenge type declares a
+ * `baseMode`; a visit using a faster mode than that base is a "shortcut".
  */
 export const TRANSPORT_MODES = ["foot", "bicycle", "public", "car"] as const
 
 export type TransportMode = (typeof TRANSPORT_MODES)[number]
 
-/** Whether a transport mode counts as motorized (for `maxTransportUses` tiers). */
-export function isMotorizedTransport(mode: TransportMode | null): boolean {
-  return mode === "public" || mode === "car"
+/**
+ * True if `mode` is faster (ranked later in TRANSPORT_MODES) than `base`.
+ * A null mode (unreported) is never counted as a shortcut.
+ */
+export function isFasterThan(mode: TransportMode | null, base: TransportMode): boolean {
+  if (mode == null) return false
+  return TRANSPORT_MODES.indexOf(mode) > TRANSPORT_MODES.indexOf(base)
 }
 
 export interface VisitStructuredData {

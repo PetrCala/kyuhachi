@@ -18,9 +18,10 @@ import type {
   OnsenDocument,
   Tier,
   TierCondition,
+  TransportMode,
   VisitDocument,
 } from '@kyuhachi/shared';
-import { COLLECTIONS, SUBCOLLECTIONS, isMotorizedTransport } from '@kyuhachi/shared';
+import { COLLECTIONS, SUBCOLLECTIONS, isFasterThan } from '@kyuhachi/shared';
 import { useAuth } from '../../src/context/AuthContext';
 import { colors, spacing, typography, radii } from '../../src/theme';
 
@@ -40,6 +41,7 @@ export default function ChallengeProgress() {
   const [visits, setVisits] = useState<Map<string, VisitDocument>>(new Map());
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [completionCount, setCompletionCount] = useState<number | null>(null);
+  const [baseMode, setBaseMode] = useState<TransportMode | null>(null);
   const [onsenMap, setOnsenMap] = useState<Map<string, { name: string; areaName: string }>>(
     new Map()
   );
@@ -120,6 +122,7 @@ export default function ChallengeProgress() {
     if (!challenge) {
       setTiers([]);
       setCompletionCount(null);
+      setBaseMode(null);
       return;
     }
     const unsub = firestore()
@@ -129,11 +132,13 @@ export default function ChallengeProgress() {
         if (!doc.exists()) {
           setTiers([]);
           setCompletionCount(null);
+          setBaseMode(null);
           return;
         }
         const data = doc.data() as ChallengeTypeDocument;
         setTiers(data.tiers ?? []);
         setCompletionCount(data.completionCount);
+        setBaseMode(data.baseMode ?? null);
       });
     return unsub;
   }, [challenge?.typeId]);
@@ -200,17 +205,17 @@ export default function ChallengeProgress() {
     return [...visitedIds].filter((id) => eligible.has(id)).length;
   }, [challenge, visitedIds]);
 
-  const transportUseCount = useMemo(() => {
-    if (!challenge) return 0;
+  const shortcutCount = useMemo(() => {
+    if (!challenge || !baseMode) return 0;
     const eligible = new Set(challenge.snapshotEligibleOnsenIds);
     let count = 0;
     for (const [id, visit] of visits) {
-      if (eligible.has(id) && isMotorizedTransport(visit.structuredData.transportMode)) {
+      if (eligible.has(id) && isFasterThan(visit.structuredData.transportMode, baseMode)) {
         count++;
       }
     }
     return count;
-  }, [challenge, visits]);
+  }, [challenge, visits, baseMode]);
 
   const daysSinceStart = useMemo(() => {
     if (!challenge?.startDate) return 0;
@@ -223,8 +228,8 @@ export default function ChallengeProgress() {
       switch (cond.type) {
         case 'minVisits':
           return eligibleVisitCount >= cond.value;
-        case 'maxTransportUses':
-          return transportUseCount <= cond.value;
+        case 'maxFasterVisits':
+          return shortcutCount <= cond.value;
         case 'maxCalendarDays':
           return daysSinceStart <= cond.value;
         default:
@@ -236,7 +241,7 @@ export default function ChallengeProgress() {
   // Tiers are ordered best → worst; first eligible is the highest
   const highestEligibleTier = useMemo(() => {
     return tiers.find((tier) => isTierEligible(tier)) ?? null;
-  }, [tiers, eligibleVisitCount, transportUseCount, daysSinceStart]);
+  }, [tiers, eligibleVisitCount, shortcutCount, daysSinceStart]);
 
   const canUpgrade = useMemo(() => {
     if (!challenge?.claimedTier || !highestEligibleTier) return false;
