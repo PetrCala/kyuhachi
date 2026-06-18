@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   Alert,
   TextInput,
-  Switch,
   ActionSheetIOS,
 } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
@@ -18,8 +17,8 @@ import { useTranslation } from 'react-i18next';
 import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
-import type { OnsenDocument, UserDocument, VisitDocument } from '@kyuhachi/shared';
-import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
+import type { OnsenDocument, UserDocument, VisitDocument, TransportMode } from '@kyuhachi/shared';
+import { COLLECTIONS, SUBCOLLECTIONS, TRANSPORT_MODES } from '@kyuhachi/shared';
 import { useAuth } from '../../src/context/AuthContext';
 import { colors, spacing, typography, radii } from '../../src/theme';
 
@@ -51,7 +50,7 @@ export default function OnsenDetail() {
   const [rating, setRating] = useState<number | null>(null);
   const [waterTemp, setWaterTemp] = useState('');
   const [duration, setDuration] = useState('');
-  const [transportUsed, setTransportUsed] = useState(false);
+  const [transportMode, setTransportMode] = useState<TransportMode | null>(null);
 
   // Listen to onsen document
   useEffect(() => {
@@ -109,7 +108,7 @@ export default function OnsenDetail() {
               setRating(data.structuredData.rating);
               setWaterTemp(data.structuredData.waterTemp ?? '');
               setDuration(data.structuredData.duration != null ? String(data.structuredData.duration) : '');
-              setTransportUsed(data.structuredData.transportUsed ?? false);
+              setTransportMode(data.structuredData.transportMode ?? null);
             } else {
               setVisitData(null);
             }
@@ -141,7 +140,7 @@ export default function OnsenDetail() {
             rating: null,
             waterTemp: null,
             duration: null,
-            transportUsed: null,
+            transportMode: null,
           },
           createdAt: firestore.FieldValue.serverTimestamp(),
           updatedAt: firestore.FieldValue.serverTimestamp(),
@@ -170,7 +169,7 @@ export default function OnsenDetail() {
             rating,
             waterTemp: waterTemp || null,
             duration: duration ? Number(duration) : null,
-            transportUsed: transportUsed || null,
+            transportMode,
           },
           updatedAt: firestore.FieldValue.serverTimestamp(),
         });
@@ -366,13 +365,27 @@ export default function OnsenDetail() {
               keyboardType="numeric"
             />
 
-            <View style={styles.switchRow}>
-              <Text style={styles.fieldLabel}>{t('onsenDetail.labelTransport')}</Text>
-              <Switch
-                value={transportUsed}
-                onValueChange={setTransportUsed}
-                trackColor={{ false: colors.backgroundSecondary, true: colors.actionPrimary }}
-              />
+            <Text style={styles.fieldLabel}>{t('onsenDetail.labelTransport')}</Text>
+            <View style={styles.transportRow}>
+              {TRANSPORT_MODES.map((mode) => {
+                const selected = transportMode === mode;
+                return (
+                  <Pressable
+                    key={mode}
+                    style={[styles.transportChip, selected && styles.transportChipSelected]}
+                    onPress={() => setTransportMode(selected ? null : mode)}
+                  >
+                    <Text
+                      style={[
+                        styles.transportChipText,
+                        selected && styles.transportChipTextSelected,
+                      ]}
+                    >
+                      {t(`onsenDetail.transport.${mode}`)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
             </View>
 
             <Pressable
@@ -570,12 +583,32 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     color: colors.textPrimary,
   },
-  switchRow: {
+  transportRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: spacing[3],
+    flexWrap: 'wrap',
+    gap: spacing[2],
+    marginTop: spacing[1],
     marginBottom: spacing[4],
+  },
+  transportChip: {
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    borderRadius: radii.full,
+    borderWidth: 1,
+    borderColor: colors.separator,
+    backgroundColor: colors.background,
+  },
+  transportChipSelected: {
+    backgroundColor: colors.actionPrimary,
+    borderColor: colors.actionPrimary,
+  },
+  transportChipText: {
+    fontSize: typography.sizes.sm,
+    color: colors.textPrimary,
+  },
+  transportChipTextSelected: {
+    color: colors.actionPrimaryText,
+    fontWeight: typography.weights.medium,
   },
   saveButton: {
     backgroundColor: colors.actionPrimary,
