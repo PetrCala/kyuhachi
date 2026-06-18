@@ -20,7 +20,7 @@ import type {
   TierCondition,
   VisitDocument,
 } from '@kyuhachi/shared';
-import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
+import { COLLECTIONS, SUBCOLLECTIONS, isMotorizedTransport } from '@kyuhachi/shared';
 import { useAuth } from '../../src/context/AuthContext';
 import { colors, spacing, typography, radii } from '../../src/theme';
 
@@ -205,7 +205,7 @@ export default function ChallengeProgress() {
     const eligible = new Set(challenge.snapshotEligibleOnsenIds);
     let count = 0;
     for (const [id, visit] of visits) {
-      if (eligible.has(id) && visit.structuredData.transportUsed === true) {
+      if (eligible.has(id) && isMotorizedTransport(visit.structuredData.transportMode)) {
         count++;
       }
     }

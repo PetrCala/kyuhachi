@@ -80,6 +80,20 @@ export interface ChallengeDocument {
 // Visits
 // ---------------------------------------------------------------------------
 
+/**
+ * How the user reached an onsen, self-reported. Ordered by permissiveness:
+ * `foot` (most restrictive) → `car` (least). `foot` and `bicycle` are
+ * non-motorized; `public` and `car` are motorized.
+ */
+export const TRANSPORT_MODES = ["foot", "bicycle", "public", "car"] as const
+
+export type TransportMode = (typeof TRANSPORT_MODES)[number]
+
+/** Whether a transport mode counts as motorized (for `maxTransportUses` tiers). */
+export function isMotorizedTransport(mode: TransportMode | null): boolean {
+  return mode === "public" || mode === "car"
+}
+
 export interface VisitStructuredData {
   /** 1–5 star rating */
   rating: number | null
@@ -88,10 +102,11 @@ export interface VisitStructuredData {
   /** Minutes spent at the onsen */
   duration: number | null
   /**
-   * true = user used motorized transport to reach this onsen.
-   * Self-reported. Used for tier eligibility display.
+   * How the user reached this onsen. Self-reported; null = not reported.
+   * Used for tier eligibility display and (future) transport-restricted
+   * challenge types.
    */
-  transportUsed: boolean | null
+  transportMode: TransportMode | null
 }
 
 /**

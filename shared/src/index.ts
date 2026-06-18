@@ -15,7 +15,10 @@ export type {
   VisitStructuredData,
   VisitDocument,
   RoutePlanDocument,
+  TransportMode,
 } from './types/challenge';
+
+export { TRANSPORT_MODES, isMotorizedTransport } from './types/challenge';
 
 export type { UserDocument } from './types/user';
 
