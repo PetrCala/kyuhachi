@@ -4,6 +4,15 @@ on:
   push:
     branches: [master]
 
+# Serialize deploys. A new push waits for the running deploy to finish rather
+# than racing it; while one runs, a burst of pushes collapses to a single
+# queued follow-up. cancel-in-progress is false so an in-flight build/submit is
+# never killed midway. This prevents two overlapping runs from each resolving
+# "the latest build" to the same binary (the ITMS-90189 redundant-upload bug).
+concurrency:
+  group: deploy-ios
+  cancel-in-progress: false
+
 jobs:
   build-and-submit:
     name: EAS Build + TestFlight
@@ -28,10 +37,10 @@ jobs:
       - name: Write GoogleService-Info.plist
         run: echo "${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}" | base64 --decode > app/GoogleService-Info.plist
 
-      - name: Build iOS (production)
-        run: eas build --platform ios --profile production --non-interactive --wait
-        working-directory: app
-
-      - name: Submit to TestFlight
-        run: eas submit --platform ios --profile production --latest --non-interactive
+      # Build and submit in one step. --auto-submit submits the exact binary
+      # this run just built (via the matching "production" submit profile),
+      # instead of a decoupled `eas submit --latest` that resolves "latest" at
+      # submit time and can re-upload a build another run already sent.
+      - name: Build iOS (production) and submit to TestFlight
+        run: eas build --platform ios --profile production --auto-submit --non-interactive --wait
         working-directory: app
