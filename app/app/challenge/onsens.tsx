@@ -11,6 +11,7 @@ import {
 import { Stack, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useActiveChallengeProgress } from '@/hooks/useActiveChallengeProgress';
+import { VisitedBadge } from '@/components/VisitedBadge';
 import { colors, spacing, typography, radii } from '@/theme';
 
 /**
@@ -59,9 +60,11 @@ export default function RecordVisit() {
                   <Text style={styles.rowName}>{item.name}</Text>
                   <Text style={styles.rowArea}>{item.areaName}</Text>
                 </View>
-                <Text style={item.visited ? styles.checkmark : styles.unvisited}>
-                  {item.visited ? '✓' : '○'}
-                </Text>
+                {item.visited ? (
+                  <VisitedBadge />
+                ) : (
+                  <Text style={styles.unvisited}>○</Text>
+                )}
               </Pressable>
             )}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -116,11 +119,6 @@ const styles = StyleSheet.create({
   rowArea: {
     fontSize: typography.sizes.sm,
     color: colors.textMuted,
-  },
-  checkmark: {
-    fontSize: typography.sizes.xl,
-    color: colors.actionPrimary,
-    marginLeft: spacing[2],
   },
   unvisited: {
     fontSize: typography.sizes.xl,
