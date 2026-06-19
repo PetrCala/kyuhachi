@@ -9,6 +9,10 @@ import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
 import { useAuth } from '../src/context/AuthContext';
 import { colors, spacing, typography, radii } from '../src/theme';
 
+// Brand wordmark: 九八 (kyuhachi) set in Klee One. Not a translatable string —
+// it's the app's visual identity and renders identically in every locale.
+const HOME_WORDMARK = '九八';
+
 export default function Home() {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -114,7 +118,7 @@ export default function Home() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t('home.title')}</Text>
+      <Text style={styles.title}>{HOME_WORDMARK}</Text>
       <Text style={styles.subtitle}>{user?.email ?? user?.displayName ?? ''}</Text>
 
       {hasChallenge === true && (
@@ -163,8 +167,9 @@ const styles = StyleSheet.create({
     padding: spacing[6],
   },
   title: {
+    fontFamily: typography.fonts.brand,
     fontSize: typography.sizes.xxxl,
-    fontWeight: typography.weights.bold,
+    color: colors.textPrimary,
     marginBottom: spacing[2],
   },
   subtitle: {
