@@ -26,8 +26,7 @@ const palette = {
 
   // Brand (app icon / splash / logo mark — the vertical 九八 in Klee One)
   ink:   '#262837', // dark ground behind the mark
-  paper: '#f5f1e8', // warm off-white glyph on the mark
-  amber: '#ffb300', // reserved brand accent
+  amber: '#ffb300', // amber glyph on the mark
 } as const;
 
 export const colors = {
@@ -59,8 +58,7 @@ export const colors = {
 
   // Brand mark (the logo tile on sign-in mirrors the app icon)
   brand:      palette.ink,   // brand surface / icon ground
-  brandGlyph: palette.paper, // off-white glyph on the brand surface
-  brandAccent: palette.amber, // reserved accent (unused for now)
+  brandGlyph: palette.amber, // amber glyph on the brand surface
 } as const;
 
 export type Color = keyof typeof colors;
