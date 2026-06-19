@@ -39,7 +39,7 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <NavigationController />
-      <Stack screenOptions={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false, headerBackButtonDisplayMode: 'minimal' }} />
     </AuthProvider>
   );
 }
