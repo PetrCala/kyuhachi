@@ -4,7 +4,12 @@ import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT, type Region } from 'react-native-maps';
 import firestore from '@react-native-firebase/firestore';
-import type { OnsenDocument, RouteDocument } from '@kyuhachi/shared';
+import type {
+  ChallengeDocument,
+  OnsenDocument,
+  RouteDocument,
+  UserDocument,
+} from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
 import { useAuth } from '../src/context/AuthContext';
 import { colors, spacing } from '../src/theme';
@@ -31,14 +36,15 @@ function regionForBounds(bounds: RouteDocument['bounds']): Region {
 export default function MapScreen() {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { routeId } = useLocalSearchParams<{ routeId?: string }>();
+  const { routeId: paramRouteId } = useLocalSearchParams<{ routeId?: string }>();
   const mapRef = useRef<MapView>(null);
   const [onsens, setOnsens] = useState<OnsenRow[]>([]);
   const [onsensLoading, setOnsensLoading] = useState(true);
   const [route, setRoute] = useState<RouteDocument | null>(null);
-  // When a routeId is requested we hold rendering until it loads, so the map can
-  // mount already framed on the track rather than animating in afterwards.
-  const [routeLoaded, setRouteLoaded] = useState(!routeId);
+  // We resolve a route on mount (an explicit param, or the active challenge's),
+  // and hold rendering until it loads so the map can mount already framed on the
+  // track rather than animating in afterwards.
+  const [routeLoaded, setRouteLoaded] = useState(false);
 
   useEffect(() => {
     const unsubscribe = firestore()
@@ -56,21 +62,39 @@ export default function MapScreen() {
     return unsubscribe;
   }, []);
 
+  // Resolve which route to draw: an explicit routeId param wins; otherwise fall
+  // back to the active challenge's activeRouteId so a challenge's route shows on
+  // the map automatically. A dangling id (deleted route) resolves to no route.
   useEffect(() => {
-    if (!user || !routeId) {
+    if (!user) {
       setRoute(null);
       setRouteLoaded(true);
       return;
     }
     setRouteLoaded(false);
     let cancelled = false;
-    firestore()
-      .collection(COLLECTIONS.USERS)
-      .doc(user.uid)
-      .collection(SUBCOLLECTIONS.ROUTES)
-      .doc(routeId)
-      .get()
-      .then((doc) => {
+    const userRef = firestore().collection(COLLECTIONS.USERS).doc(user.uid);
+
+    async function resolveRouteId(): Promise<string | null> {
+      if (paramRouteId) return paramRouteId;
+      const userDoc = await userRef.get();
+      const defaultChallengeId = (userDoc.data() as UserDocument | undefined)?.defaultChallengeId;
+      if (!defaultChallengeId) return null;
+      const challengeDoc = await userRef
+        .collection(SUBCOLLECTIONS.CHALLENGES)
+        .doc(defaultChallengeId)
+        .get();
+      return (challengeDoc.data() as ChallengeDocument | undefined)?.activeRouteId ?? null;
+    }
+
+    resolveRouteId()
+      .then(async (id) => {
+        if (cancelled) return;
+        if (!id) {
+          setRoute(null);
+          return;
+        }
+        const doc = await userRef.collection(SUBCOLLECTIONS.ROUTES).doc(id).get();
         if (cancelled) return;
         setRoute(doc.exists() ? (doc.data() as RouteDocument) : null);
       })
@@ -83,7 +107,7 @@ export default function MapScreen() {
     return () => {
       cancelled = true;
     };
-  }, [user, routeId]);
+  }, [user, paramRouteId]);
 
   const loading = onsensLoading || !routeLoaded;
   // Route names are user/Firestore data, shown as-is; fall back to the generic title.
