@@ -13,12 +13,14 @@ const ja: Record<keyof typeof en, string> = {
   'signIn.toggleToCreate': 'アカウントをお持ちでない方はこちら',
   'signIn.toggleToSignIn': 'すでにアカウントをお持ちの方はこちら',
 
+  // tabs (bottom navigation)
+  'tabs.home': 'ホーム',
+  'tabs.map': '地図',
+  'tabs.onsens': '温泉',
+  'tabs.more': 'その他',
+
   // home
   'home.title': 'Kyuhachi',
-  'home.onsenList': '温泉一覧',
-  'home.map': '地図',
-  'home.routes': 'ルート',
-  'home.signOut': 'サインアウト',
 
   // map
   'map.title': '地図',
@@ -43,6 +45,15 @@ const ja: Record<keyof typeof en, string> = {
   'home.progress': '{{visited}}/{{total}}',
   'home.noChallenge': 'チャレンジ未開始',
   'home.startChallenge': 'チャレンジ開始',
+
+  // more (settings tab)
+  'more.title': 'その他',
+  'more.challenges': 'チャレンジ',
+  'more.routes': 'ルート',
+  'more.stats': '統計',
+  'more.statsBadge': '近日公開',
+  'more.account': 'アカウント',
+  'more.signOut': 'サインアウト',
 
   // challenge progress
   'challengeProgress.title': 'チャレンジ進捗',

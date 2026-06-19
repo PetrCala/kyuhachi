@@ -11,12 +11,14 @@ const en = {
   'signIn.toggleToCreate': "Don't have an account? Create one",
   'signIn.toggleToSignIn': 'Already have an account? Sign in',
 
+  // tabs (bottom navigation)
+  'tabs.home': 'Home',
+  'tabs.map': 'Map',
+  'tabs.onsens': 'Onsens',
+  'tabs.more': 'More',
+
   // home
   'home.title': 'Kyuhachi',
-  'home.onsenList': 'Onsen List',
-  'home.map': 'Map',
-  'home.routes': 'Routes',
-  'home.signOut': 'Sign out',
 
   // map
   'map.title': 'Map',
@@ -41,6 +43,15 @@ const en = {
   'home.progress': '{{visited}}/{{total}}',
   'home.noChallenge': 'No active challenge',
   'home.startChallenge': 'Start Challenge',
+
+  // more (settings tab)
+  'more.title': 'More',
+  'more.challenges': 'Challenges',
+  'more.routes': 'Routes',
+  'more.stats': 'Stats',
+  'more.statsBadge': 'Soon',
+  'more.account': 'Account',
+  'more.signOut': 'Sign out',
 
   // challenge progress
   'challengeProgress.title': 'Challenge Progress',

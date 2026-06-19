@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT, type Region } from 'react-native-maps';
 import {
@@ -19,9 +19,9 @@ import type {
   UserDocument,
 } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
-import { useAuth } from '../src/context/AuthContext';
-import { db } from '../src/firebase';
-import { colors, spacing } from '../src/theme';
+import { useAuth } from '../../src/context/AuthContext';
+import { db } from '../../src/firebase';
+import { colors, spacing } from '../../src/theme';
 
 type OnsenRow = OnsenDocument & { id: string };
 
@@ -45,6 +45,7 @@ function regionForBounds(bounds: RouteDocument['bounds']): Region {
 export default function MapScreen() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const navigation = useNavigation();
   const { routeId: paramRouteId } = useLocalSearchParams<{ routeId?: string }>();
   const mapRef = useRef<MapView>(null);
   const [onsens, setOnsens] = useState<OnsenRow[]>([]);
@@ -120,39 +121,44 @@ export default function MapScreen() {
   const title = route?.name ?? t('map.title');
   const initialRegion = route ? regionForBounds(route.bounds) : KYUSHU_REGION;
 
+  // Surface the active route's name in the tab header (the tab bar label stays
+  // the static "Map"); falls back to the generic title when no route is drawn.
+  useEffect(() => {
+    navigation.setOptions({ headerTitle: title });
+  }, [navigation, title]);
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
   return (
-    <>
-      <Stack.Screen options={{ title, headerShown: true }} />
-      {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator />
-        </View>
-      ) : (
-        <MapView
-          ref={mapRef}
-          style={styles.map}
-          provider={PROVIDER_DEFAULT}
-          initialRegion={initialRegion}
-        >
-          {onsens.map((onsen) => (
-            <Marker
-              key={onsen.id}
-              coordinate={{ latitude: onsen.lat, longitude: onsen.lng }}
-              title={onsen.name}
-              description={onsen.areaName}
-              onCalloutPress={() => router.push(`/onsens/${onsen.id}`)}
-            />
-          ))}
-          {route && (
-            <Polyline
-              coordinates={route.points.map((p) => ({ latitude: p.lat, longitude: p.lng }))}
-              strokeColor={colors.actionPrimary}
-              strokeWidth={spacing[1]}
-            />
-          )}
-        </MapView>
+    <MapView
+      ref={mapRef}
+      style={styles.map}
+      provider={PROVIDER_DEFAULT}
+      initialRegion={initialRegion}
+    >
+      {onsens.map((onsen) => (
+        <Marker
+          key={onsen.id}
+          coordinate={{ latitude: onsen.lat, longitude: onsen.lng }}
+          title={onsen.name}
+          description={onsen.areaName}
+          onCalloutPress={() => router.push(`/onsens/${onsen.id}`)}
+        />
+      ))}
+      {route && (
+        <Polyline
+          coordinates={route.points.map((p) => ({ latitude: p.lat, longitude: p.lng }))}
+          strokeColor={colors.actionPrimary}
+          strokeWidth={spacing[1]}
+        />
       )}
-    </>
+    </MapView>
   );
 }
 
