@@ -10,9 +10,9 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { useActiveChallengeProgress } from '../../src/hooks/useActiveChallengeProgress';
-import { ProgressBar, type ProgressMarker } from '../../src/components/ProgressBar';
-import { colors, spacing, typography, radii } from '../../src/theme';
+import { useActiveChallengeProgress } from '@/hooks/useActiveChallengeProgress';
+import { ProgressBar, type ProgressMarker } from '@/components/ProgressBar';
+import { colors, spacing, typography, radii } from '@/theme';
 
 // Brand wordmark: 九八 (kyuhachi) set in Klee One. Not a translatable string —
 // it's the app's visual identity and renders identically in every locale.

@@ -24,15 +24,15 @@ import {
 } from '@react-native-firebase/firestore';
 import type { RouteDocument } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
-import { useAuth } from '../../src/context/AuthContext';
-import { db } from '../../src/firebase';
+import { useAuth } from '@/context/AuthContext';
+import { db } from '@/firebase';
 import {
   parseRoute,
   sourceFormatFromName,
   nameWithoutExtension,
   RouteImportError,
-} from '../../src/lib/route-import';
-import { colors, spacing, typography, radii } from '../../src/theme';
+} from '@/lib/route-import';
+import { colors, spacing, typography, radii } from '@/theme';
 
 interface RouteRow {
   id: string;

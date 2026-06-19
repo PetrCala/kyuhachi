@@ -5,9 +5,9 @@ import { useTranslation } from 'react-i18next';
 import { doc, onSnapshot, type FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 import type { ChallengeTypeDocument } from '@kyuhachi/shared';
 import { COLLECTIONS } from '@kyuhachi/shared';
-import { db } from '../../src/firebase';
-import { ChallengeRulesView } from '../../src/components/ChallengeRulesView';
-import { colors, spacing, typography } from '../../src/theme';
+import { db } from '@/firebase';
+import { ChallengeRulesView } from '@/components/ChallengeRulesView';
+import { colors, spacing, typography } from '@/theme';
 
 export default function ChallengeRulesScreen() {
   const { t } = useTranslation();

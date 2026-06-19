@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { useActiveChallengeProgress } from '../../src/hooks/useActiveChallengeProgress';
-import { colors, spacing, typography, radii } from '../../src/theme';
+import { useActiveChallengeProgress } from '@/hooks/useActiveChallengeProgress';
+import { colors, spacing, typography, radii } from '@/theme';
 
 /**
  * The challenge-scoped onsen checklist reached from the home "Record a visit"

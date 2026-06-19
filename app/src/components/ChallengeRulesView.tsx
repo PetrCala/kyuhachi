@@ -2,7 +2,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { ChallengeTypeDocument } from '@kyuhachi/shared';
 import { TierCarousel } from './TierCarousel';
-import { colors, spacing, typography, radii } from '../theme';
+import { colors, spacing, typography, radii } from '@/theme';
 
 interface ChallengeRulesViewProps {
   challengeType: ChallengeTypeDocument;

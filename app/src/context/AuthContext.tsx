@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged } from '@react-native-firebase/auth';
 import type { FirebaseAuthTypes } from '@react-native-firebase/auth';
-import { auth } from '../firebase';
+import { auth } from '@/firebase';
 
 interface AuthContextValue {
   user: FirebaseAuthTypes.User | null;

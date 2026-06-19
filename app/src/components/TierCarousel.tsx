@@ -11,7 +11,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import type { Tier, TierCondition } from '@kyuhachi/shared';
 import { TierBadge } from './TierBadge';
-import { colors, spacing, typography, radii } from '../theme';
+import { colors, spacing, typography, radii } from '@/theme';
 
 interface TierCarouselProps {
   /** Ordered best → worst. */

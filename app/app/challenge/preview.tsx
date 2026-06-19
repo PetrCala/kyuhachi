@@ -21,10 +21,10 @@ import {
 } from '@react-native-firebase/firestore';
 import type { ChallengeTypeDocument, UserDocument } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS, CATALOG_META_DOC_ID } from '@kyuhachi/shared';
-import { useAuth } from '../../src/context/AuthContext';
-import { db } from '../../src/firebase';
-import { ChallengeRulesView } from '../../src/components/ChallengeRulesView';
-import { colors, spacing, typography, radii } from '../../src/theme';
+import { useAuth } from '@/context/AuthContext';
+import { db } from '@/firebase';
+import { ChallengeRulesView } from '@/components/ChallengeRulesView';
+import { colors, spacing, typography, radii } from '@/theme';
 
 export default function ChallengePreview() {
   const { t } = useTranslation();
