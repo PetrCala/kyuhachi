@@ -17,6 +17,7 @@ const ja: Record<keyof typeof en, string> = {
   'home.title': 'Kyuhachi',
   'home.onsenList': '温泉一覧',
   'home.map': '地図',
+  'home.routes': 'ルート',
   'home.signOut': 'サインアウト',
 
   // map
@@ -83,9 +84,24 @@ const ja: Record<keyof typeof en, string> = {
   'challengeList.errorDelete': 'チャレンジの削除に失敗しました',
   'challengeList.errorSwitch': 'チャレンジの切り替えに失敗しました',
 
-  // routes (import)
+  // routes (import + management)
+  'routes.title': 'ルート',
   'routes.import': 'ルートを取り込む',
   'routes.importing': '取り込み中…',
+  'routes.empty': 'ルートはまだありません。.gpx、.kml、.tcx ファイルを取り込んで始めましょう。',
+  'routes.metaWithDistance': '{{points}}地点 ・ {{km}} km',
+  'routes.metaPointsOnly': '{{points}}地点',
+  'routes.rename': '名前を変更',
+  'routes.renameTitle': 'ルート名を変更',
+  'routes.renameMessage': '新しいルート名を入力してください。',
+  'routes.renameConfirm': '保存',
+  'routes.delete': '削除',
+  'routes.deleteTitle': 'ルートを削除しますか？',
+  'routes.deleteMessage': '「{{name}}」を完全に削除します。',
+  'routes.deleteConfirm': '削除',
+  'routes.cancel': 'キャンセル',
+  'routes.errorRename': 'ルート名の変更に失敗しました',
+  'routes.errorDelete': 'ルートの削除に失敗しました',
   'routes.importErrorTitle': '取り込みに失敗しました',
   'routes.importErrorFormat': '対応していないファイル形式です。.gpx、.kml、.tcx のいずれかを選択してください。',
   'routes.importErrorNoTrack': 'このファイルにトラックが見つかりませんでした。',
