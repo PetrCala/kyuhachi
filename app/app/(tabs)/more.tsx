@@ -4,9 +4,9 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { signOut } from '@react-native-firebase/auth';
-import { useAuth } from '../../src/context/AuthContext';
-import { auth } from '../../src/firebase';
-import { colors, spacing, typography, radii } from '../../src/theme';
+import { useAuth } from '@/context/AuthContext';
+import { auth } from '@/firebase';
+import { colors, spacing, typography, radii } from '@/theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 

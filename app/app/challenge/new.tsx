@@ -18,9 +18,9 @@ import {
 } from '@react-native-firebase/firestore';
 import type { ChallengeTypeDocument } from '@kyuhachi/shared';
 import { COLLECTIONS, TRANSPORT_MODES } from '@kyuhachi/shared';
-import { db } from '../../src/firebase';
-import { TierBadge } from '../../src/components/TierBadge';
-import { colors, spacing, typography, radii } from '../../src/theme';
+import { db } from '@/firebase';
+import { TierBadge } from '@/components/TierBadge';
+import { colors, spacing, typography, radii } from '@/theme';
 
 interface ChallengeTypeRow {
   id: string;

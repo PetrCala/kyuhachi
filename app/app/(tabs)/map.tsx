@@ -19,9 +19,9 @@ import type {
   UserDocument,
 } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
-import { useAuth } from '../../src/context/AuthContext';
-import { db } from '../../src/firebase';
-import { colors, spacing } from '../../src/theme';
+import { useAuth } from '@/context/AuthContext';
+import { db } from '@/firebase';
+import { colors, spacing } from '@/theme';
 
 type OnsenRow = OnsenDocument & { id: string };
 

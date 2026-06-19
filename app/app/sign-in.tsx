@@ -17,8 +17,8 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
 } from '@react-native-firebase/auth';
-import { auth } from '../src/firebase';
-import { colors, spacing, typography, radii } from '../src/theme';
+import { auth } from '@/firebase';
+import { colors, spacing, typography, radii } from '@/theme';
 
 type Mode = 'sign-in' | 'create-account';
 

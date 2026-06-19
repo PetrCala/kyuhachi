@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { TierBadge } from './TierBadge';
-import { colors, spacing, typography, radii } from '../theme';
+import { colors, spacing, typography, radii } from '@/theme';
 
 const TIER_COLORS: Record<string, string> = {
   gold: colors.tierGold,

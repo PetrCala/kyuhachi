@@ -25,8 +25,8 @@ import type {
   VisitDocument,
 } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS, isFasterThan } from '@kyuhachi/shared';
-import { useAuth } from '../context/AuthContext';
-import { db } from '../firebase';
+import { useAuth } from '@/context/AuthContext';
+import { db } from '@/firebase';
 
 export interface OnsenRow {
   id: string;

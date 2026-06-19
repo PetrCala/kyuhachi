@@ -26,9 +26,9 @@ import { ref, putFile, getDownloadURL } from '@react-native-firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 import type { OnsenDocument, UserDocument, VisitDocument, TransportMode } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS, TRANSPORT_MODES } from '@kyuhachi/shared';
-import { useAuth } from '../../src/context/AuthContext';
-import { db, storage } from '../../src/firebase';
-import { colors, spacing, typography, radii } from '../../src/theme';
+import { useAuth } from '@/context/AuthContext';
+import { db, storage } from '@/firebase';
+import { colors, spacing, typography, radii } from '@/theme';
 
 type OnsenWithId = OnsenDocument & { id: string };
 
