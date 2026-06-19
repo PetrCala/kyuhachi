@@ -25,6 +25,7 @@ import { useAuth } from '@/context/AuthContext';
 import { db } from '@/firebase';
 import { ChallengeRulesView } from '@/components/ChallengeRulesView';
 import { firebaseErrorKey } from '@/lib/firebase-errors';
+import { localizeChallengeType } from '@/lib/challenge-i18n';
 import { colors, spacing, typography, radii } from '@/theme';
 
 export default function ChallengePreview() {
@@ -133,12 +134,14 @@ export default function ChallengePreview() {
     );
   }
 
+  const display = localizeChallengeType(typeId, challengeType, t);
+
   return (
     <>
-      <Stack.Screen options={{ title: challengeType.name, headerShown: true }} />
+      <Stack.Screen options={{ title: display.name, headerShown: true }} />
       <View style={styles.container}>
         <ScrollView contentContainerStyle={styles.content}>
-          <ChallengeRulesView challengeType={challengeType} />
+          <ChallengeRulesView challengeType={display} />
         </ScrollView>
         <View style={styles.footer}>
           <Pressable

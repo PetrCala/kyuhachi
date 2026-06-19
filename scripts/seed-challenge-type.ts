@@ -19,6 +19,12 @@
  *   npx ts-node --transpile-only --project functions/tsconfig.json scripts/seed-challenge-type.ts
  *
  * Idempotent: re-running overwrites the existing documents.
+ *
+ * Display text (name / description / rules, tier names + condition summaries) is
+ * localized in the app, keyed by the challenge-type id — see
+ * app/src/lib/challenge-i18n.ts and app/src/i18n/{en,ja}.ts. The strings written
+ * here are the source/fallback the app shows for any id it has no translations
+ * for, so adding a type id here means adding its strings to the app catalog too.
  */
 
 import * as admin from 'firebase-admin';

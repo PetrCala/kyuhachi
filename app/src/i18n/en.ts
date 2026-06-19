@@ -107,6 +107,53 @@ const en = {
   'challengeNew.heading': 'Which challenge will you take on?',
   'challengeNew.hint': 'Tap a challenge to see its tiers and rules, then start.',
 
+  // challenge-type content (app-owned; keyed by the Firestore type id, with the
+  // published Firestore value as a fallback for unknown/new ids). See
+  // src/lib/challenge-i18n.ts and scripts/seed-challenge-type.ts.
+  'challengeTier.gold': 'Gold',
+  'challengeTier.silver': 'Silver',
+  'challengeTier.bronze': 'Bronze',
+  'challengeType.commonRule1': 'Visit hot springs from the eligible list of about 155 onsens.',
+  'challengeType.commonRule2': 'Visiting the same onsen more than once still counts as one.',
+  'challengeType.commonRule3': 'There is no deadline to finish.',
+  'challengeType.kyushu-88.name': 'Car Challenge',
+  'challengeType.kyushu-88.description':
+    'Tour the Kyushu 88 hot springs with no restriction on how you travel.',
+  'challengeType.kyushu-88.rule': 'There are no restrictions on how you travel.',
+  'challengeType.kyushu-88.summary.gold': 'Reach all 88 onsens',
+  'challengeType.kyushu-88.summary.silver': 'Reach 66 or more onsens',
+  'challengeType.kyushu-88.summary.bronze': 'Reach 44 or more onsens',
+  'challengeType.kyushu-88-public.name': 'Public Transport Challenge',
+  'challengeType.kyushu-88-public.description':
+    'Tour the Kyushu 88 hot springs by public transport, bicycle, or on foot. Using a car affects your tier.',
+  'challengeType.kyushu-88-public.rule':
+    'Travel mainly by public transport, bicycle, or on foot. Using a car costs you the higher tiers.',
+  'challengeType.kyushu-88-public.summary.gold': 'Reach all 88 onsens without using a car',
+  'challengeType.kyushu-88-public.summary.silver':
+    'Reach 66 or more onsens, using a car at most 4 times',
+  'challengeType.kyushu-88-public.summary.bronze':
+    'Reach 44 or more onsens, using a car at most 8 times',
+  'challengeType.kyushu-88-bicycle.name': 'Bicycle Challenge',
+  'challengeType.kyushu-88-bicycle.description':
+    'Tour the Kyushu 88 hot springs by bicycle (and on foot).',
+  'challengeType.kyushu-88-bicycle.rule':
+    'Travel mainly by bicycle or on foot. Using anything faster costs you the higher tiers.',
+  'challengeType.kyushu-88-bicycle.summary.gold': 'Reach all 88 onsens by bicycle or on foot only',
+  'challengeType.kyushu-88-bicycle.summary.silver':
+    'Reach 66 or more onsens, using a faster mode at most 4 times',
+  'challengeType.kyushu-88-bicycle.summary.bronze':
+    'Reach 44 or more onsens, using a faster mode at most 8 times',
+  'challengeType.kyushu-88-walk.name': 'Walking Challenge',
+  'challengeType.kyushu-88-walk.description':
+    'Tour the Kyushu 88 hot springs on foot only — the toughest challenge.',
+  'challengeType.kyushu-88-walk.rule':
+    'Travel on foot only. Using anything faster costs you the higher tiers.',
+  'challengeType.kyushu-88-walk.summary.gold': 'Reach all 88 onsens on foot only',
+  'challengeType.kyushu-88-walk.summary.silver':
+    'Reach 66 or more onsens, using a faster mode at most 4 times',
+  'challengeType.kyushu-88-walk.summary.bronze':
+    'Reach 44 or more onsens, using a faster mode at most 8 times',
+
   // challenge list / switcher
   'challengeList.title': 'Challenges',
   'challengeList.hint': 'Tap a challenge to make it active.',
