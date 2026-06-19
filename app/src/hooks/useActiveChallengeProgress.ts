@@ -48,6 +48,8 @@ export interface ActiveChallengeProgress {
   highestEligibleTier: Tier | null;
   canUpgrade: boolean;
   activeRoute: RouteDocument | null;
+  /** kyuhachiIds of every onsen visited in the active challenge (not just eligible ones). */
+  visitedIds: Set<string>;
   /** Eligible onsens, unvisited first, then alphabetical by area then name. */
   rows: OnsenRow[];
   claimTier: (tierId: string) => Promise<void>;
@@ -357,6 +359,7 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
     highestEligibleTier,
     canUpgrade,
     activeRoute,
+    visitedIds,
     rows,
     claimTier,
     clearRoute,
