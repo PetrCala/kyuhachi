@@ -50,7 +50,7 @@ export interface ActiveChallengeProgress {
   activeRoute: RouteDocument | null;
   /** kyuhachiIds of every onsen visited in the active challenge (not just eligible ones). */
   visitedIds: Set<string>;
-  /** Eligible onsens, unvisited first, then alphabetical by area then name. */
+  /** Eligible onsens for the active challenge; display order is handled by OnsenList. */
   rows: OnsenRow[];
   claimTier: (tierId: string) => Promise<void>;
   clearRoute: () => Promise<void>;
@@ -242,23 +242,16 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
 
   const rows = useMemo<OnsenRow[]>(() => {
     if (!challenge) return [];
-    return challenge.snapshotEligibleOnsenIds
-      .map((id) => {
-        const info = onsenMap.get(id);
-        return {
-          id,
-          name: info?.name ?? id,
-          areaName: info?.areaName ?? '',
-          visited: visitedIds.has(id),
-        };
-      })
-      .sort((a, b) => {
-        // Visited last, then alphabetical by area then name
-        if (a.visited !== b.visited) return a.visited ? 1 : -1;
-        const areaComp = a.areaName.localeCompare(b.areaName);
-        if (areaComp !== 0) return areaComp;
-        return a.name.localeCompare(b.name);
-      });
+    // Display order (visited last, then area, then name) is applied by OnsenList.
+    return challenge.snapshotEligibleOnsenIds.map((id) => {
+      const info = onsenMap.get(id);
+      return {
+        id,
+        name: info?.name ?? id,
+        areaName: info?.areaName ?? '',
+        visited: visitedIds.has(id),
+      };
+    });
   }, [challenge, onsenMap, visitedIds]);
 
   const eligibleVisitCount = useMemo(() => {
