@@ -12,7 +12,7 @@ import {
   TextInput,
   ActionSheetIOS,
 } from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
   doc,
@@ -43,6 +43,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 
 export default function OnsenDetail() {
   const { t } = useTranslation();
+  const router = useRouter();
   const { user } = useAuth();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [onsen, setOnsen] = useState<OnsenWithId | null>(null);
@@ -191,6 +192,7 @@ export default function OnsenDetail() {
           updatedAt: serverTimestamp(),
         }
       );
+      router.back();
     } catch (error) {
       Alert.alert('Error', error instanceof Error ? error.message : '');
     } finally {
