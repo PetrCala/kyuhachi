@@ -28,6 +28,7 @@ import { COLLECTIONS, SUBCOLLECTIONS, isFasterThan } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/firebase';
 import { firebaseErrorKey } from '@/lib/firebase-errors';
+import { localizeTier } from '@/lib/challenge-i18n';
 
 export interface OnsenRow {
   id: string;
@@ -181,13 +182,13 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
           return;
         }
         const data = snapshot.data() as ChallengeTypeDocument;
-        setTiers(data.tiers ?? []);
+        setTiers((data.tiers ?? []).map((tier) => localizeTier(challenge.typeId, tier, t)));
         setCompletionCount(data.completionCount);
         setBaseMode(data.baseMode ?? null);
       }
     );
     return unsub;
-  }, [challenge?.typeId]);
+  }, [challenge?.typeId, t]);
 
   // Fetch onsen display data for eligible IDs
   useEffect(() => {

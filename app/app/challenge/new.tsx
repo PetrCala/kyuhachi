@@ -20,6 +20,7 @@ import type { ChallengeTypeDocument } from '@kyuhachi/shared';
 import { COLLECTIONS, TRANSPORT_MODES } from '@kyuhachi/shared';
 import { db } from '@/firebase';
 import { TierBadge } from '@/components/TierBadge';
+import { localizeChallengeType } from '@/lib/challenge-i18n';
 import { colors, spacing, typography, radii } from '@/theme';
 
 interface ChallengeTypeRow {
@@ -84,25 +85,28 @@ export default function ChooseChallengeType() {
         <Text style={styles.heading}>{t('challengeNew.heading')}</Text>
         <Text style={styles.hint}>{t('challengeNew.hint')}</Text>
 
-        {types.map(({ id, type }) => (
-          <Pressable
-            key={id}
-            style={styles.card}
-            onPress={() => router.push({ pathname: '/challenge/preview', params: { typeId: id } })}
-          >
-            <View style={styles.cardText}>
-              <Text style={styles.cardName}>{type.name}</Text>
-              <Text style={styles.cardDescription} numberOfLines={2}>
-                {type.description}
-              </Text>
-            </View>
-            <View style={styles.tierDots}>
-              {type.tiers.map((tier) => (
-                <TierBadge key={tier.id} tierId={tier.id} size={spacing[3]} />
-              ))}
-            </View>
-          </Pressable>
-        ))}
+        {types.map(({ id, type }) => {
+          const display = localizeChallengeType(id, type, t);
+          return (
+            <Pressable
+              key={id}
+              style={styles.card}
+              onPress={() => router.push({ pathname: '/challenge/preview', params: { typeId: id } })}
+            >
+              <View style={styles.cardText}>
+                <Text style={styles.cardName}>{display.name}</Text>
+                <Text style={styles.cardDescription} numberOfLines={2}>
+                  {display.description}
+                </Text>
+              </View>
+              <View style={styles.tierDots}>
+                {display.tiers.map((tier) => (
+                  <TierBadge key={tier.id} tierId={tier.id} size={spacing[3]} />
+                ))}
+              </View>
+            </Pressable>
+          );
+        })}
       </ScrollView>
     </>
   );

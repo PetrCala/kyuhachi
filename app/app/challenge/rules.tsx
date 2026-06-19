@@ -7,6 +7,7 @@ import type { ChallengeTypeDocument } from '@kyuhachi/shared';
 import { COLLECTIONS } from '@kyuhachi/shared';
 import { db } from '@/firebase';
 import { ChallengeRulesView } from '@/components/ChallengeRulesView';
+import { localizeChallengeType } from '@/lib/challenge-i18n';
 import { colors, spacing, typography } from '@/theme';
 
 export default function ChallengeRulesScreen() {
@@ -58,11 +59,13 @@ export default function ChallengeRulesScreen() {
     );
   }
 
+  const display = localizeChallengeType(typeId ?? '', challengeType, t);
+
   return (
     <>
       <Stack.Screen options={{ title: t('challengeRules.title'), headerShown: true }} />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        <ChallengeRulesView challengeType={challengeType} />
+        <ChallengeRulesView challengeType={display} />
       </ScrollView>
     </>
   );

@@ -33,7 +33,18 @@ export function TierBadge({ tierId, name, size = 64 }: TierBadgeProps) {
         { width: size, height: size, borderRadius: size / 2, borderColor: color },
       ]}
     >
-      {name ? <Text style={[styles.label, { color }]}>{name}</Text> : null}
+      {name ? (
+        // Shrink the label to fit the disc: a single CJK glyph (金/銀/銅) sits at
+        // the full size, while a longer localized word (Gold/Silver/Bronze) scales
+        // down to the badge width rather than overflowing the ring.
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          style={[styles.label, { color, width: size }]}
+        >
+          {name}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -47,5 +58,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: typography.sizes.xxl,
     fontWeight: typography.weights.semibold,
+    textAlign: 'center',
   },
 });

@@ -24,6 +24,7 @@ import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/firebase';
 import { firebaseErrorKey } from '@/lib/firebase-errors';
+import { challengeTypeName } from '@/lib/challenge-i18n';
 import { colors, spacing, typography, radii } from '@/theme';
 
 interface ChallengeRow {
@@ -215,7 +216,9 @@ export default function ChallengeList() {
             <View key={id} style={styles.card}>
               <Pressable style={styles.cardMain} onPress={() => switchTo(id)} disabled={isActive}>
                 <Text style={styles.cardName}>{data.name}</Text>
-                <Text style={styles.cardType}>{info?.name ?? data.typeId}</Text>
+                <Text style={styles.cardType}>
+                  {challengeTypeName(data.typeId, info?.name ?? data.typeId, t)}
+                </Text>
                 {info && visited !== undefined && (
                   <Text style={styles.cardProgress}>
                     {t('home.progress', { visited, total: info.completionCount })}
