@@ -9,9 +9,16 @@ import {
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import firestore from '@react-native-firebase/firestore';
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  type FirebaseFirestoreTypes,
+} from '@react-native-firebase/firestore';
 import type { ChallengeTypeDocument } from '@kyuhachi/shared';
 import { COLLECTIONS, TRANSPORT_MODES } from '@kyuhachi/shared';
+import { db } from '../../src/firebase';
 import { TierBadge } from '../../src/components/TierBadge';
 import { colors, spacing, typography, radii } from '../../src/theme';
 
@@ -26,27 +33,25 @@ export default function ChooseChallengeType() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = firestore()
-      .collection(COLLECTIONS.CHALLENGE_TYPES)
-      .where('isActive', '==', true)
-      .onSnapshot(
-        (snap) => {
-          const rows = snap.docs.map((doc) => ({
-            id: doc.id,
-            type: doc.data() as ChallengeTypeDocument,
-          }));
-          // Easiest first: a higher baseMode rank means a more permissive
-          // challenge (car > public > bicycle > foot).
-          rows.sort(
-            (a, b) =>
-              TRANSPORT_MODES.indexOf(b.type.baseMode) -
-              TRANSPORT_MODES.indexOf(a.type.baseMode)
-          );
-          setTypes(rows);
-          setLoading(false);
-        },
-        () => setLoading(false)
-      );
+    const unsubscribe = onSnapshot(
+      query(collection(db, COLLECTIONS.CHALLENGE_TYPES), where('isActive', '==', true)),
+      (snap: FirebaseFirestoreTypes.QuerySnapshot) => {
+        const rows = snap.docs.map((d) => ({
+          id: d.id,
+          type: d.data() as ChallengeTypeDocument,
+        }));
+        // Easiest first: a higher baseMode rank means a more permissive
+        // challenge (car > public > bicycle > foot).
+        rows.sort(
+          (a, b) =>
+            TRANSPORT_MODES.indexOf(b.type.baseMode) -
+            TRANSPORT_MODES.indexOf(a.type.baseMode)
+        );
+        setTypes(rows);
+        setLoading(false);
+      },
+      () => setLoading(false)
+    );
     return unsubscribe;
   }, []);
 

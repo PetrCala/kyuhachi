@@ -12,10 +12,20 @@ import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
-import firestore from '@react-native-firebase/firestore';
+import {
+  collection,
+  doc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+  serverTimestamp,
+  type FirebaseFirestoreTypes,
+} from '@react-native-firebase/firestore';
 import type { RouteDocument } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
 import { useAuth } from '../../src/context/AuthContext';
+import { db } from '../../src/firebase';
 import {
   parseRoute,
   sourceFormatFromName,
@@ -46,19 +56,16 @@ export default function RoutesList() {
   // Live subscription to the user's imported routes.
   useEffect(() => {
     if (!user) return;
-    const unsubscribe = firestore()
-      .collection(COLLECTIONS.USERS)
-      .doc(user.uid)
-      .collection(SUBCOLLECTIONS.ROUTES)
-      .onSnapshot(
-        (snap) => {
-          setRoutes(
-            snap.docs.map((doc) => ({ id: doc.id, data: doc.data() as RouteDocument }))
-          );
-          setLoading(false);
-        },
-        () => setLoading(false)
-      );
+    const unsubscribe = onSnapshot(
+      collection(db, COLLECTIONS.USERS, user.uid, SUBCOLLECTIONS.ROUTES),
+      (snap: FirebaseFirestoreTypes.QuerySnapshot) => {
+        setRoutes(
+          snap.docs.map((d) => ({ id: d.id, data: d.data() as RouteDocument }))
+        );
+        setLoading(false);
+      },
+      () => setLoading(false)
+    );
     return unsubscribe;
   }, [user]);
 
@@ -78,12 +85,10 @@ export default function RoutesList() {
   async function setChallengeRoute(routeId: string | null) {
     if (!user || !selectFor) return;
     try {
-      await firestore()
-        .collection(COLLECTIONS.USERS)
-        .doc(user.uid)
-        .collection(SUBCOLLECTIONS.CHALLENGES)
-        .doc(selectFor)
-        .update({ activeRouteId: routeId, updatedAt: firestore.FieldValue.serverTimestamp() });
+      await updateDoc(
+        doc(db, COLLECTIONS.USERS, user.uid, SUBCOLLECTIONS.CHALLENGES, selectFor),
+        { activeRouteId: routeId, updatedAt: serverTimestamp() }
+      );
       router.back();
     } catch (error) {
       Alert.alert(t('routes.errorAttach'), error instanceof Error ? error.message : '');
@@ -115,15 +120,14 @@ export default function RoutesList() {
       const text = await new File(asset.uri).text();
       const parsed = parseRoute(text, format, nameWithoutExtension(asset.name));
 
-      const ref = await firestore()
-        .collection(COLLECTIONS.USERS)
-        .doc(user.uid)
-        .collection(SUBCOLLECTIONS.ROUTES)
-        .add({
+      const ref = await addDoc(
+        collection(db, COLLECTIONS.USERS, user.uid, SUBCOLLECTIONS.ROUTES),
+        {
           ...parsed,
-          createdAt: firestore.FieldValue.serverTimestamp(),
-          updatedAt: firestore.FieldValue.serverTimestamp(),
-        });
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        }
+      );
 
       if (selectMode) {
         await setChallengeRoute(ref.id);
@@ -144,12 +148,10 @@ export default function RoutesList() {
   async function renameRoute(id: string, name: string) {
     if (!user) return;
     try {
-      await firestore()
-        .collection(COLLECTIONS.USERS)
-        .doc(user.uid)
-        .collection(SUBCOLLECTIONS.ROUTES)
-        .doc(id)
-        .update({ name, updatedAt: firestore.FieldValue.serverTimestamp() });
+      await updateDoc(
+        doc(db, COLLECTIONS.USERS, user.uid, SUBCOLLECTIONS.ROUTES, id),
+        { name, updatedAt: serverTimestamp() }
+      );
     } catch (error) {
       Alert.alert(t('routes.errorRename'), error instanceof Error ? error.message : '');
     }
@@ -177,12 +179,7 @@ export default function RoutesList() {
   async function deleteRoute(id: string) {
     if (!user) return;
     try {
-      await firestore()
-        .collection(COLLECTIONS.USERS)
-        .doc(user.uid)
-        .collection(SUBCOLLECTIONS.ROUTES)
-        .doc(id)
-        .delete();
+      await deleteDoc(doc(db, COLLECTIONS.USERS, user.uid, SUBCOLLECTIONS.ROUTES, id));
     } catch (error) {
       Alert.alert(t('routes.errorDelete'), error instanceof Error ? error.message : '');
     }

@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import firestore from '@react-native-firebase/firestore';
+import { doc, onSnapshot, type FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 import type { ChallengeTypeDocument } from '@kyuhachi/shared';
 import { COLLECTIONS } from '@kyuhachi/shared';
+import { db } from '../../src/firebase';
 import { ChallengeRulesView } from '../../src/components/ChallengeRulesView';
 import { colors, spacing, typography } from '../../src/theme';
 
@@ -20,19 +21,17 @@ export default function ChallengeRulesScreen() {
       setLoading(false);
       return;
     }
-    const unsubscribe = firestore()
-      .collection(COLLECTIONS.CHALLENGE_TYPES)
-      .doc(typeId)
-      .onSnapshot(
-        (doc) => {
-          setChallengeType(doc.exists() ? (doc.data() as ChallengeTypeDocument) : null);
-          setLoading(false);
-        },
-        () => {
-          setChallengeType(null);
-          setLoading(false);
-        }
-      );
+    const unsubscribe = onSnapshot(
+      doc(db, COLLECTIONS.CHALLENGE_TYPES, typeId),
+      (snapshot: FirebaseFirestoreTypes.DocumentSnapshot) => {
+        setChallengeType(snapshot.exists() ? (snapshot.data() as ChallengeTypeDocument) : null);
+        setLoading(false);
+      },
+      () => {
+        setChallengeType(null);
+        setLoading(false);
+      }
+    );
 
     return unsubscribe;
   }, [typeId]);

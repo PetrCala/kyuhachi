@@ -10,10 +10,19 @@ import {
 } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import firestore from '@react-native-firebase/firestore';
+import {
+  collection,
+  doc,
+  getDoc,
+  onSnapshot,
+  writeBatch,
+  serverTimestamp,
+  type FirebaseFirestoreTypes,
+} from '@react-native-firebase/firestore';
 import type { ChallengeTypeDocument, UserDocument } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS, CATALOG_META_DOC_ID } from '@kyuhachi/shared';
 import { useAuth } from '../../src/context/AuthContext';
+import { db } from '../../src/firebase';
 import { ChallengeRulesView } from '../../src/components/ChallengeRulesView';
 import { colors, spacing, typography, radii } from '../../src/theme';
 
@@ -30,16 +39,14 @@ export default function ChallengePreview() {
       setLoading(false);
       return;
     }
-    const unsubscribe = firestore()
-      .collection(COLLECTIONS.CHALLENGE_TYPES)
-      .doc(typeId)
-      .onSnapshot(
-        (doc) => {
-          setChallengeType(doc.exists() ? (doc.data() as ChallengeTypeDocument) : null);
-          setLoading(false);
-        },
-        () => setLoading(false)
-      );
+    const unsubscribe = onSnapshot(
+      doc(db, COLLECTIONS.CHALLENGE_TYPES, typeId),
+      (snapshot: FirebaseFirestoreTypes.DocumentSnapshot) => {
+        setChallengeType(snapshot.exists() ? (snapshot.data() as ChallengeTypeDocument) : null);
+        setLoading(false);
+      },
+      () => setLoading(false)
+    );
     return unsubscribe;
   }, [typeId]);
 
@@ -47,40 +54,37 @@ export default function ChallengePreview() {
     if (!user || !typeId || !challengeType) return;
     setCreating(true);
     try {
-      const catalogSnap = await firestore()
-        .collection(COLLECTIONS.CATALOG_META)
-        .doc(CATALOG_META_DOC_ID)
-        .get();
+      const catalogSnap = await getDoc(doc(db, COLLECTIONS.CATALOG_META, CATALOG_META_DOC_ID));
       const catalogVersion = catalogSnap.exists()
         ? (catalogSnap.data()?.version as number) ?? 1
         : 1;
 
       // Creating a challenge makes it the active (default) one. Demote the
       // previous default so at most one challenge is ever isDefault.
-      const userRef = firestore().collection(COLLECTIONS.USERS).doc(user.uid);
-      const userSnap = await userRef.get();
+      const userRef = doc(db, COLLECTIONS.USERS, user.uid);
+      const userSnap = await getDoc(userRef);
       const previousDefaultId =
         (userSnap.data() as UserDocument | undefined)?.defaultChallengeId ?? null;
 
-      const batch = firestore().batch();
+      const batch = writeBatch(db);
 
-      const challengeRef = userRef.collection(SUBCOLLECTIONS.CHALLENGES).doc();
+      const challengeRef = doc(collection(userRef, SUBCOLLECTIONS.CHALLENGES));
       batch.set(challengeRef, {
         typeId,
         name: t('challenge.defaultName'),
-        startDate: firestore.FieldValue.serverTimestamp(),
+        startDate: serverTimestamp(),
         isDefault: true,
         snapshotEligibleOnsenIds: challengeType.eligibleOnsenIds,
         snapshotCatalogVersion: catalogVersion,
         activeRouteId: null,
         claimedTier: null,
         completedAt: null,
-        createdAt: firestore.FieldValue.serverTimestamp(),
+        createdAt: serverTimestamp(),
       });
 
       if (previousDefaultId) {
         batch.update(
-          userRef.collection(SUBCOLLECTIONS.CHALLENGES).doc(previousDefaultId),
+          doc(userRef, SUBCOLLECTIONS.CHALLENGES, previousDefaultId),
           { isDefault: false }
         );
       }

@@ -14,12 +14,20 @@ import {
 } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import firestore from '@react-native-firebase/firestore';
-import storage from '@react-native-firebase/storage';
+import {
+  doc,
+  setDoc,
+  updateDoc,
+  onSnapshot,
+  serverTimestamp,
+  type FirebaseFirestoreTypes,
+} from '@react-native-firebase/firestore';
+import { ref, putFile, getDownloadURL } from '@react-native-firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 import type { OnsenDocument, UserDocument, VisitDocument, TransportMode } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS, TRANSPORT_MODES } from '@kyuhachi/shared';
 import { useAuth } from '../../src/context/AuthContext';
+import { db, storage } from '../../src/firebase';
 import { colors, spacing, typography, radii } from '../../src/theme';
 
 type OnsenWithId = OnsenDocument & { id: string };
@@ -55,19 +63,17 @@ export default function OnsenDetail() {
   // Listen to onsen document
   useEffect(() => {
     if (!id) return;
-    const unsubscribe = firestore()
-      .collection(COLLECTIONS.ONSENS)
-      .doc(id)
-      .onSnapshot(
-        (doc) => {
-          setOnsen(doc.exists() ? { id: doc.id, ...(doc.data() as OnsenDocument) } : null);
-          setLoading(false);
-        },
-        () => {
-          setOnsen(null);
-          setLoading(false);
-        }
-      );
+    const unsubscribe = onSnapshot(
+      doc(db, COLLECTIONS.ONSENS, id),
+      (snapshot: FirebaseFirestoreTypes.DocumentSnapshot) => {
+        setOnsen(snapshot.exists() ? { id: snapshot.id, ...(snapshot.data() as OnsenDocument) } : null);
+        setLoading(false);
+      },
+      () => {
+        setOnsen(null);
+        setLoading(false);
+      }
+    );
     return unsubscribe;
   }, [id]);
 
@@ -77,11 +83,10 @@ export default function OnsenDetail() {
 
     let unsubVisit: (() => void) | null = null;
 
-    const unsubUser = firestore()
-      .collection(COLLECTIONS.USERS)
-      .doc(user.uid)
-      .onSnapshot((doc) => {
-        const data = doc.data() as UserDocument | undefined;
+    const unsubUser = onSnapshot(
+      doc(db, COLLECTIONS.USERS, user.uid),
+      (userDoc: FirebaseFirestoreTypes.DocumentSnapshot) => {
+        const data = userDoc.data() as UserDocument | undefined;
         const defChallengeId = data?.defaultChallengeId ?? null;
         setChallengeId(defChallengeId);
 
@@ -93,14 +98,17 @@ export default function OnsenDetail() {
           return;
         }
 
-        unsubVisit = firestore()
-          .collection(COLLECTIONS.USERS)
-          .doc(user.uid)
-          .collection(SUBCOLLECTIONS.CHALLENGES)
-          .doc(defChallengeId)
-          .collection(SUBCOLLECTIONS.VISITS)
-          .doc(id)
-          .onSnapshot((visitDoc) => {
+        unsubVisit = onSnapshot(
+          doc(
+            db,
+            COLLECTIONS.USERS,
+            user.uid,
+            SUBCOLLECTIONS.CHALLENGES,
+            defChallengeId,
+            SUBCOLLECTIONS.VISITS,
+            id
+          ),
+          (visitDoc: FirebaseFirestoreTypes.DocumentSnapshot) => {
             if (visitDoc.exists()) {
               const data = visitDoc.data() as VisitDocument;
               setVisitData(data);
@@ -112,8 +120,10 @@ export default function OnsenDetail() {
             } else {
               setVisitData(null);
             }
-          });
-      });
+          }
+        );
+      }
+    );
 
     return () => {
       unsubVisit?.();
@@ -125,15 +135,18 @@ export default function OnsenDetail() {
     if (!user || !challengeId || !id) return;
     setMarking(true);
     try {
-      await firestore()
-        .collection(COLLECTIONS.USERS)
-        .doc(user.uid)
-        .collection(SUBCOLLECTIONS.CHALLENGES)
-        .doc(challengeId)
-        .collection(SUBCOLLECTIONS.VISITS)
-        .doc(id)
-        .set({
-          visitedAt: firestore.FieldValue.serverTimestamp(),
+      await setDoc(
+        doc(
+          db,
+          COLLECTIONS.USERS,
+          user.uid,
+          SUBCOLLECTIONS.CHALLENGES,
+          challengeId,
+          SUBCOLLECTIONS.VISITS,
+          id
+        ),
+        {
+          visitedAt: serverTimestamp(),
           notes: null,
           photoUrl: null,
           structuredData: {
@@ -142,9 +155,10 @@ export default function OnsenDetail() {
             duration: null,
             transportMode: null,
           },
-          createdAt: firestore.FieldValue.serverTimestamp(),
-          updatedAt: firestore.FieldValue.serverTimestamp(),
-        });
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        }
+      );
     } catch (error) {
       Alert.alert('Error', error instanceof Error ? error.message : '');
     } finally {
@@ -156,14 +170,17 @@ export default function OnsenDetail() {
     if (!user || !challengeId || !id) return;
     setSaving(true);
     try {
-      await firestore()
-        .collection(COLLECTIONS.USERS)
-        .doc(user.uid)
-        .collection(SUBCOLLECTIONS.CHALLENGES)
-        .doc(challengeId)
-        .collection(SUBCOLLECTIONS.VISITS)
-        .doc(id)
-        .update({
+      await updateDoc(
+        doc(
+          db,
+          COLLECTIONS.USERS,
+          user.uid,
+          SUBCOLLECTIONS.CHALLENGES,
+          challengeId,
+          SUBCOLLECTIONS.VISITS,
+          id
+        ),
+        {
           notes: notes || null,
           structuredData: {
             rating,
@@ -171,8 +188,9 @@ export default function OnsenDetail() {
             duration: duration ? Number(duration) : null,
             transportMode,
           },
-          updatedAt: firestore.FieldValue.serverTimestamp(),
-        });
+          updatedAt: serverTimestamp(),
+        }
+      );
     } catch (error) {
       Alert.alert('Error', error instanceof Error ? error.message : '');
     } finally {
@@ -184,20 +202,24 @@ export default function OnsenDetail() {
     if (!user || !challengeId || !id) return;
     setUploading(true);
     try {
-      const ref = storage().ref(`visits/${user.uid}/${challengeId}_${id}/photo.jpg`);
-      await ref.putFile(uri);
-      const downloadUrl = await ref.getDownloadURL();
-      await firestore()
-        .collection(COLLECTIONS.USERS)
-        .doc(user.uid)
-        .collection(SUBCOLLECTIONS.CHALLENGES)
-        .doc(challengeId)
-        .collection(SUBCOLLECTIONS.VISITS)
-        .doc(id)
-        .update({
+      const photoRef = ref(storage, `visits/${user.uid}/${challengeId}_${id}/photo.jpg`);
+      await putFile(photoRef, uri);
+      const downloadUrl = await getDownloadURL(photoRef);
+      await updateDoc(
+        doc(
+          db,
+          COLLECTIONS.USERS,
+          user.uid,
+          SUBCOLLECTIONS.CHALLENGES,
+          challengeId,
+          SUBCOLLECTIONS.VISITS,
+          id
+        ),
+        {
           photoUrl: downloadUrl,
-          updatedAt: firestore.FieldValue.serverTimestamp(),
-        });
+          updatedAt: serverTimestamp(),
+        }
+      );
     } catch (error) {
       Alert.alert('Error', error instanceof Error ? error.message : '');
     } finally {

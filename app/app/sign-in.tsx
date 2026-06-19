@@ -11,7 +11,13 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import auth from '@react-native-firebase/auth';
+import {
+  AppleAuthProvider,
+  signInWithCredential,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+} from '@react-native-firebase/auth';
+import { auth } from '../src/firebase';
 import { colors, spacing, typography, radii } from '../src/theme';
 
 type Mode = 'sign-in' | 'create-account';
@@ -37,8 +43,8 @@ export default function SignIn() {
         ],
       });
       if (!credential.identityToken) throw new Error('No identity token from Apple');
-      const appleCredential = auth.AppleAuthProvider.credential(credential.identityToken);
-      await auth().signInWithCredential(appleCredential);
+      const appleCredential = AppleAuthProvider.credential(credential.identityToken);
+      await signInWithCredential(auth, appleCredential);
     } catch (error: unknown) {
       if (error instanceof Error && 'code' in error && (error as { code: string }).code === 'ERR_REQUEST_CANCELED') {
         return; // user dismissed the Apple sheet
@@ -54,9 +60,9 @@ export default function SignIn() {
     try {
       setLoading(true);
       if (mode === 'sign-in') {
-        await auth().signInWithEmailAndPassword(email.trim(), password);
+        await signInWithEmailAndPassword(auth, email.trim(), password);
       } else {
-        await auth().createUserWithEmailAndPassword(email.trim(), password);
+        await createUserWithEmailAndPassword(auth, email.trim(), password);
       }
     } catch (error: unknown) {
       const title = mode === 'sign-in' ? t('signIn.alertFailedSignIn') : t('signIn.alertFailedCreate');

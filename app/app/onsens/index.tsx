@@ -10,9 +10,17 @@ import {
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import firestore from '@react-native-firebase/firestore';
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  type FirebaseFirestoreTypes,
+} from '@react-native-firebase/firestore';
 import type { OnsenDocument } from '@kyuhachi/shared';
 import { COLLECTIONS } from '@kyuhachi/shared';
+import { db } from '../../src/firebase';
 import { colors, spacing, typography, radii } from '../../src/theme';
 
 type OnsenRow = OnsenDocument & { id: string };
@@ -24,20 +32,21 @@ export default function OnsenList() {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    const unsubscribe = firestore()
-      .collection(COLLECTIONS.ONSENS)
-      .where('isActive', '==', true)
-      .orderBy('areaName')
-      .orderBy('name')
-      .onSnapshot(
-        (snapshot) => {
-          setOnsens(
-            snapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() as OnsenDocument) }))
-          );
-          setLoading(false);
-        },
-        () => setLoading(false)
-      );
+    const unsubscribe = onSnapshot(
+      query(
+        collection(db, COLLECTIONS.ONSENS),
+        where('isActive', '==', true),
+        orderBy('areaName'),
+        orderBy('name')
+      ),
+      (snapshot: FirebaseFirestoreTypes.QuerySnapshot) => {
+        setOnsens(
+          snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as OnsenDocument) }))
+        );
+        setLoading(false);
+      },
+      () => setLoading(false)
+    );
     return unsubscribe;
   }, []);
 
