@@ -66,6 +66,17 @@ export default function ChallengePreview() {
       const previousDefaultId =
         (userSnap.data() as UserDocument | undefined)?.defaultChallengeId ?? null;
 
+      // The stored pointer can dangle (e.g. the previous default was deleted),
+      // so only demote it when the document still exists. A batched update() on
+      // a missing doc fails the whole commit with firestore/not-found.
+      let previousDefaultRef: FirebaseFirestoreTypes.DocumentReference | null = null;
+      if (previousDefaultId) {
+        const ref = doc(userRef, SUBCOLLECTIONS.CHALLENGES, previousDefaultId);
+        if ((await getDoc(ref)).exists()) {
+          previousDefaultRef = ref;
+        }
+      }
+
       const batch = writeBatch(db);
 
       const challengeRef = doc(collection(userRef, SUBCOLLECTIONS.CHALLENGES));
@@ -82,14 +93,13 @@ export default function ChallengePreview() {
         createdAt: serverTimestamp(),
       });
 
-      if (previousDefaultId) {
-        batch.update(
-          doc(userRef, SUBCOLLECTIONS.CHALLENGES, previousDefaultId),
-          { isDefault: false }
-        );
+      if (previousDefaultRef) {
+        batch.update(previousDefaultRef, { isDefault: false });
       }
 
-      batch.update(userRef, { defaultChallengeId: challengeRef.id });
+      // set+merge rather than update so creation still succeeds if the user
+      // document does not exist yet (e.g. the onUserCreated trigger is lagging).
+      batch.set(userRef, { defaultChallengeId: challengeRef.id }, { merge: true });
 
       await batch.commit();
       router.replace('/');
