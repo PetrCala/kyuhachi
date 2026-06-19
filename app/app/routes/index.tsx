@@ -79,10 +79,10 @@ export default function RoutesList() {
     });
   }, [routes]);
 
-  // Attach (or clear, when routeId is null) the active route on the challenge
-  // this picker was opened for, then return to it. Cosmetic only — never touches
-  // completion logic.
-  async function setChallengeRoute(routeId: string | null) {
+  // Attach the active route on the challenge this picker was opened for, then
+  // return to it. Cosmetic only — never touches completion logic. Clearing a
+  // route lives on the challenge's route section, not here.
+  async function setChallengeRoute(routeId: string) {
     if (!user || !selectFor) return;
     try {
       await updateDoc(
@@ -233,12 +233,6 @@ export default function RoutesList() {
           </Text>
         </Pressable>
 
-        {selectMode && (
-          <Pressable style={styles.clearButton} onPress={() => setChallengeRoute(null)}>
-            <Text style={styles.clearButtonText}>{t('routes.clearSelection')}</Text>
-          </Pressable>
-        )}
-
         {sorted.length === 0 ? (
           <Text style={styles.empty}>{t('routes.empty')}</Text>
         ) : (
@@ -306,19 +300,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing[4],
     alignItems: 'center',
     marginBottom: spacing[5],
-  },
-  clearButton: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    paddingVertical: spacing[4],
-    alignItems: 'center',
-    marginBottom: spacing[5],
-  },
-  clearButtonText: {
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.semibold,
-    color: colors.textSecondary,
   },
   importButtonDisabled: {
     opacity: 0.6,

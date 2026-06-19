@@ -112,7 +112,6 @@ const ja: Record<keyof typeof en, string> = {
   'routes.title': 'ルート',
   'routes.selectTitle': 'ルートを選択',
   'routes.selectHint': 'チャレンジで使うルートをタップしてください。',
-  'routes.clearSelection': 'ルートを使わない',
   'routes.errorAttach': 'チャレンジのルート更新に失敗しました',
   'routes.import': 'ルートを取り込む',
   'routes.importing': '取り込み中…',
