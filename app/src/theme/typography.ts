@@ -22,4 +22,9 @@ export const typography = {
     semibold: '600' as const,
     bold:     '700' as const,
   },
+  // Custom font families (loaded at app launch in app/_layout.tsx).
+  // Klee One is a calligraphic Japanese hand used only for the brand mark.
+  fonts: {
+    brand: 'KleeOne_600SemiBold',
+  },
 } as const;

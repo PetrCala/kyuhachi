@@ -16,6 +16,10 @@ import { colors, spacing, typography, radii } from '../src/theme';
 
 type Mode = 'sign-in' | 'create-account';
 
+// Brand logo mark: 九 (kyu) over 八 (hachi), set in Klee One. Not a translatable
+// string — it's the app's visual identity and renders identically in every locale.
+const BRAND_MARK = '九\n八';
+
 export default function SignIn() {
   const { t } = useTranslation();
   const [mode, setMode] = useState<Mode>('sign-in');
@@ -70,6 +74,9 @@ export default function SignIn() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.container}>
+        <View style={styles.brandMark}>
+          <Text style={styles.brandGlyph}>{BRAND_MARK}</Text>
+        </View>
         <Text style={styles.title}>{t('signIn.title')}</Text>
 
         <AppleAuthentication.AppleAuthenticationButton
@@ -139,6 +146,23 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: spacing[8],
+  },
+  brandMark: {
+    width: 88, // decorative logo tile; mirrors the app icon proportions
+    height: 88,
+    borderRadius: radii.xl,
+    backgroundColor: colors.brand,
+    alignSelf: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing[5],
+  },
+  brandGlyph: {
+    fontFamily: typography.fonts.brand,
+    fontSize: typography.sizes.xxxl,
+    lineHeight: 30, // tight stack so 九 and 八 read as one mark
+    textAlign: 'center',
+    color: colors.brandGlyph,
   },
   title: {
     fontSize: typography.sizes.xxl,
