@@ -83,6 +83,14 @@ const ja: Record<keyof typeof en, string> = {
   'challengeList.errorDelete': 'チャレンジの削除に失敗しました',
   'challengeList.errorSwitch': 'チャレンジの切り替えに失敗しました',
 
+  // routes (import)
+  'routes.import': 'ルートを取り込む',
+  'routes.importing': '取り込み中…',
+  'routes.importErrorTitle': '取り込みに失敗しました',
+  'routes.importErrorFormat': '対応していないファイル形式です。.gpx、.kml、.tcx のいずれかを選択してください。',
+  'routes.importErrorNoTrack': 'このファイルにトラックが見つかりませんでした。',
+  'routes.importErrorParse': 'このファイルを読み込めませんでした。破損しているか、有効なGPSトラックではない可能性があります。',
+
   // onsen detail (visit)
   'onsenDetail.notFound': '温泉が見つかりませんでした',
   'onsenDetail.archived': '廃止',

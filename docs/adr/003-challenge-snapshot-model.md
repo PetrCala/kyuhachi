@@ -30,4 +30,4 @@ If new onsens are added to the official pool: existing challenges are unaffected
 - **Immutability** — `snapshotEligibleOnsenIds` is a large array (~155 IDs) stored on every challenge document; acceptable at this scale
 - **No retroactive corrections** — if the data repo publishes a bad eligible list, existing challenges cannot be corrected without a migration script
 - **Completion logic is self-contained** — the `onVisitCreated` Function only needs the challenge document to evaluate completion; no cross-document reads required
-- **Route plans are independent** — `activePlanId` on the challenge document is cosmetic; it has no effect on completion logic (see ADR-006 context)
+- **Routes are independent** — `activeRouteId` on the challenge document is cosmetic; it has no effect on completion logic (see ADR-006 context)

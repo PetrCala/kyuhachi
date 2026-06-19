@@ -227,35 +227,35 @@ describe('users/challenges/visits', () => {
 });
 
 // ---------------------------------------------------------------------------
-// /users/{userId}/route_plans
+// /users/{userId}/routes
 // ---------------------------------------------------------------------------
 
-describe('users/route_plans', () => {
-  const planPath = 'users/user-1/route_plans/plan-1';
+describe('users/routes', () => {
+  const routePath = 'users/user-1/routes/route-1';
 
-  test('owner: read own plan allowed', async () => {
+  test('owner: read own route allowed', async () => {
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
-      await setDoc(doc(ctx.firestore(), planPath), { name: 'My Route' });
+      await setDoc(doc(ctx.firestore(), routePath), { name: 'My Route' });
     });
-    await assertSucceeds(getDoc(doc(authDb('user-1'), planPath)));
+    await assertSucceeds(getDoc(doc(authDb('user-1'), routePath)));
   });
 
-  test('owner: write own plan allowed', async () => {
+  test('owner: write own route allowed', async () => {
     await assertSucceeds(
-      setDoc(doc(authDb('user-1'), planPath), { name: 'My Route', onsenIds: [] })
+      setDoc(doc(authDb('user-1'), routePath), { name: 'My Route', points: [] })
     );
   });
 
   test('other user: read denied', async () => {
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
-      await setDoc(doc(ctx.firestore(), planPath), { name: 'My Route' });
+      await setDoc(doc(ctx.firestore(), routePath), { name: 'My Route' });
     });
-    await assertFails(getDoc(doc(authDb('user-2'), planPath)));
+    await assertFails(getDoc(doc(authDb('user-2'), routePath)));
   });
 
   test('other user: write denied', async () => {
     await assertFails(
-      setDoc(doc(authDb('user-2'), planPath), { name: 'Hacked' })
+      setDoc(doc(authDb('user-2'), routePath), { name: 'Hacked' })
     );
   });
 });

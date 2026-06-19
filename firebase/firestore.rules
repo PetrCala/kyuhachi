@@ -42,7 +42,7 @@ service cloud.firestore {
         }
       }
 
-      match /route_plans/{planId} {
+      match /routes/{routeId} {
         allow read, write: if isOwner(userId);
       }
     }

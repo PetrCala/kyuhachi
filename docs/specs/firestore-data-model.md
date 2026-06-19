@@ -16,7 +16,7 @@ This document is the reference for all Firestore collections. TypeScript types i
 /users/{userId}
 /users/{userId}/challenges/{challengeId}
 /users/{userId}/challenges/{challengeId}/visits/{onsenId}
-/users/{userId}/route_plans/{planId}
+/users/{userId}/routes/{routeId}
 ```
 
 ---
@@ -148,7 +148,7 @@ A user's in-progress or completed challenge. A user may have multiple challenges
 | `isDefault` | `boolean` | Whether this is the challenge shown on app launch |
 | `snapshotEligibleOnsenIds` | `string[]` | Frozen copy of `challenge_types/{typeId}.eligibleOnsenIds` at creation time. Never mutated. See ADR-003. |
 | `snapshotCatalogVersion` | `number` | Catalog version at challenge creation time |
-| `activePlanId` | `string \| null` | Optional: which `route_plans` document the user is currently following. Cosmetic only — ignored for completion. User may change freely. |
+| `activeRouteId` | `string \| null` | Optional: which `routes` document the user is currently following. Cosmetic only — ignored for completion. User may change freely. |
 | `claimedTier` | `string \| null` | Tier self-reported by user at completion (`"gold"` \| `"silver"` \| `"bronze"` \| `null`) |
 | `completedAt` | `Timestamp \| null` | Set by `onVisitCreated` Function when unique eligible visits ≥ 88. Null until then. |
 | `createdAt` | `Timestamp` | — |
@@ -205,23 +205,30 @@ A single visit record within a challenge.
 
 ---
 
-## /users/{userId}/route_plans/{planId}
+## /users/{userId}/routes/{routeId}
 
-A named ordered list of onsens representing a walking route. Independent from challenges — see ADR-003.
+An externally-authored, navigable GPS track that the user **imports** into the app from a `.gpx`, `.kml`, or `.tcx` file. A route is NOT built in-app and is NOT a list of onsens — route authoring happens entirely outside the app. Independent from challenges — see ADR-003.
+
+On import the file is parsed (all three formats via `@tmcw/togeojson` → GeoJSON) into a simplified coordinate track plus metadata, which is stored here. **The raw file is not kept** — to change a route the user re-imports it.
 
 **Document ID:** Auto-generated Firestore ID.
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `name` | `string` | User-defined name (e.g. "Northern route") |
-| `onsenIds` | `string[]` | Ordered list of `kyuhachiId` values |
+| `name` | `string` | From the track's `<name>` if present, else the imported filename minus extension |
+| `sourceFormat` | `"gpx" \| "kml" \| "tcx"` | The format of the imported file |
+| `points` | `{ lat: number; lng: number }[]` | Ordered, simplified track points. Simplified so the document stays well under the 1 MB Firestore limit and renders smoothly (≤ ~1500 points). |
+| `pointCount` | `number` | Length of `points` (denormalized for list display without reading the full array) |
+| `bounds` | `{ minLat: number; minLng: number; maxLat: number; maxLng: number }` | Bounding box of the track; used to fit the map viewport |
+| `distanceMeters` | `number \| null` | Total track length (haversine sum); null if not computable |
 | `createdAt` | `Timestamp` | — |
 | `updatedAt` | `Timestamp` | — |
 
 **Invariants:**
 
-- Route plans do not affect challenge completion in any way
-- A challenge's `activePlanId` references a route plan but the relationship is cosmetic; changing or deleting a plan does not affect the challenge
+- Routes do not affect challenge completion in any way
+- A challenge's `activeRouteId` references a route but the relationship is cosmetic; changing or deleting a route does not affect the challenge
+- The raw imported file is never stored — only the parsed track and metadata
 
 **Access:** Owner only.
 
