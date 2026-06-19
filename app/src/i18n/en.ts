@@ -112,7 +112,6 @@ const en = {
   'routes.title': 'Routes',
   'routes.selectTitle': 'Select a Route',
   'routes.selectHint': 'Tap a route to follow it in this challenge.',
-  'routes.clearSelection': 'Follow no route',
   'routes.errorAttach': 'Failed to update the challenge route',
   'routes.import': 'Import route',
   'routes.importing': 'Importing…',
