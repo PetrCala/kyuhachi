@@ -43,6 +43,7 @@ const en = {
   'home.progress': '{{visited}}/{{total}}',
   'home.noChallenge': 'No active challenge',
   'home.startChallenge': 'Start Challenge',
+  'home.recordVisit': 'Record a visit',
 
   // more (settings tab)
   'more.title': 'More',
@@ -55,6 +56,9 @@ const en = {
 
   // challenge progress
   'challengeProgress.title': 'Challenge Progress',
+  'challengeProgress.progressHeading': 'Progress',
+  'challengeProgress.howTiers': 'How tiers work',
+  'challengeProgress.recordVisitTitle': 'Record a visit',
   'challengeProgress.visited': 'Visited',
   'challengeProgress.notVisited': 'Not visited',
   'challengeProgress.tiers': 'Tiers',
@@ -72,6 +76,7 @@ const en = {
   'challengeProgress.clearRoute': 'Clear',
   'challengeProgress.viewRouteOnMap': 'View on map',
   'challengeProgress.errorRoute': 'Failed to update the challenge route',
+  'challengeProgress.errorClaim': 'Failed to claim tier',
   'challengeRules.title': 'Rules',
   'challengeRules.rulesHeading': 'Challenge Rules',
   'challengeRules.tiersHeading': 'Tier Conditions',

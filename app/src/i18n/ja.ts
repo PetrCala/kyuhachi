@@ -45,6 +45,7 @@ const ja: Record<keyof typeof en, string> = {
   'home.progress': '{{visited}}/{{total}}',
   'home.noChallenge': 'チャレンジ未開始',
   'home.startChallenge': 'チャレンジ開始',
+  'home.recordVisit': '訪問を記録',
 
   // more (settings tab)
   'more.title': 'その他',
@@ -57,6 +58,9 @@ const ja: Record<keyof typeof en, string> = {
 
   // challenge progress
   'challengeProgress.title': 'チャレンジ進捗',
+  'challengeProgress.progressHeading': '進捗',
+  'challengeProgress.howTiers': '称号について',
+  'challengeProgress.recordVisitTitle': '訪問を記録',
   'challengeProgress.visited': '訪問済み',
   'challengeProgress.notVisited': '未訪問',
   'challengeProgress.tiers': '称号',
@@ -74,6 +78,7 @@ const ja: Record<keyof typeof en, string> = {
   'challengeProgress.clearRoute': 'クリア',
   'challengeProgress.viewRouteOnMap': '地図で見る',
   'challengeProgress.errorRoute': 'チャレンジのルート更新に失敗しました',
+  'challengeProgress.errorClaim': '称号の申請に失敗しました',
   'challengeRules.title': 'ルール',
   'challengeRules.rulesHeading': 'チャレンジルール',
   'challengeRules.tiersHeading': '称号条件',

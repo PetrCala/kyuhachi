@@ -1,17 +1,17 @@
-import { useState, useEffect } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useMemo } from 'react';
+import {
+  View,
+  Text,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  ActivityIndicator,
+  SafeAreaView,
+} from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import {
-  collection,
-  doc,
-  onSnapshot,
-  type FirebaseFirestoreTypes,
-} from '@react-native-firebase/firestore';
-import type { UserDocument, ChallengeDocument } from '@kyuhachi/shared';
-import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
-import { useAuth } from '../../src/context/AuthContext';
-import { db } from '../../src/firebase';
+import { useActiveChallengeProgress } from '../../src/hooks/useActiveChallengeProgress';
+import { ProgressBar, type ProgressMarker } from '../../src/components/ProgressBar';
 import { colors, spacing, typography, radii } from '../../src/theme';
 
 // Brand wordmark: 九八 (kyuhachi) set in Klee One. Not a translatable string —
@@ -20,141 +20,218 @@ const HOME_WORDMARK = '九八';
 
 export default function Home() {
   const { t } = useTranslation();
-  const { user } = useAuth();
-  const [challengeName, setChallengeName] = useState<string | null>(null);
-  const [visitCount, setVisitCount] = useState(0);
-  const [completionCount, setCompletionCount] = useState(88);
-  const [hasChallenge, setHasChallenge] = useState<boolean | null>(null);
+  const {
+    loading,
+    challenge,
+    tiers,
+    completionCount,
+    eligibleVisitCount,
+    highestEligibleTier,
+    canUpgrade,
+    activeRoute,
+    claimTier,
+    clearRoute,
+    selectRoute,
+  } = useActiveChallengeProgress();
 
-  useEffect(() => {
-    if (!user) return;
+  // Tier thresholds plotted on the bar come from each tier's minVisits
+  // condition — never hardcoded. Tiers gated only on transport/time get no
+  // marker (the bar measures visit count alone).
+  const markers = useMemo<ProgressMarker[]>(() => {
+    return tiers
+      .map((tier) => {
+        const minVisits = tier.conditions.find((c) => c.type === 'minVisits');
+        if (!minVisits) return null;
+        return {
+          position: minVisits.value,
+          tierId: tier.id,
+          reached: eligibleVisitCount >= minVisits.value,
+        };
+      })
+      .filter((m): m is ProgressMarker => m !== null);
+  }, [tiers, eligibleVisitCount]);
 
-    let unsubChallenge: (() => void) | null = null;
-    let unsubVisits: (() => void) | null = null;
+  function openRules() {
+    if (!challenge) return;
+    router.push({ pathname: '/challenge/rules', params: { typeId: challenge.typeId } });
+  }
 
-    function cleanupInner() {
-      unsubVisits?.();
-      unsubVisits = null;
-      unsubChallenge?.();
-      unsubChallenge = null;
-    }
-
-    const unsubUser = onSnapshot(
-      doc(db, COLLECTIONS.USERS, user.uid),
-      (userDoc: FirebaseFirestoreTypes.DocumentSnapshot) => {
-        const data = userDoc.data() as UserDocument | undefined;
-        const challengeId = data?.defaultChallengeId ?? null;
-
-        cleanupInner();
-
-        if (!challengeId) {
-          setHasChallenge(false);
-          setChallengeName(null);
-          setVisitCount(0);
-          return;
-        }
-
-        setHasChallenge(true);
-
-        unsubChallenge = onSnapshot(
-          doc(db, COLLECTIONS.USERS, user.uid, SUBCOLLECTIONS.CHALLENGES, challengeId),
-          (challengeDoc: FirebaseFirestoreTypes.DocumentSnapshot) => {
-            if (!challengeDoc.exists()) {
-              setChallengeName(null);
-              setVisitCount(0);
-              return;
-            }
-
-            const challenge = challengeDoc.data() as ChallengeDocument;
-            setChallengeName(challenge.name);
-            setCompletionCount(
-              challenge.snapshotEligibleOnsenIds.length >= 88
-                ? 88
-                : challenge.snapshotEligibleOnsenIds.length
-            );
-
-            unsubVisits?.();
-            unsubVisits = onSnapshot(
-              collection(
-                db,
-                COLLECTIONS.USERS,
-                user.uid,
-                SUBCOLLECTIONS.CHALLENGES,
-                challengeId,
-                SUBCOLLECTIONS.VISITS
-              ),
-              (visitsSnap: FirebaseFirestoreTypes.QuerySnapshot) => {
-                const eligibleSet = new Set(challenge.snapshotEligibleOnsenIds);
-                const eligible = visitsSnap.docs.filter((d) => eligibleSet.has(d.id));
-                setVisitCount(eligible.length);
-              },
-              (error) => {
-                console.error('Failed to subscribe to challenge visits', error);
-                setVisitCount(0);
-              }
-            );
-          },
-          (error) => {
-            console.error('Failed to subscribe to default challenge', error);
-            setChallengeName(null);
-            setVisitCount(0);
-            setHasChallenge(null);
-          }
-        );
-      },
-      (error) => {
-        console.error('Failed to subscribe to user profile', error);
-        cleanupInner();
-        setHasChallenge(null);
-        setChallengeName(null);
-        setVisitCount(0);
-      }
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.centerContent}>
+          <Text style={styles.wordmark}>{HOME_WORDMARK}</Text>
+          <ActivityIndicator />
+        </View>
+      </SafeAreaView>
     );
+  }
 
-    return () => {
-      cleanupInner();
-      unsubUser();
-    };
-  }, [user]);
+  if (!challenge) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.centerContent}>
+          <Text style={styles.wordmark}>{HOME_WORDMARK}</Text>
+          <Pressable style={styles.primaryButton} onPress={() => router.push('/challenge/new')}>
+            <Text style={styles.primaryButtonText}>{t('home.startChallenge')}</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const claimedTierName =
+    tiers.find((tier) => tier.id === challenge.claimedTier)?.name ?? challenge.claimedTier;
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>{HOME_WORDMARK}</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.headerSection}>
+          <Text style={styles.wordmark}>{HOME_WORDMARK}</Text>
+          <Text style={styles.challengeName}>{challenge.name}</Text>
+          {completionCount !== null && (
+            <Text style={styles.progress}>
+              {t('home.progress', { visited: eligibleVisitCount, total: completionCount })}
+            </Text>
+          )}
+          <View style={styles.headerActions}>
+            <Pressable style={styles.pillButton} onPress={openRules}>
+              <Text style={styles.pillButtonText}>{t('challengeRules.title')}</Text>
+            </Pressable>
+            <Pressable style={styles.pillButton} onPress={() => router.push('/challenge/list')}>
+              <Text style={styles.pillButtonText}>{t('challengeList.title')}</Text>
+            </Pressable>
+          </View>
+        </View>
 
-      {hasChallenge === true && (
-        <Pressable style={styles.challengeSection} onPress={() => router.push('/challenge')}>
-          <Text style={styles.challengeName}>{challengeName}</Text>
-          <Text style={styles.progress}>
-            {t('home.progress', { visited: visitCount, total: completionCount })}
-          </Text>
-        </Pressable>
-      )}
+        <View style={styles.routeSection}>
+          <Text style={styles.routeHeading}>{t('challengeProgress.routeHeading')}</Text>
+          {activeRoute ? (
+            <>
+              <Text style={styles.routeName}>{activeRoute.name}</Text>
+              <View style={styles.routeActions}>
+                <Pressable
+                  style={styles.routeButton}
+                  onPress={() => {
+                    if (challenge.activeRouteId) {
+                      router.push({
+                        pathname: '/map',
+                        params: { routeId: challenge.activeRouteId },
+                      });
+                    }
+                  }}
+                >
+                  <Text style={styles.routeButtonText}>
+                    {t('challengeProgress.viewRouteOnMap')}
+                  </Text>
+                </Pressable>
+                <Pressable style={styles.routeButton} onPress={selectRoute}>
+                  <Text style={styles.routeButtonText}>{t('challengeProgress.changeRoute')}</Text>
+                </Pressable>
+                <Pressable style={styles.routeButton} onPress={clearRoute}>
+                  <Text style={styles.routeButtonText}>{t('challengeProgress.clearRoute')}</Text>
+                </Pressable>
+              </View>
+            </>
+          ) : (
+            <View style={styles.routeEmptyRow}>
+              <Text style={styles.routeEmptyText}>{t('challengeProgress.noRoute')}</Text>
+              <Pressable style={styles.routeButton} onPress={selectRoute}>
+                <Text style={styles.routeButtonText}>{t('challengeProgress.selectRoute')}</Text>
+              </Pressable>
+            </View>
+          )}
+        </View>
 
-      {hasChallenge === false && (
-        <Pressable style={styles.primaryButton} onPress={() => router.push('/challenge/new')}>
-          <Text style={styles.primaryButtonText}>{t('home.startChallenge')}</Text>
-        </Pressable>
-      )}
-    </View>
+        {completionCount !== null && (
+          <View style={styles.progressSection}>
+            <View style={styles.progressHeaderRow}>
+              <Text style={styles.sectionHeading}>{t('challengeProgress.progressHeading')}</Text>
+              {tiers.length > 0 && (
+                <Pressable onPress={openRules}>
+                  <Text style={styles.howTiersLink}>{t('challengeProgress.howTiers')} ›</Text>
+                </Pressable>
+              )}
+            </View>
+            <ProgressBar value={eligibleVisitCount} total={completionCount} markers={markers} />
+          </View>
+        )}
+
+        {tiers.length > 0 && challenge.claimedTier && !canUpgrade && (
+          <View style={styles.claimSection}>
+            <View style={styles.claimedBadge}>
+              <Text style={styles.claimedBadgeText}>
+                {t('challengeProgress.claimedTier', { tier: claimedTierName })}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {highestEligibleTier && !challenge.claimedTier && (
+          <View style={styles.claimSection}>
+            <Pressable style={styles.claimButton} onPress={() => claimTier(highestEligibleTier.id)}>
+              <Text style={styles.claimButtonText}>
+                {t('challengeProgress.claimTier', { tier: highestEligibleTier.name })}
+              </Text>
+            </Pressable>
+          </View>
+        )}
+
+        {highestEligibleTier && canUpgrade && (
+          <View style={styles.claimSection}>
+            <Text style={styles.claimedCurrentText}>
+              {t('challengeProgress.claimedTier', { tier: claimedTierName })}
+            </Text>
+            <Pressable style={styles.claimButton} onPress={() => claimTier(highestEligibleTier.id)}>
+              <Text style={styles.claimButtonText}>
+                {t('challengeProgress.upgradeTier', { tier: highestEligibleTier.name })}
+              </Text>
+            </Pressable>
+          </View>
+        )}
+
+        <View style={styles.recordSection}>
+          <Pressable
+            style={styles.primaryButton}
+            onPress={() => router.push('/challenge/onsens')}
+          >
+            <Text style={styles.primaryButtonText}>{t('home.recordVisit')}</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  centerContent: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.background,
     padding: spacing[6],
   },
-  title: {
-    fontFamily: typography.fonts.brand,
-    fontSize: typography.sizes.xxxl,
-    color: colors.textPrimary,
-    marginBottom: spacing[8],
+  scroll: {
+    flex: 1,
   },
-  challengeSection: {
+  scrollContent: {
+    paddingBottom: spacing[8],
+  },
+  wordmark: {
+    fontFamily: typography.fonts.brand,
+    fontSize: typography.sizes.xxl,
+    color: colors.textPrimary,
+    marginBottom: spacing[6],
+  },
+  headerSection: {
     alignItems: 'center',
+    paddingTop: spacing[4],
+    paddingBottom: spacing[6],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.separator,
   },
   challengeName: {
     fontSize: typography.sizes.md,
@@ -166,6 +243,128 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.xxxl,
     fontWeight: typography.weights.bold,
     color: colors.textPrimary,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: spacing[2],
+    marginTop: spacing[3],
+  },
+  pillButton: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: radii.full,
+  },
+  pillButtonText: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    color: colors.textSecondary,
+  },
+  routeSection: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.separator,
+  },
+  routeHeading: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    color: colors.textMuted,
+    marginBottom: spacing[3],
+  },
+  routeName: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
+    color: colors.textPrimary,
+    marginBottom: spacing[3],
+  },
+  routeActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing[2],
+  },
+  routeEmptyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  routeEmptyText: {
+    fontSize: typography.sizes.md,
+    color: colors.textMuted,
+    flex: 1,
+    marginRight: spacing[3],
+  },
+  routeButton: {
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  routeButtonText: {
+    fontSize: typography.sizes.sm,
+    color: colors.textSecondary,
+  },
+  progressSection: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[5],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.separator,
+  },
+  progressHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing[5],
+  },
+  sectionHeading: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    color: colors.textMuted,
+  },
+  howTiersLink: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
+    color: colors.actionPrimary,
+  },
+  claimSection: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.separator,
+    alignItems: 'center',
+  },
+  claimedBadge: {
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+  },
+  claimedBadgeText: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
+    color: colors.actionPrimary,
+  },
+  claimedCurrentText: {
+    fontSize: typography.sizes.sm,
+    color: colors.textMuted,
+    marginBottom: spacing[2],
+  },
+  claimButton: {
+    backgroundColor: colors.actionPrimary,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing[6],
+    paddingVertical: spacing[3],
+  },
+  claimButtonText: {
+    color: colors.actionPrimaryText,
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
+  },
+  recordSection: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[6],
+    alignItems: 'center',
   },
   primaryButton: {
     backgroundColor: colors.actionPrimary,
