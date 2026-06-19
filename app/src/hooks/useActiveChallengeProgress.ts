@@ -27,6 +27,7 @@ import type {
 import { COLLECTIONS, SUBCOLLECTIONS, isFasterThan } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/firebase';
+import { firebaseErrorKey } from '@/lib/firebase-errors';
 
 export interface OnsenRow {
   id: string;
@@ -322,7 +323,7 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
         { activeRouteId: null, updatedAt: serverTimestamp() }
       );
     } catch (error) {
-      Alert.alert(t('challengeProgress.errorRoute'), error instanceof Error ? error.message : '');
+      Alert.alert(t('challengeProgress.errorRoute'), t(firebaseErrorKey(error)));
     }
   }, [user, challengeId, t]);
 
@@ -335,7 +336,7 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
           { claimedTier: tierId, updatedAt: serverTimestamp() }
         );
       } catch (error) {
-        Alert.alert(t('challengeProgress.errorClaim'), error instanceof Error ? error.message : '');
+        Alert.alert(t('challengeProgress.errorClaim'), t(firebaseErrorKey(error)));
       }
     },
     [user, challengeId, t]

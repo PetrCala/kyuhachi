@@ -1,0 +1,4 @@
+{
+  "NSCameraUsageDescription": "訪問の写真を撮影するため、カメラへのアクセスを許可してください。",
+  "NSPhotoLibraryUsageDescription": "訪問の写真を追加するため、写真ライブラリへのアクセスを許可してください。"
+}

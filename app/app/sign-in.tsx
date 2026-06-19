@@ -18,6 +18,7 @@ import {
   createUserWithEmailAndPassword,
 } from '@react-native-firebase/auth';
 import { auth } from '@/firebase';
+import { firebaseErrorKey } from '@/lib/firebase-errors';
 import { colors, spacing, typography, radii } from '@/theme';
 
 type Mode = 'sign-in' | 'create-account';
@@ -42,14 +43,17 @@ export default function SignIn() {
           AppleAuthentication.AppleAuthenticationScope.EMAIL,
         ],
       });
-      if (!credential.identityToken) throw new Error('No identity token from Apple');
+      if (!credential.identityToken) {
+        Alert.alert(t('signIn.alertFailedSignIn'), t('signIn.errorNoAppleToken'));
+        return;
+      }
       const appleCredential = AppleAuthProvider.credential(credential.identityToken);
       await signInWithCredential(auth, appleCredential);
     } catch (error: unknown) {
       if (error instanceof Error && 'code' in error && (error as { code: string }).code === 'ERR_REQUEST_CANCELED') {
         return; // user dismissed the Apple sheet
       }
-      Alert.alert(t('signIn.alertFailedSignIn'), error instanceof Error ? error.message : 'Unknown error');
+      Alert.alert(t('signIn.alertFailedSignIn'), t(firebaseErrorKey(error)));
     } finally {
       setLoading(false);
     }
@@ -66,7 +70,7 @@ export default function SignIn() {
       }
     } catch (error: unknown) {
       const title = mode === 'sign-in' ? t('signIn.alertFailedSignIn') : t('signIn.alertFailedCreate');
-      Alert.alert(title, error instanceof Error ? error.message : 'Unknown error');
+      Alert.alert(title, t(firebaseErrorKey(error)));
     } finally {
       setLoading(false);
     }

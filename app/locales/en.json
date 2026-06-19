@@ -1,0 +1,4 @@
+{
+  "NSCameraUsageDescription": "Allow Kyuhachi to access your camera to take visit photos.",
+  "NSPhotoLibraryUsageDescription": "Allow Kyuhachi to access your photos to add visit photos."
+}

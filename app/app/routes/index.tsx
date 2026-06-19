@@ -32,6 +32,7 @@ import {
   nameWithoutExtension,
   RouteImportError,
 } from '@/lib/route-import';
+import { firebaseErrorKey } from '@/lib/firebase-errors';
 import { colors, spacing, typography, radii } from '@/theme';
 
 interface RouteRow {
@@ -91,7 +92,7 @@ export default function RoutesList() {
       );
       router.back();
     } catch (error) {
-      Alert.alert(t('routes.errorAttach'), error instanceof Error ? error.message : '');
+      Alert.alert(t('routes.errorAttach'), t(firebaseErrorKey(error)));
     }
   }
 
@@ -162,7 +163,7 @@ export default function RoutesList() {
         { name, updatedAt: serverTimestamp() }
       );
     } catch (error) {
-      Alert.alert(t('routes.errorRename'), error instanceof Error ? error.message : '');
+      Alert.alert(t('routes.errorRename'), t(firebaseErrorKey(error)));
     }
   }
 
@@ -190,7 +191,7 @@ export default function RoutesList() {
     try {
       await deleteDoc(doc(db, COLLECTIONS.USERS, user.uid, SUBCOLLECTIONS.ROUTES, id));
     } catch (error) {
-      Alert.alert(t('routes.errorDelete'), error instanceof Error ? error.message : '');
+      Alert.alert(t('routes.errorDelete'), t(firebaseErrorKey(error)));
     }
   }
 

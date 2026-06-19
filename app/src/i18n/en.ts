@@ -1,8 +1,19 @@
 const en = {
+  // common (shared error chrome — see src/lib/firebase-errors.ts)
+  'common.errorTitle': 'Error',
+  'common.errorGeneric': 'Something went wrong. Please try again.',
+  'common.errorNetwork': 'Network error. Check your connection and try again.',
+  'common.errorInvalidCredentials': 'Incorrect email or password.',
+  'common.errorInvalidEmail': 'That email address is invalid.',
+  'common.errorEmailInUse': 'That email address is already in use.',
+  'common.errorWeakPassword': 'Password must be at least 6 characters.',
+  'common.errorTooManyRequests': 'Too many attempts. Please try again later.',
+
   // sign-in
   'signIn.title': 'Kyushu 88 Onsen',
   'signIn.alertFailedSignIn': 'Sign in failed',
   'signIn.alertFailedCreate': 'Account creation failed',
+  'signIn.errorNoAppleToken': 'Could not get an identity token from Apple.',
   'signIn.divider': 'or',
   'signIn.emailPlaceholder': 'Email',
   'signIn.passwordPlaceholder': 'Password',
