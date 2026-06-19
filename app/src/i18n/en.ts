@@ -49,6 +49,7 @@ const en = {
   'challengeProgress.tiers': 'Tiers',
   'challengeProgress.tierEligible': 'Eligible',
   'challengeProgress.tierNotEligible': 'Not yet',
+  'challengeProgress.tierCurrent': 'Current',
   'challengeProgress.claimTier': 'Claim {{tier}}',
   'challengeProgress.claimedTier': 'Claimed: {{tier}}',
   'challengeProgress.upgradeTier': 'Upgrade to {{tier}}',

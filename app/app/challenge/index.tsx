@@ -24,6 +24,7 @@ import type {
 } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS, isFasterThan } from '@kyuhachi/shared';
 import { useAuth } from '../../src/context/AuthContext';
+import { TierBadge } from '../../src/components/TierBadge';
 import { colors, spacing, typography, radii } from '../../src/theme';
 
 interface OnsenRow {
@@ -408,8 +409,10 @@ export default function ChallengeProgress() {
             <Text style={styles.tierTitle}>{t('challengeProgress.tiers')}</Text>
             {tiers.map((tier) => {
               const eligible = isTierEligible(tier);
+              const isCurrent = highestEligibleTier?.id === tier.id;
               return (
                 <View key={tier.id} style={styles.tierRow}>
+                  <TierBadge tierId={tier.id} size={spacing[6]} />
                   <View style={styles.tierInfo}>
                     <Text style={[styles.tierName, !eligible && styles.tierDimmed]}>
                       {tier.name}
@@ -418,11 +421,17 @@ export default function ChallengeProgress() {
                       {tier.conditionSummary}
                     </Text>
                   </View>
-                  <Text style={eligible ? styles.tierEligibleBadge : styles.tierNotEligibleBadge}>
-                    {eligible
-                      ? t('challengeProgress.tierEligible')
-                      : t('challengeProgress.tierNotEligible')}
-                  </Text>
+                  {isCurrent ? (
+                    <Text style={styles.tierCurrentBadge}>
+                      {t('challengeProgress.tierCurrent')}
+                    </Text>
+                  ) : (
+                    <Text style={eligible ? styles.tierEligibleBadge : styles.tierNotEligibleBadge}>
+                      {eligible
+                        ? t('challengeProgress.tierEligible')
+                        : t('challengeProgress.tierNotEligible')}
+                    </Text>
+                  )}
                 </View>
               );
             })}
@@ -604,6 +613,7 @@ const styles = StyleSheet.create({
   tierRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing[3],
     marginBottom: spacing[3],
   },
   tierInfo: {
@@ -626,13 +636,21 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.medium,
     color: colors.actionPrimary,
-    marginLeft: spacing[2],
   },
   tierNotEligibleBadge: {
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.medium,
     color: colors.textPlaceholder,
-    marginLeft: spacing[2],
+  },
+  tierCurrentBadge: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.semibold,
+    color: colors.actionPrimaryText,
+    backgroundColor: colors.actionPrimary,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
+    borderRadius: radii.full,
+    overflow: 'hidden',
   },
   claimSection: {
     paddingHorizontal: spacing[4],
