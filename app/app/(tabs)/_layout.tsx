@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
+import OnsenIcon from '@/components/OnsenIcon';
 import { colors } from '@/theme';
 
 export default function TabsLayout() {
@@ -39,7 +40,7 @@ export default function TabsLayout() {
           tabBarLabel: t('tabs.onsens'),
           headerTitle: t('onsenList.title'),
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'water' : 'water-outline'} size={size} color={color} />
+            <OnsenIcon color={color} size={size} focused={focused} />
           ),
         }}
       />
