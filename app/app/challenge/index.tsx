@@ -10,7 +10,17 @@ import {
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import firestore from '@react-native-firebase/firestore';
+import {
+  collection,
+  doc,
+  query,
+  where,
+  onSnapshot,
+  updateDoc,
+  serverTimestamp,
+  documentId,
+  type FirebaseFirestoreTypes,
+} from '@react-native-firebase/firestore';
 import type {
   UserDocument,
   ChallengeDocument,
@@ -24,6 +34,7 @@ import type {
 } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS, isFasterThan } from '@kyuhachi/shared';
 import { useAuth } from '../../src/context/AuthContext';
+import { db } from '../../src/firebase';
 import { TierBadge } from '../../src/components/TierBadge';
 import { colors, spacing, typography, radii } from '../../src/theme';
 
@@ -64,11 +75,10 @@ export default function ChallengeProgress() {
       unsubChallenge = null;
     }
 
-    const unsubUser = firestore()
-      .collection(COLLECTIONS.USERS)
-      .doc(user.uid)
-      .onSnapshot((doc) => {
-        const data = doc.data() as UserDocument | undefined;
+    const unsubUser = onSnapshot(
+      doc(db, COLLECTIONS.USERS, user.uid),
+      (userDoc: FirebaseFirestoreTypes.DocumentSnapshot) => {
+        const data = userDoc.data() as UserDocument | undefined;
         const defChallengeId = data?.defaultChallengeId ?? null;
         setChallengeId(defChallengeId);
 
@@ -80,12 +90,9 @@ export default function ChallengeProgress() {
           return;
         }
 
-        unsubChallenge = firestore()
-          .collection(COLLECTIONS.USERS)
-          .doc(user.uid)
-          .collection(SUBCOLLECTIONS.CHALLENGES)
-          .doc(defChallengeId)
-          .onSnapshot((challengeDoc) => {
+        unsubChallenge = onSnapshot(
+          doc(db, COLLECTIONS.USERS, user.uid, SUBCOLLECTIONS.CHALLENGES, defChallengeId),
+          (challengeDoc: FirebaseFirestoreTypes.DocumentSnapshot) => {
             if (!challengeDoc.exists()) {
               setChallenge(null);
               setLoading(false);
@@ -96,23 +103,29 @@ export default function ChallengeProgress() {
             setChallenge(challengeData);
 
             unsubVisits?.();
-            unsubVisits = firestore()
-              .collection(COLLECTIONS.USERS)
-              .doc(user.uid)
-              .collection(SUBCOLLECTIONS.CHALLENGES)
-              .doc(defChallengeId)
-              .collection(SUBCOLLECTIONS.VISITS)
-              .onSnapshot((visitsSnap) => {
+            unsubVisits = onSnapshot(
+              collection(
+                db,
+                COLLECTIONS.USERS,
+                user.uid,
+                SUBCOLLECTIONS.CHALLENGES,
+                defChallengeId,
+                SUBCOLLECTIONS.VISITS
+              ),
+              (visitsSnap: FirebaseFirestoreTypes.QuerySnapshot) => {
                 setVisitedIds(new Set(visitsSnap.docs.map((d) => d.id)));
                 const visitMap = new Map<string, VisitDocument>();
-                for (const doc of visitsSnap.docs) {
-                  visitMap.set(doc.id, doc.data() as VisitDocument);
+                for (const d of visitsSnap.docs) {
+                  visitMap.set(d.id, d.data() as VisitDocument);
                 }
                 setVisits(visitMap);
                 setLoading(false);
-              });
-          });
-      });
+              }
+            );
+          }
+        );
+      }
+    );
 
     return () => {
       cleanupInner();
@@ -128,21 +141,21 @@ export default function ChallengeProgress() {
       setBaseMode(null);
       return;
     }
-    const unsub = firestore()
-      .collection(COLLECTIONS.CHALLENGE_TYPES)
-      .doc(challenge.typeId)
-      .onSnapshot((doc) => {
-        if (!doc.exists()) {
+    const unsub = onSnapshot(
+      doc(db, COLLECTIONS.CHALLENGE_TYPES, challenge.typeId),
+      (snapshot: FirebaseFirestoreTypes.DocumentSnapshot) => {
+        if (!snapshot.exists()) {
           setTiers([]);
           setCompletionCount(null);
           setBaseMode(null);
           return;
         }
-        const data = doc.data() as ChallengeTypeDocument;
+        const data = snapshot.data() as ChallengeTypeDocument;
         setTiers(data.tiers ?? []);
         setCompletionCount(data.completionCount);
         setBaseMode(data.baseMode ?? null);
-      });
+      }
+    );
     return unsub;
   }, [challenge?.typeId]);
 
@@ -162,19 +175,19 @@ export default function ChallengeProgress() {
 
     for (let i = 0; i < ids.length; i += BATCH_SIZE) {
       const chunk = ids.slice(i, i + BATCH_SIZE);
-      const unsub = firestore()
-        .collection(COLLECTIONS.ONSENS)
-        .where(firestore.FieldPath.documentId(), 'in', chunk)
-        .onSnapshot((snap) => {
-          for (const doc of snap.docs) {
-            const data = doc.data() as OnsenDocument;
-            collected.set(doc.id, { name: data.name, areaName: data.areaName });
+      const unsub = onSnapshot(
+        query(collection(db, COLLECTIONS.ONSENS), where(documentId(), 'in', chunk)),
+        (snap: FirebaseFirestoreTypes.QuerySnapshot) => {
+          for (const d of snap.docs) {
+            const data = d.data() as OnsenDocument;
+            collected.set(d.id, { name: data.name, areaName: data.areaName });
           }
           pending--;
           if (pending <= 0) {
             setOnsenMap(new Map(collected));
           }
-        });
+        }
+      );
       unsubscribes.push(unsub);
     }
 
@@ -189,15 +202,12 @@ export default function ChallengeProgress() {
       setActiveRoute(null);
       return;
     }
-    const unsub = firestore()
-      .collection(COLLECTIONS.USERS)
-      .doc(user.uid)
-      .collection(SUBCOLLECTIONS.ROUTES)
-      .doc(routeId)
-      .onSnapshot(
-        (doc) => setActiveRoute(doc.exists() ? (doc.data() as RouteDocument) : null),
-        () => setActiveRoute(null)
-      );
+    const unsub = onSnapshot(
+      doc(db, COLLECTIONS.USERS, user.uid, SUBCOLLECTIONS.ROUTES, routeId),
+      (snapshot: FirebaseFirestoreTypes.DocumentSnapshot) =>
+        setActiveRoute(snapshot.exists() ? (snapshot.data() as RouteDocument) : null),
+      () => setActiveRoute(null)
+    );
     return unsub;
   }, [user, challenge?.activeRouteId]);
 
@@ -282,12 +292,10 @@ export default function ChallengeProgress() {
   async function clearRoute() {
     if (!user || !challengeId) return;
     try {
-      await firestore()
-        .collection(COLLECTIONS.USERS)
-        .doc(user.uid)
-        .collection(SUBCOLLECTIONS.CHALLENGES)
-        .doc(challengeId)
-        .update({ activeRouteId: null, updatedAt: firestore.FieldValue.serverTimestamp() });
+      await updateDoc(
+        doc(db, COLLECTIONS.USERS, user.uid, SUBCOLLECTIONS.CHALLENGES, challengeId),
+        { activeRouteId: null, updatedAt: serverTimestamp() }
+      );
     } catch (error) {
       Alert.alert(t('challengeProgress.errorRoute'), error instanceof Error ? error.message : '');
     }
@@ -296,15 +304,13 @@ export default function ChallengeProgress() {
   async function handleClaimTier(tierId: string) {
     if (!user || !challengeId) return;
     try {
-      await firestore()
-        .collection(COLLECTIONS.USERS)
-        .doc(user.uid)
-        .collection(SUBCOLLECTIONS.CHALLENGES)
-        .doc(challengeId)
-        .update({
+      await updateDoc(
+        doc(db, COLLECTIONS.USERS, user.uid, SUBCOLLECTIONS.CHALLENGES, challengeId),
+        {
           claimedTier: tierId,
-          updatedAt: firestore.FieldValue.serverTimestamp(),
-        });
+          updatedAt: serverTimestamp(),
+        }
+      );
     } catch (error) {
       Alert.alert('Error', error instanceof Error ? error.message : '');
     }

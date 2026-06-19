@@ -10,10 +10,19 @@ import {
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import firestore from '@react-native-firebase/firestore';
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  writeBatch,
+  type FirebaseFirestoreTypes,
+} from '@react-native-firebase/firestore';
 import type { ChallengeDocument, ChallengeTypeDocument } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
 import { useAuth } from '../../src/context/AuthContext';
+import { db } from '../../src/firebase';
 import { colors, spacing, typography, radii } from '../../src/theme';
 
 interface ChallengeRow {
@@ -37,19 +46,16 @@ export default function ChallengeList() {
   // Subscribe to the user's challenges
   useEffect(() => {
     if (!user) return;
-    const unsubscribe = firestore()
-      .collection(COLLECTIONS.USERS)
-      .doc(user.uid)
-      .collection(SUBCOLLECTIONS.CHALLENGES)
-      .onSnapshot(
-        (snap) => {
-          setChallenges(
-            snap.docs.map((doc) => ({ id: doc.id, data: doc.data() as ChallengeDocument }))
-          );
-          setLoading(false);
-        },
-        () => setLoading(false)
-      );
+    const unsubscribe = onSnapshot(
+      collection(db, COLLECTIONS.USERS, user.uid, SUBCOLLECTIONS.CHALLENGES),
+      (snap: FirebaseFirestoreTypes.QuerySnapshot) => {
+        setChallenges(
+          snap.docs.map((d) => ({ id: d.id, data: d.data() as ChallengeDocument }))
+        );
+        setLoading(false);
+      },
+      () => setLoading(false)
+    );
     return unsubscribe;
   }, [user]);
 
@@ -66,8 +72,8 @@ export default function ChallengeList() {
     let cancelled = false;
     Promise.all(
       typeIdsKey.split(',').map(async (id) => {
-        const doc = await firestore().collection(COLLECTIONS.CHALLENGE_TYPES).doc(id).get();
-        return [id, doc.data() as ChallengeTypeDocument | undefined] as const;
+        const docSnap = await getDoc(doc(db, COLLECTIONS.CHALLENGE_TYPES, id));
+        return [id, docSnap.data() as ChallengeTypeDocument | undefined] as const;
       })
     ).then((entries) => {
       if (cancelled) return;
@@ -95,13 +101,16 @@ export default function ChallengeList() {
     let cancelled = false;
     Promise.all(
       challenges.map(async (c) => {
-        const visitsSnap = await firestore()
-          .collection(COLLECTIONS.USERS)
-          .doc(user.uid)
-          .collection(SUBCOLLECTIONS.CHALLENGES)
-          .doc(c.id)
-          .collection(SUBCOLLECTIONS.VISITS)
-          .get();
+        const visitsSnap: FirebaseFirestoreTypes.QuerySnapshot = await getDocs(
+          collection(
+            db,
+            COLLECTIONS.USERS,
+            user.uid,
+            SUBCOLLECTIONS.CHALLENGES,
+            c.id,
+            SUBCOLLECTIONS.VISITS
+          )
+        );
         const eligible = new Set(c.data.snapshotEligibleOnsenIds);
         return [c.id, visitsSnap.docs.filter((d) => eligible.has(d.id)).length] as const;
       })
@@ -129,13 +138,13 @@ export default function ChallengeList() {
     const active = challenges.find((c) => c.data.isDefault);
     if (active?.id === id) return;
     try {
-      const userRef = firestore().collection(COLLECTIONS.USERS).doc(user.uid);
-      const challengesCol = userRef.collection(SUBCOLLECTIONS.CHALLENGES);
-      const batch = firestore().batch();
+      const userRef = doc(db, COLLECTIONS.USERS, user.uid);
+      const challengesCol = collection(userRef, SUBCOLLECTIONS.CHALLENGES);
+      const batch = writeBatch(db);
       if (active && active.id !== id) {
-        batch.update(challengesCol.doc(active.id), { isDefault: false });
+        batch.update(doc(challengesCol, active.id), { isDefault: false });
       }
-      batch.update(challengesCol.doc(id), { isDefault: true });
+      batch.update(doc(challengesCol, id), { isDefault: true });
       batch.update(userRef, { defaultChallengeId: id });
       await batch.commit();
     } catch (error) {
@@ -146,14 +155,18 @@ export default function ChallengeList() {
   async function deleteChallenge(id: string) {
     if (!user) return;
     try {
-      const challengesCol = firestore()
-        .collection(COLLECTIONS.USERS)
-        .doc(user.uid)
-        .collection(SUBCOLLECTIONS.CHALLENGES);
-      const visitsSnap = await challengesCol.doc(id).collection(SUBCOLLECTIONS.VISITS).get();
-      const batch = firestore().batch();
-      visitsSnap.docs.forEach((doc) => batch.delete(doc.ref));
-      batch.delete(challengesCol.doc(id));
+      const challengesCol = collection(
+        db,
+        COLLECTIONS.USERS,
+        user.uid,
+        SUBCOLLECTIONS.CHALLENGES
+      );
+      const visitsSnap: FirebaseFirestoreTypes.QuerySnapshot = await getDocs(
+        collection(doc(challengesCol, id), SUBCOLLECTIONS.VISITS)
+      );
+      const batch = writeBatch(db);
+      visitsSnap.docs.forEach((d) => batch.delete(d.ref));
+      batch.delete(doc(challengesCol, id));
       await batch.commit();
     } catch (error) {
       Alert.alert(t('challengeList.errorDelete'), error instanceof Error ? error.message : '');

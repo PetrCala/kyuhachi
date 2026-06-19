@@ -3,7 +3,15 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT, type Region } from 'react-native-maps';
-import firestore from '@react-native-firebase/firestore';
+import {
+  collection,
+  doc,
+  getDoc,
+  query,
+  where,
+  onSnapshot,
+  type FirebaseFirestoreTypes,
+} from '@react-native-firebase/firestore';
 import type {
   ChallengeDocument,
   OnsenDocument,
@@ -12,6 +20,7 @@ import type {
 } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
 import { useAuth } from '../src/context/AuthContext';
+import { db } from '../src/firebase';
 import { colors, spacing } from '../src/theme';
 
 type OnsenRow = OnsenDocument & { id: string };
@@ -47,18 +56,16 @@ export default function MapScreen() {
   const [routeLoaded, setRouteLoaded] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = firestore()
-      .collection(COLLECTIONS.ONSENS)
-      .where('isActive', '==', true)
-      .onSnapshot(
-        (snapshot) => {
-          setOnsens(
-            snapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() as OnsenDocument) }))
-          );
-          setOnsensLoading(false);
-        },
-        () => setOnsensLoading(false)
-      );
+    const unsubscribe = onSnapshot(
+      query(collection(db, COLLECTIONS.ONSENS), where('isActive', '==', true)),
+      (snapshot: FirebaseFirestoreTypes.QuerySnapshot) => {
+        setOnsens(
+          snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as OnsenDocument) }))
+        );
+        setOnsensLoading(false);
+      },
+      () => setOnsensLoading(false)
+    );
     return unsubscribe;
   }, []);
 
@@ -73,17 +80,16 @@ export default function MapScreen() {
     }
     setRouteLoaded(false);
     let cancelled = false;
-    const userRef = firestore().collection(COLLECTIONS.USERS).doc(user.uid);
+    const userRef = doc(db, COLLECTIONS.USERS, user.uid);
 
     async function resolveRouteId(): Promise<string | null> {
       if (paramRouteId) return paramRouteId;
-      const userDoc = await userRef.get();
+      const userDoc = await getDoc(userRef);
       const defaultChallengeId = (userDoc.data() as UserDocument | undefined)?.defaultChallengeId;
       if (!defaultChallengeId) return null;
-      const challengeDoc = await userRef
-        .collection(SUBCOLLECTIONS.CHALLENGES)
-        .doc(defaultChallengeId)
-        .get();
+      const challengeDoc = await getDoc(
+        doc(userRef, SUBCOLLECTIONS.CHALLENGES, defaultChallengeId)
+      );
       return (challengeDoc.data() as ChallengeDocument | undefined)?.activeRouteId ?? null;
     }
 
@@ -94,9 +100,9 @@ export default function MapScreen() {
           setRoute(null);
           return;
         }
-        const doc = await userRef.collection(SUBCOLLECTIONS.ROUTES).doc(id).get();
+        const routeDoc = await getDoc(doc(userRef, SUBCOLLECTIONS.ROUTES, id));
         if (cancelled) return;
-        setRoute(doc.exists() ? (doc.data() as RouteDocument) : null);
+        setRoute(routeDoc.exists() ? (routeDoc.data() as RouteDocument) : null);
       })
       .catch(() => {
         if (!cancelled) setRoute(null);
