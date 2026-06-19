@@ -1,7 +1,13 @@
 import '../src/i18n';
 import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { useFonts, KleeOne_600SemiBold } from '@expo-google-fonts/klee-one';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
+
+// Keep the native splash visible until the brand font has loaded, so the
+// 九八 mark never flashes in a fallback face.
+SplashScreen.preventAutoHideAsync();
 
 function NavigationController() {
   const { user, isLoading } = useAuth();
@@ -22,6 +28,14 @@ function NavigationController() {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({ KleeOne_600SemiBold });
+
+  useEffect(() => {
+    if (fontsLoaded) SplashScreen.hideAsync();
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) return null;
+
   return (
     <AuthProvider>
       <NavigationController />

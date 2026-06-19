@@ -10,6 +10,7 @@
     "credentials": "eas credentials --platform ios"
   },
   "dependencies": {
+    "@expo-google-fonts/klee-one": "^0.4.1",
     "@kyuhachi/shared": "*",
     "@react-native-firebase/app": "^23.8.8",
     "@react-native-firebase/app-check": "^23.8.8",
@@ -26,10 +27,12 @@
     "expo-dev-client": "~55.0.18",
     "expo-document-picker": "~55.0.9",
     "expo-file-system": "~55.0.11",
+    "expo-font": "~55.0.8",
     "expo-image-picker": "^55.0.17",
     "expo-linking": "~55.0.8",
     "expo-localization": "^55.0.9",
     "expo-router": "~55.0.7",
+    "expo-splash-screen": "~55.0.21",
     "expo-status-bar": "~55.0.4",
     "expo-system-ui": "~55.0.10",
     "i18next": "^26.0.3",

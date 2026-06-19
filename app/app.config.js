@@ -14,7 +14,7 @@ module.exports = {
   splash: {
     image: "./assets/splash-icon.png",
     resizeMode: "contain",
-    backgroundColor: "#ffffff",
+    backgroundColor: "#262837", // brand ink (see app/src/theme/colors.ts)
   },
   ios: {
     supportsTablet: false,
@@ -27,6 +27,7 @@ module.exports = {
   },
   plugins: [
     "expo-router",
+    "expo-font",
     [
       "expo-build-properties",
       {
