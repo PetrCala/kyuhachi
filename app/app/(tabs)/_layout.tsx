@@ -39,9 +39,7 @@ export default function TabsLayout() {
         options={{
           tabBarLabel: t('tabs.onsens'),
           headerTitle: t('onsenList.title'),
-          tabBarIcon: ({ color, size, focused }) => (
-            <OnsenIcon color={color} size={size} focused={focused} />
-          ),
+          tabBarIcon: ({ color, size }) => <OnsenIcon color={color} size={size} />,
         }}
       />
       <Tabs.Screen
