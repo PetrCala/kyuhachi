@@ -8,7 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
   collection,
@@ -57,50 +57,47 @@ export default function OnsenList() {
   }, [onsens, searchQuery]);
 
   return (
-    <>
-      <Stack.Screen options={{ title: t('onsenList.title'), headerShown: true }} />
-      <View style={styles.container}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder={t('onsenList.searchPlaceholder')}
-          placeholderTextColor={colors.textPlaceholder}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          clearButtonMode="while-editing"
-          autoCorrect={false}
-        />
+    <View style={styles.container}>
+      <TextInput
+        style={styles.searchInput}
+        placeholder={t('onsenList.searchPlaceholder')}
+        placeholderTextColor={colors.textPlaceholder}
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        clearButtonMode="while-editing"
+        autoCorrect={false}
+      />
 
-        {loading ? (
-          <ActivityIndicator style={styles.centered} />
-        ) : (
-          <FlatList
-            data={filtered}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <Pressable
-                style={styles.row}
-                onPress={() => router.push(`/onsens/${item.id}`)}
-              >
-                <View style={styles.rowText}>
-                  <Text style={styles.rowName}>{item.name}</Text>
-                  <Text style={styles.rowArea}>{item.areaName}</Text>
-                </View>
-                <Text style={styles.chevron}>›</Text>
-              </Pressable>
-            )}
-            ItemSeparatorComponent={() => <View style={styles.separator} />}
-            ListEmptyComponent={
-              <Text style={styles.empty}>
-                {searchQuery.trim()
-                  ? t('onsenList.emptySearch', { query: searchQuery })
-                  : t('onsenList.emptyData')}
-              </Text>
-            }
-            contentContainerStyle={filtered.length === 0 && styles.emptyContainer}
-          />
-        )}
-      </View>
-    </>
+      {loading ? (
+        <ActivityIndicator style={styles.centered} />
+      ) : (
+        <FlatList
+          data={filtered}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <Pressable
+              style={styles.row}
+              onPress={() => router.push(`/onsens/${item.id}`)}
+            >
+              <View style={styles.rowText}>
+                <Text style={styles.rowName}>{item.name}</Text>
+                <Text style={styles.rowArea}>{item.areaName}</Text>
+              </View>
+              <Text style={styles.chevron}>›</Text>
+            </Pressable>
+          )}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          ListEmptyComponent={
+            <Text style={styles.empty}>
+              {searchQuery.trim()
+                ? t('onsenList.emptySearch', { query: searchQuery })
+                : t('onsenList.emptyData')}
+            </Text>
+          }
+          contentContainerStyle={filtered.length === 0 && styles.emptyContainer}
+        />
+      )}
+    </View>
   );
 }
 

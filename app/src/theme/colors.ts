@@ -24,6 +24,9 @@ const palette = {
   silver: '#8a8a8f',
   bronze: '#a9663a',
 
+  // System red (destructive actions)
+  red: '#ff3b30', // iOS system red
+
   // Brand (app icon / splash / logo mark — the vertical 九八 in Klee One)
   ink:   '#262837', // dark ground behind the mark
   amber: '#ffb300', // amber glyph on the mark
@@ -46,6 +49,11 @@ export const colors = {
   // Interactive
   actionPrimary:     palette.black, // primary button fill
   actionPrimaryText: palette.white, // text on primary buttons
+  destructive:       palette.red, // destructive actions (sign out, delete)
+
+  // Bottom tab bar
+  tabBarActive:   palette.black,   // focused tab icon + label
+  tabBarInactive: palette.gray500, // unfocused tab icon + label
 
   // Borders
   border:    palette.gray300, // input borders, card outlines
