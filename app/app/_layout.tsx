@@ -1,5 +1,5 @@
-import '../src/i18n';
-import { useEffect } from 'react';
+import { loadStoredLanguage } from '../src/i18n';
+import { useEffect, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, KleeOne_600SemiBold } from '@expo-google-fonts/klee-one';
@@ -29,12 +29,21 @@ function NavigationController() {
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({ KleeOne_600SemiBold });
+  const [languageLoaded, setLanguageLoaded] = useState(false);
+
+  // Apply the saved language preference before the first frame, so the UI
+  // never flashes the device language when the user has chosen another.
+  useEffect(() => {
+    loadStoredLanguage().finally(() => setLanguageLoaded(true));
+  }, []);
+
+  const ready = fontsLoaded && languageLoaded;
 
   useEffect(() => {
-    if (fontsLoaded) SplashScreen.hideAsync();
-  }, [fontsLoaded]);
+    if (ready) SplashScreen.hideAsync();
+  }, [ready]);
 
-  if (!fontsLoaded) return null;
+  if (!ready) return null;
 
   return (
     <AuthProvider>
