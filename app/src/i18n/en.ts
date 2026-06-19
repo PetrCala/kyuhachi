@@ -134,6 +134,7 @@ const en = {
   'routes.importErrorFormat': 'Unsupported file type. Choose a .gpx, .kml, or .tcx file.',
   'routes.importErrorNoTrack': 'No track found in this file.',
   'routes.importErrorParse': 'Couldn’t read this file. It may be corrupted or not a valid GPS track.',
+  'routes.importErrorSave': 'Couldn’t save the route. Check your connection and try again.',
 
   // onsen detail (visit)
   'onsenDetail.notFound': 'Onsen not found',

@@ -134,6 +134,7 @@ const ja: Record<keyof typeof en, string> = {
   'routes.importErrorFormat': '対応していないファイル形式です。.gpx、.kml、.tcx のいずれかを選択してください。',
   'routes.importErrorNoTrack': 'このファイルにトラックが見つかりませんでした。',
   'routes.importErrorParse': 'このファイルを読み込めませんでした。破損しているか、有効なGPSトラックではない可能性があります。',
+  'routes.importErrorSave': 'ルートを保存できませんでした。接続を確認してもう一度お試しください。',
 
   // onsen detail (visit)
   'onsenDetail.notFound': '温泉が見つかりませんでした',
