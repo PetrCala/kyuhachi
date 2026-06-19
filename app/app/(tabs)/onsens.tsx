@@ -12,14 +12,16 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
   collection,
+  doc,
   query,
   where,
   orderBy,
   onSnapshot,
   type FirebaseFirestoreTypes,
 } from '@react-native-firebase/firestore';
-import type { OnsenDocument } from '@kyuhachi/shared';
-import { COLLECTIONS } from '@kyuhachi/shared';
+import type { OnsenDocument, UserDocument } from '@kyuhachi/shared';
+import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
+import { useAuth } from '../../src/context/AuthContext';
 import { db } from '../../src/firebase';
 import { colors, spacing, typography, radii } from '../../src/theme';
 
@@ -27,7 +29,9 @@ type OnsenRow = OnsenDocument & { id: string };
 
 export default function OnsenList() {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [onsens, setOnsens] = useState<OnsenRow[]>([]);
+  const [visitedIds, setVisitedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -49,6 +53,52 @@ export default function OnsenList() {
     );
     return unsubscribe;
   }, []);
+
+  // Mark which onsens have been visited in the current (default) challenge:
+  // user → defaultChallengeId → visits subcollection, collapsed to a Set of ids.
+  useEffect(() => {
+    if (!user) {
+      setVisitedIds(new Set());
+      return;
+    }
+
+    let unsubVisits: (() => void) | null = null;
+
+    const unsubUser = onSnapshot(
+      doc(db, COLLECTIONS.USERS, user.uid),
+      (userDoc: FirebaseFirestoreTypes.DocumentSnapshot) => {
+        const challengeId =
+          (userDoc.data() as UserDocument | undefined)?.defaultChallengeId ?? null;
+
+        unsubVisits?.();
+        unsubVisits = null;
+
+        if (!challengeId) {
+          setVisitedIds(new Set());
+          return;
+        }
+
+        unsubVisits = onSnapshot(
+          collection(
+            db,
+            COLLECTIONS.USERS,
+            user.uid,
+            SUBCOLLECTIONS.CHALLENGES,
+            challengeId,
+            SUBCOLLECTIONS.VISITS
+          ),
+          (visitsSnap: FirebaseFirestoreTypes.QuerySnapshot) =>
+            setVisitedIds(new Set(visitsSnap.docs.map((d) => d.id))),
+          () => setVisitedIds(new Set())
+        );
+      }
+    );
+
+    return () => {
+      unsubVisits?.();
+      unsubUser();
+    };
+  }, [user]);
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -83,7 +133,13 @@ export default function OnsenList() {
                 <Text style={styles.rowName}>{item.name}</Text>
                 <Text style={styles.rowArea}>{item.areaName}</Text>
               </View>
-              <Text style={styles.chevron}>›</Text>
+              {visitedIds.has(item.id) ? (
+                <View style={styles.visitedBadge}>
+                  <Text style={styles.visitedCheck}>✓</Text>
+                </View>
+              ) : (
+                <Text style={styles.chevron}>›</Text>
+              )}
             </Pressable>
           )}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -142,6 +198,20 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.xl,
     color: colors.textPlaceholder,
     marginLeft: spacing[2],
+  },
+  visitedBadge: {
+    width: spacing[6],
+    height: spacing[6],
+    borderRadius: radii.full,
+    backgroundColor: colors.brandGlyph,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: spacing[2],
+  },
+  visitedCheck: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.bold,
+    color: colors.textInverted,
   },
   separator: {
     height: 1,
