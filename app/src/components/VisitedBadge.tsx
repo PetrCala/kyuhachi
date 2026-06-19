@@ -4,8 +4,9 @@ import { colors, spacing, typography, radii } from '@/theme';
 /**
  * The shared "visited" indicator: an amber disc with a white check, shown at the
  * trailing edge of an onsen row. Used by the Onsens browse tab and the
- * record-a-visit checklist so a visited onsen looks identical in both. Unvisited
- * rows keep each list's own idiom (a chevron on the browse tab, ○ on the checklist).
+ * record-a-visit checklist so a visited onsen looks identical in both. Sized to
+ * match the unvisited circle on the checklist. Unvisited rows keep each list's own
+ * idiom (a chevron on the browse tab, an empty circle on the checklist).
  */
 export function VisitedBadge() {
   return (
@@ -17,8 +18,8 @@ export function VisitedBadge() {
 
 const styles = StyleSheet.create({
   badge: {
-    width: spacing[6],
-    height: spacing[6],
+    width: spacing[5],
+    height: spacing[5],
     borderRadius: radii.full,
     backgroundColor: colors.brandGlyph,
     alignItems: 'center',
