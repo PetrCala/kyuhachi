@@ -135,10 +135,19 @@ export default function RoutesList() {
         router.push({ pathname: '/map', params: { routeId: ref.id } });
       }
     } catch (error) {
-      const message =
-        error instanceof RouteImportError && error.code === 'noTrack'
-          ? t('routes.importErrorNoTrack')
-          : t('routes.importErrorParse');
+      // Only parse / no-track failures are the file's fault. File-read,
+      // Firestore-write, permission and network errors are not — don't
+      // mislabel them as a corrupt-file error (which previously masked e.g.
+      // a `permission-denied` from the routes security rule).
+      if (__DEV__) console.warn('[routes] import failed', error);
+      let message: string;
+      if (!(error instanceof RouteImportError)) {
+        message = t('routes.importErrorSave');
+      } else if (error.code === 'noTrack') {
+        message = t('routes.importErrorNoTrack');
+      } else {
+        message = t('routes.importErrorParse');
+      }
       Alert.alert(t('routes.importErrorTitle'), message);
     } finally {
       setImporting(false);
