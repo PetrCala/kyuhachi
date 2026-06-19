@@ -15,6 +15,7 @@ const en = {
   'home.title': 'Kyuhachi',
   'home.onsenList': 'Onsen List',
   'home.map': 'Map',
+  'home.routes': 'Routes',
   'home.signOut': 'Sign out',
 
   // map
@@ -83,9 +84,24 @@ const en = {
   'challengeList.errorDelete': 'Failed to delete challenge',
   'challengeList.errorSwitch': 'Failed to switch challenge',
 
-  // routes (import)
+  // routes (import + management)
+  'routes.title': 'Routes',
   'routes.import': 'Import route',
   'routes.importing': 'Importing…',
+  'routes.empty': 'No routes yet. Import a .gpx, .kml, or .tcx file to get started.',
+  'routes.metaWithDistance': '{{points}} points · {{km}} km',
+  'routes.metaPointsOnly': '{{points}} points',
+  'routes.rename': 'Rename',
+  'routes.renameTitle': 'Rename route',
+  'routes.renameMessage': 'Enter a new name for this route.',
+  'routes.renameConfirm': 'Save',
+  'routes.delete': 'Delete',
+  'routes.deleteTitle': 'Delete route?',
+  'routes.deleteMessage': 'This permanently deletes "{{name}}".',
+  'routes.deleteConfirm': 'Delete',
+  'routes.cancel': 'Cancel',
+  'routes.errorRename': 'Failed to rename route',
+  'routes.errorDelete': 'Failed to delete route',
   'routes.importErrorTitle': 'Import failed',
   'routes.importErrorFormat': 'Unsupported file type. Choose a .gpx, .kml, or .tcx file.',
   'routes.importErrorNoTrack': 'No track found in this file.',

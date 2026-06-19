@@ -144,6 +144,9 @@ export default function Home() {
       <Pressable style={styles.primaryButton} onPress={() => router.push('/map')}>
         <Text style={styles.primaryButtonText}>{t('home.map')}</Text>
       </Pressable>
+      <Pressable style={styles.primaryButton} onPress={() => router.push('/routes')}>
+        <Text style={styles.primaryButtonText}>{t('home.routes')}</Text>
+      </Pressable>
       <Pressable style={styles.signOut} onPress={() => auth().signOut()}>
         <Text style={styles.signOutText}>{t('home.signOut')}</Text>
       </Pressable>

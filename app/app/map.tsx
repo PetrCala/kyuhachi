@@ -1,22 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT, type Region } from 'react-native-maps';
-import * as DocumentPicker from 'expo-document-picker';
-import { File } from 'expo-file-system';
 import firestore from '@react-native-firebase/firestore';
-import type { OnsenDocument } from '@kyuhachi/shared';
+import type { OnsenDocument, RouteDocument } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
 import { useAuth } from '../src/context/AuthContext';
-import {
-  parseRoute,
-  sourceFormatFromName,
-  nameWithoutExtension,
-  RouteImportError,
-  type ParsedRoute,
-} from '../src/lib/route-import';
-import { colors, spacing, typography, radii, shadows } from '../src/theme';
+import { colors, spacing } from '../src/theme';
 
 type OnsenRow = OnsenDocument & { id: string };
 
@@ -28,7 +19,7 @@ const KYUSHU_REGION = {
 };
 
 /** A map region that frames the route's bounding box with a little padding. */
-function regionForBounds(bounds: ParsedRoute['bounds']): Region {
+function regionForBounds(bounds: RouteDocument['bounds']): Region {
   return {
     latitude: (bounds.minLat + bounds.maxLat) / 2,
     longitude: (bounds.minLng + bounds.maxLng) / 2,
@@ -40,11 +31,14 @@ function regionForBounds(bounds: ParsedRoute['bounds']): Region {
 export default function MapScreen() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { routeId } = useLocalSearchParams<{ routeId?: string }>();
   const mapRef = useRef<MapView>(null);
   const [onsens, setOnsens] = useState<OnsenRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [route, setRoute] = useState<ParsedRoute | null>(null);
-  const [importing, setImporting] = useState(false);
+  const [onsensLoading, setOnsensLoading] = useState(true);
+  const [route, setRoute] = useState<RouteDocument | null>(null);
+  // When a routeId is requested we hold rendering until it loads, so the map can
+  // mount already framed on the track rather than animating in afterwards.
+  const [routeLoaded, setRouteLoaded] = useState(!routeId);
 
   useEffect(() => {
     const unsubscribe = firestore()
@@ -55,102 +49,78 @@ export default function MapScreen() {
           setOnsens(
             snapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() as OnsenDocument) }))
           );
-          setLoading(false);
+          setOnsensLoading(false);
         },
-        () => setLoading(false)
+        () => setOnsensLoading(false)
       );
     return unsubscribe;
   }, []);
 
-  async function handleImport() {
-    if (!user) return;
-    try {
-      // gpx/kml/tcx have no standard MIME type, so accept any file and branch on extension.
-      const result = await DocumentPicker.getDocumentAsync({
-        type: '*/*',
-        copyToCacheDirectory: true,
-        multiple: false,
-      });
-      if (result.canceled) return;
-
-      const asset = result.assets[0];
-      const format = sourceFormatFromName(asset.name);
-      if (!format) {
-        Alert.alert(t('routes.importErrorTitle'), t('routes.importErrorFormat'));
-        return;
-      }
-
-      setImporting(true);
-      const text = await new File(asset.uri).text();
-      const parsed = parseRoute(text, format, nameWithoutExtension(asset.name));
-
-      await firestore()
-        .collection(COLLECTIONS.USERS)
-        .doc(user.uid)
-        .collection(SUBCOLLECTIONS.ROUTES)
-        .add({
-          ...parsed,
-          createdAt: firestore.FieldValue.serverTimestamp(),
-          updatedAt: firestore.FieldValue.serverTimestamp(),
-        });
-
-      setRoute(parsed);
-      mapRef.current?.animateToRegion(regionForBounds(parsed.bounds), 500);
-    } catch (error) {
-      const message =
-        error instanceof RouteImportError && error.code === 'noTrack'
-          ? t('routes.importErrorNoTrack')
-          : t('routes.importErrorParse');
-      Alert.alert(t('routes.importErrorTitle'), message);
-    } finally {
-      setImporting(false);
+  useEffect(() => {
+    if (!user || !routeId) {
+      setRoute(null);
+      setRouteLoaded(true);
+      return;
     }
-  }
+    setRouteLoaded(false);
+    let cancelled = false;
+    firestore()
+      .collection(COLLECTIONS.USERS)
+      .doc(user.uid)
+      .collection(SUBCOLLECTIONS.ROUTES)
+      .doc(routeId)
+      .get()
+      .then((doc) => {
+        if (cancelled) return;
+        setRoute(doc.exists() ? (doc.data() as RouteDocument) : null);
+      })
+      .catch(() => {
+        if (!cancelled) setRoute(null);
+      })
+      .finally(() => {
+        if (!cancelled) setRouteLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, routeId]);
+
+  const loading = onsensLoading || !routeLoaded;
+  // Route names are user/Firestore data, shown as-is; fall back to the generic title.
+  const title = route?.name ?? t('map.title');
+  const initialRegion = route ? regionForBounds(route.bounds) : KYUSHU_REGION;
 
   return (
     <>
-      <Stack.Screen options={{ title: t('map.title'), headerShown: true }} />
+      <Stack.Screen options={{ title, headerShown: true }} />
       {loading ? (
         <View style={styles.centered}>
           <ActivityIndicator />
         </View>
       ) : (
-        <View style={styles.container}>
-          <MapView
-            ref={mapRef}
-            style={styles.map}
-            provider={PROVIDER_DEFAULT}
-            initialRegion={KYUSHU_REGION}
-          >
-            {onsens.map((onsen) => (
-              <Marker
-                key={onsen.id}
-                coordinate={{ latitude: onsen.lat, longitude: onsen.lng }}
-                title={onsen.name}
-                description={onsen.areaName}
-                onCalloutPress={() => router.push(`/onsens/${onsen.id}`)}
-              />
-            ))}
-            {route && (
-              <Polyline
-                coordinates={route.points.map((p) => ({ latitude: p.lat, longitude: p.lng }))}
-                strokeColor={colors.actionPrimary}
-                strokeWidth={spacing[1]}
-              />
-            )}
-          </MapView>
-          <View style={styles.importButtonWrapper} pointerEvents="box-none">
-            <Pressable
-              style={[styles.importButton, shadows.md, importing && styles.importButtonDisabled]}
-              onPress={handleImport}
-              disabled={importing}
-            >
-              <Text style={styles.importButtonText}>
-                {importing ? t('routes.importing') : t('routes.import')}
-              </Text>
-            </Pressable>
-          </View>
-        </View>
+        <MapView
+          ref={mapRef}
+          style={styles.map}
+          provider={PROVIDER_DEFAULT}
+          initialRegion={initialRegion}
+        >
+          {onsens.map((onsen) => (
+            <Marker
+              key={onsen.id}
+              coordinate={{ latitude: onsen.lat, longitude: onsen.lng }}
+              title={onsen.name}
+              description={onsen.areaName}
+              onCalloutPress={() => router.push(`/onsens/${onsen.id}`)}
+            />
+          ))}
+          {route && (
+            <Polyline
+              coordinates={route.points.map((p) => ({ latitude: p.lat, longitude: p.lng }))}
+              strokeColor={colors.actionPrimary}
+              strokeWidth={spacing[1]}
+            />
+          )}
+        </MapView>
       )}
     </>
   );
@@ -163,31 +133,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.background,
   },
-  container: {
-    flex: 1,
-  },
   map: {
     flex: 1,
-  },
-  importButtonWrapper: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: spacing[6],
-    alignItems: 'center',
-  },
-  importButton: {
-    backgroundColor: colors.actionPrimary,
-    borderRadius: radii.full,
-    paddingVertical: spacing[3],
-    paddingHorizontal: spacing[6],
-  },
-  importButtonDisabled: {
-    opacity: 0.6,
-  },
-  importButtonText: {
-    color: colors.actionPrimaryText,
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.semibold,
   },
 });
