@@ -53,6 +53,7 @@ const en = {
   'more.statsBadge': 'Soon',
   'more.account': 'Account',
   'more.signOut': 'Sign out',
+  'more.language': 'Language',
 
   // challenge progress
   'challengeProgress.title': 'Challenge Progress',

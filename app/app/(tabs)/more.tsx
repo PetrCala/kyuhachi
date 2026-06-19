@@ -6,7 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { signOut } from '@react-native-firebase/auth';
 import { useAuth } from '@/context/AuthContext';
 import { auth } from '@/firebase';
-import { colors, spacing, typography, radii } from '@/theme';
+import { LANGUAGES, setAppLanguage } from '@/i18n';
+import { colors, spacing, typography, radii, shadows } from '@/theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -52,6 +53,30 @@ function Row({ icon, label, onPress, badge, destructive, disabled, last }: RowPr
   return body;
 }
 
+function LanguageToggle() {
+  const { i18n } = useTranslation();
+  const current = i18n.resolvedLanguage ?? i18n.language;
+
+  return (
+    <View style={styles.segmented}>
+      {LANGUAGES.map(({ code, label }) => {
+        const active = current === code;
+        return (
+          <Pressable
+            key={code}
+            onPress={() => setAppLanguage(code)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
+            style={[styles.segment, active && styles.segmentActive, active && shadows.sm]}
+          >
+            <Text style={[styles.segmentLabel, active && styles.segmentLabelActive]}>{label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 export default function More() {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -71,6 +96,13 @@ export default function More() {
           onPress={() => router.push('/routes')}
         />
         <Row icon="stats-chart-outline" label={t('more.stats')} badge={t('more.statsBadge')} disabled last />
+      </View>
+
+      <Text style={styles.sectionHeader}>{t('more.language')}</Text>
+      <View style={styles.group}>
+        <View style={styles.languageRow}>
+          <LanguageToggle />
+        </View>
       </View>
 
       <Text style={styles.sectionHeader}>{t('more.account')}</Text>
@@ -148,5 +180,33 @@ const styles = StyleSheet.create({
     marginTop: spacing[6],
     marginBottom: spacing[2],
     marginLeft: spacing[4],
+  },
+  languageRow: {
+    padding: spacing[3],
+  },
+  segmented: {
+    flexDirection: 'row',
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: radii.md,
+    padding: spacing[1],
+  },
+  segment: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing[2],
+    borderRadius: radii.sm,
+  },
+  segmentActive: {
+    backgroundColor: colors.background,
+  },
+  segmentLabel: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.medium,
+    color: colors.textSecondary,
+  },
+  segmentLabelActive: {
+    color: colors.textPrimary,
+    fontWeight: typography.weights.semibold,
   },
 });
