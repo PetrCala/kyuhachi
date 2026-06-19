@@ -28,6 +28,7 @@ import type { OnsenDocument, UserDocument, VisitDocument, TransportMode } from '
 import { COLLECTIONS, SUBCOLLECTIONS, TRANSPORT_MODES } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
 import { db, storage } from '@/firebase';
+import { firebaseErrorKey } from '@/lib/firebase-errors';
 import { colors, spacing, typography, radii } from '@/theme';
 
 type OnsenWithId = OnsenDocument & { id: string };
@@ -161,7 +162,7 @@ export default function OnsenDetail() {
         }
       );
     } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : '');
+      Alert.alert(t('common.errorTitle'), t(firebaseErrorKey(error)));
     } finally {
       setMarking(false);
     }
@@ -194,7 +195,7 @@ export default function OnsenDetail() {
       );
       router.back();
     } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : '');
+      Alert.alert(t('common.errorTitle'), t(firebaseErrorKey(error)));
     } finally {
       setSaving(false);
     }
@@ -223,7 +224,7 @@ export default function OnsenDetail() {
         }
       );
     } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : '');
+      Alert.alert(t('common.errorTitle'), t(firebaseErrorKey(error)));
     } finally {
       setUploading(false);
     }

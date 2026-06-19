@@ -11,6 +11,13 @@ module.exports = {
   icon: "./assets/icon.png",
   userInterfaceStyle: "automatic",
   newArchEnabled: true,
+  // Localized InfoPlist overrides (iOS system permission prompts etc.). The
+  // values in the expo-image-picker plugin below are the English base; iOS
+  // swaps in these files when the device language matches.
+  locales: {
+    en: "./locales/en.json",
+    ja: "./locales/ja.json",
+  },
   splash: {
     image: "./assets/splash-icon.png",
     resizeMode: "contain",

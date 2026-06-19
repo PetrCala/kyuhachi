@@ -24,6 +24,7 @@ import { COLLECTIONS, SUBCOLLECTIONS, CATALOG_META_DOC_ID } from '@kyuhachi/shar
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/firebase';
 import { ChallengeRulesView } from '@/components/ChallengeRulesView';
+import { firebaseErrorKey } from '@/lib/firebase-errors';
 import { colors, spacing, typography, radii } from '@/theme';
 
 export default function ChallengePreview() {
@@ -104,7 +105,7 @@ export default function ChallengePreview() {
       await batch.commit();
       router.replace('/');
     } catch (error) {
-      Alert.alert(t('challenge.errorCreate'), error instanceof Error ? error.message : '');
+      Alert.alert(t('challenge.errorCreate'), t(firebaseErrorKey(error)));
     } finally {
       setCreating(false);
     }

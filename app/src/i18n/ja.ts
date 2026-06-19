@@ -1,10 +1,21 @@
 import type en from './en';
 
 const ja: Record<keyof typeof en, string> = {
+  // common (shared error chrome — see src/lib/firebase-errors.ts)
+  'common.errorTitle': 'エラー',
+  'common.errorGeneric': '問題が発生しました。もう一度お試しください。',
+  'common.errorNetwork': 'ネットワークエラーが発生しました。接続を確認してもう一度お試しください。',
+  'common.errorInvalidCredentials': 'メールアドレスまたはパスワードが正しくありません。',
+  'common.errorInvalidEmail': 'メールアドレスの形式が正しくありません。',
+  'common.errorEmailInUse': 'このメールアドレスはすでに使用されています。',
+  'common.errorWeakPassword': 'パスワードは6文字以上で入力してください。',
+  'common.errorTooManyRequests': '試行回数が多すぎます。しばらくしてからもう一度お試しください。',
+
   // sign-in
   'signIn.title': '九州八十八湯',
   'signIn.alertFailedSignIn': 'サインインに失敗しました',
   'signIn.alertFailedCreate': 'アカウント作成に失敗しました',
+  'signIn.errorNoAppleToken': 'Appleから認証トークンを取得できませんでした。',
   'signIn.divider': 'または',
   'signIn.emailPlaceholder': 'メールアドレス',
   'signIn.passwordPlaceholder': 'パスワード',

@@ -23,6 +23,7 @@ import type { ChallengeDocument, ChallengeTypeDocument } from '@kyuhachi/shared'
 import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/firebase';
+import { firebaseErrorKey } from '@/lib/firebase-errors';
 import { colors, spacing, typography, radii } from '@/theme';
 
 interface ChallengeRow {
@@ -148,7 +149,7 @@ export default function ChallengeList() {
       batch.update(userRef, { defaultChallengeId: id });
       await batch.commit();
     } catch (error) {
-      Alert.alert(t('challengeList.errorSwitch'), error instanceof Error ? error.message : '');
+      Alert.alert(t('challengeList.errorSwitch'), t(firebaseErrorKey(error)));
     }
   }
 
@@ -174,7 +175,7 @@ export default function ChallengeList() {
 
       await batch.commit();
     } catch (error) {
-      Alert.alert(t('challengeList.errorDelete'), error instanceof Error ? error.message : '');
+      Alert.alert(t('challengeList.errorDelete'), t(firebaseErrorKey(error)));
     }
   }
 
