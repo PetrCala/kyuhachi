@@ -155,18 +155,23 @@ export default function ChallengeList() {
   async function deleteChallenge(id: string) {
     if (!user) return;
     try {
-      const challengesCol = collection(
-        db,
-        COLLECTIONS.USERS,
-        user.uid,
-        SUBCOLLECTIONS.CHALLENGES
-      );
+      const userRef = doc(db, COLLECTIONS.USERS, user.uid);
+      const challengesCol = collection(userRef, SUBCOLLECTIONS.CHALLENGES);
       const visitsSnap: FirebaseFirestoreTypes.QuerySnapshot = await getDocs(
         collection(doc(challengesCol, id), SUBCOLLECTIONS.VISITS)
       );
       const batch = writeBatch(db);
       visitsSnap.docs.forEach((d) => batch.delete(d.ref));
       batch.delete(doc(challengesCol, id));
+
+      // Deleting the active challenge must clear the pointer too, otherwise
+      // defaultChallengeId dangles and the next challenge creation fails with
+      // firestore/not-found when it tries to demote the missing default.
+      const wasDefault = challenges.find((c) => c.id === id)?.data.isDefault;
+      if (wasDefault) {
+        batch.update(userRef, { defaultChallengeId: null });
+      }
+
       await batch.commit();
     } catch (error) {
       Alert.alert(t('challengeList.errorDelete'), error instanceof Error ? error.message : '');
