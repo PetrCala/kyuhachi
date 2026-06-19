@@ -23,7 +23,7 @@ OUT = os.path.join(ROOT, "app", "assets")
 
 # Brand palette (kept in sync with app/src/theme/colors.ts brand tokens)
 INK_DARK = (38, 40, 55, 255)       # #262837  — icon / splash ground
-OFF_WHITE = (245, 241, 232, 255)   # #F5F1E8  — warm off-white glyph
+GLYPH = (255, 179, 0, 255)         # #FFB300  — amber glyph (was off-white #F5F1E8)
 GLYPHS = ["九", "八"]              # top → bottom (kyu over hachi)
 GAP_RATIO = 0.04                   # vertical gap between glyphs, as fraction of glyph height
 
@@ -77,18 +77,18 @@ def main():
     print("Rendering brand assets:")
 
     # iOS app icon — full bleed, no transparency (iOS applies its own mask).
-    save(compose(1024, bg=INK_DARK, glyph_color=OFF_WHITE, height_ratio=0.60), "icon.png")
+    save(compose(1024, bg=INK_DARK, glyph_color=GLYPH, height_ratio=0.60), "icon.png")
 
     # Splash mark — transparent; Expo composites it over splash.backgroundColor (#262837).
-    save(compose(1242, bg=None, glyph_color=OFF_WHITE, height_ratio=0.40), "splash-icon.png")
+    save(compose(1242, bg=None, glyph_color=GLYPH, height_ratio=0.40), "splash-icon.png")
 
     # Web favicon — full bleed, larger mark for legibility at tiny sizes.
-    save(compose(48, bg=INK_DARK, glyph_color=OFF_WHITE, height_ratio=0.66), "favicon.png")
+    save(compose(48, bg=INK_DARK, glyph_color=GLYPH, height_ratio=0.66), "favicon.png")
 
     # Android adaptive icon (unused on iOS-only builds, kept consistent, not default).
     # Background is a solid layer; the mark lives only on the foreground layer.
     save(Image.new("RGBA", (512, 512), INK_DARK), "android-icon-background.png")
-    save(compose(512, bg=None, glyph_color=OFF_WHITE, height_ratio=0.42), "android-icon-foreground.png")
+    save(compose(512, bg=None, glyph_color=GLYPH, height_ratio=0.42), "android-icon-foreground.png")
     save(compose(432, bg=None, glyph_color=(255, 255, 255, 255), height_ratio=0.42), "android-icon-monochrome.png")
 
 
