@@ -16,6 +16,7 @@ import type {
   ChallengeDocument,
   ChallengeTypeDocument,
   OnsenDocument,
+  RouteDocument,
   Tier,
   TierCondition,
   TransportMode,
@@ -45,6 +46,7 @@ export default function ChallengeProgress() {
   const [onsenMap, setOnsenMap] = useState<Map<string, { name: string; areaName: string }>>(
     new Map()
   );
+  const [activeRoute, setActiveRoute] = useState<RouteDocument | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Listen to user → challenge → visits chain
@@ -178,6 +180,26 @@ export default function ChallengeProgress() {
     return () => unsubscribes.forEach((u) => u());
   }, [challenge]);
 
+  // Load the challenge's active route (cosmetic). A dangling activeRouteId —
+  // the route was deleted — resolves to null and is shown as "no route".
+  useEffect(() => {
+    const routeId = challenge?.activeRouteId;
+    if (!user || !routeId) {
+      setActiveRoute(null);
+      return;
+    }
+    const unsub = firestore()
+      .collection(COLLECTIONS.USERS)
+      .doc(user.uid)
+      .collection(SUBCOLLECTIONS.ROUTES)
+      .doc(routeId)
+      .onSnapshot(
+        (doc) => setActiveRoute(doc.exists() ? (doc.data() as RouteDocument) : null),
+        () => setActiveRoute(null)
+      );
+    return unsub;
+  }, [user, challenge?.activeRouteId]);
+
   const rows = useMemo<OnsenRow[]>(() => {
     if (!challenge) return [];
     return challenge.snapshotEligibleOnsenIds
@@ -251,6 +273,25 @@ export default function ChallengeProgress() {
     return highestIndex < claimedIndex;
   }, [challenge?.claimedTier, highestEligibleTier, tiers]);
 
+  function selectRoute() {
+    if (!challengeId) return;
+    router.push({ pathname: '/routes', params: { selectFor: challengeId } });
+  }
+
+  async function clearRoute() {
+    if (!user || !challengeId) return;
+    try {
+      await firestore()
+        .collection(COLLECTIONS.USERS)
+        .doc(user.uid)
+        .collection(SUBCOLLECTIONS.CHALLENGES)
+        .doc(challengeId)
+        .update({ activeRouteId: null, updatedAt: firestore.FieldValue.serverTimestamp() });
+    } catch (error) {
+      Alert.alert(t('challengeProgress.errorRoute'), error instanceof Error ? error.message : '');
+    }
+  }
+
   async function handleClaimTier(tierId: string) {
     if (!user || !challengeId) return;
     try {
@@ -321,6 +362,45 @@ export default function ChallengeProgress() {
               <Text style={styles.pillButtonText}>{t('challengeList.title')}</Text>
             </Pressable>
           </View>
+        </View>
+
+        <View style={styles.routeSection}>
+          <Text style={styles.routeHeading}>{t('challengeProgress.routeHeading')}</Text>
+          {activeRoute ? (
+            <>
+              <Text style={styles.routeName}>{activeRoute.name}</Text>
+              <View style={styles.routeActions}>
+                <Pressable
+                  style={styles.routeButton}
+                  onPress={() => {
+                    if (challenge.activeRouteId) {
+                      router.push({
+                        pathname: '/map',
+                        params: { routeId: challenge.activeRouteId },
+                      });
+                    }
+                  }}
+                >
+                  <Text style={styles.routeButtonText}>
+                    {t('challengeProgress.viewRouteOnMap')}
+                  </Text>
+                </Pressable>
+                <Pressable style={styles.routeButton} onPress={selectRoute}>
+                  <Text style={styles.routeButtonText}>{t('challengeProgress.changeRoute')}</Text>
+                </Pressable>
+                <Pressable style={styles.routeButton} onPress={clearRoute}>
+                  <Text style={styles.routeButtonText}>{t('challengeProgress.clearRoute')}</Text>
+                </Pressable>
+              </View>
+            </>
+          ) : (
+            <View style={styles.routeEmptyRow}>
+              <Text style={styles.routeEmptyText}>{t('challengeProgress.noRoute')}</Text>
+              <Pressable style={styles.routeButton} onPress={selectRoute}>
+                <Text style={styles.routeButtonText}>{t('challengeProgress.selectRoute')}</Text>
+              </Pressable>
+            </View>
+          )}
         </View>
 
         {tiers.length > 0 && (
@@ -462,6 +542,51 @@ const styles = StyleSheet.create({
   pillButtonText: {
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.semibold,
+    color: colors.textSecondary,
+  },
+  routeSection: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.separator,
+  },
+  routeHeading: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    color: colors.textMuted,
+    marginBottom: spacing[3],
+  },
+  routeName: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
+    color: colors.textPrimary,
+    marginBottom: spacing[3],
+  },
+  routeActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing[2],
+  },
+  routeEmptyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  routeEmptyText: {
+    fontSize: typography.sizes.md,
+    color: colors.textMuted,
+    flex: 1,
+    marginRight: spacing[3],
+  },
+  routeButton: {
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  routeButtonText: {
+    fontSize: typography.sizes.sm,
     color: colors.textSecondary,
   },
   tierSection: {

@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
@@ -34,6 +34,11 @@ const METERS_PER_KM = 1000;
 export default function RoutesList() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  // When opened with `selectFor`, the screen acts as a route picker for that
+  // challenge: tapping a route sets it as the challenge's activeRouteId and
+  // returns, instead of opening it on the map.
+  const { selectFor } = useLocalSearchParams<{ selectFor?: string }>();
+  const selectMode = !!selectFor;
   const [routes, setRoutes] = useState<RouteRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
@@ -67,8 +72,27 @@ export default function RoutesList() {
     });
   }, [routes]);
 
+  // Attach (or clear, when routeId is null) the active route on the challenge
+  // this picker was opened for, then return to it. Cosmetic only — never touches
+  // completion logic.
+  async function setChallengeRoute(routeId: string | null) {
+    if (!user || !selectFor) return;
+    try {
+      await firestore()
+        .collection(COLLECTIONS.USERS)
+        .doc(user.uid)
+        .collection(SUBCOLLECTIONS.CHALLENGES)
+        .doc(selectFor)
+        .update({ activeRouteId: routeId, updatedAt: firestore.FieldValue.serverTimestamp() });
+      router.back();
+    } catch (error) {
+      Alert.alert(t('routes.errorAttach'), error instanceof Error ? error.message : '');
+    }
+  }
+
   // Import pipeline reused from PR 1: pick a file, parse it (route-import module),
-  // store the simplified track, then open it on the map.
+  // store the simplified track. In normal mode open it on the map; in select mode
+  // attach the freshly imported route to the challenge and return.
   async function handleImport() {
     if (!user || importing) return;
     try {
@@ -101,7 +125,11 @@ export default function RoutesList() {
           updatedAt: firestore.FieldValue.serverTimestamp(),
         });
 
-      router.push({ pathname: '/map', params: { routeId: ref.id } });
+      if (selectMode) {
+        await setChallengeRoute(ref.id);
+      } else {
+        router.push({ pathname: '/map', params: { routeId: ref.id } });
+      }
     } catch (error) {
       const message =
         error instanceof RouteImportError && error.code === 'noTrack'
@@ -179,10 +207,12 @@ export default function RoutesList() {
     return t('routes.metaPointsOnly', { points: data.pointCount });
   }
 
+  const title = selectMode ? t('routes.selectTitle') : t('routes.title');
+
   if (loading) {
     return (
       <>
-        <Stack.Screen options={{ title: t('routes.title'), headerShown: true }} />
+        <Stack.Screen options={{ title, headerShown: true }} />
         <View style={styles.centered}>
           <ActivityIndicator />
         </View>
@@ -192,8 +222,10 @@ export default function RoutesList() {
 
   return (
     <>
-      <Stack.Screen options={{ title: t('routes.title'), headerShown: true }} />
+      <Stack.Screen options={{ title, headerShown: true }} />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        {selectMode && <Text style={styles.selectHint}>{t('routes.selectHint')}</Text>}
+
         <Pressable
           style={[styles.importButton, importing && styles.importButtonDisabled]}
           onPress={handleImport}
@@ -204,6 +236,12 @@ export default function RoutesList() {
           </Text>
         </Pressable>
 
+        {selectMode && (
+          <Pressable style={styles.clearButton} onPress={() => setChallengeRoute(null)}>
+            <Text style={styles.clearButtonText}>{t('routes.clearSelection')}</Text>
+          </Pressable>
+        )}
+
         {sorted.length === 0 ? (
           <Text style={styles.empty}>{t('routes.empty')}</Text>
         ) : (
@@ -211,22 +249,31 @@ export default function RoutesList() {
             <View key={id} style={styles.card}>
               <Pressable
                 style={styles.cardMain}
-                onPress={() => router.push({ pathname: '/map', params: { routeId: id } })}
+                onPress={() =>
+                  selectMode
+                    ? setChallengeRoute(id)
+                    : router.push({ pathname: '/map', params: { routeId: id } })
+                }
               >
                 <Text style={styles.cardName}>{data.name}</Text>
                 <Text style={styles.cardMeta}>{metaLine(data)}</Text>
               </Pressable>
-              <View style={styles.actions}>
-                <Pressable
-                  style={styles.actionButton}
-                  onPress={() => promptRename(id, data.name)}
-                >
-                  <Text style={styles.actionButtonText}>{t('routes.rename')}</Text>
-                </Pressable>
-                <Pressable style={styles.actionButton} onPress={() => confirmDelete(id, data.name)}>
-                  <Text style={styles.deleteButtonText}>{t('routes.delete')}</Text>
-                </Pressable>
-              </View>
+              {!selectMode && (
+                <View style={styles.actions}>
+                  <Pressable
+                    style={styles.actionButton}
+                    onPress={() => promptRename(id, data.name)}
+                  >
+                    <Text style={styles.actionButtonText}>{t('routes.rename')}</Text>
+                  </Pressable>
+                  <Pressable
+                    style={styles.actionButton}
+                    onPress={() => confirmDelete(id, data.name)}
+                  >
+                    <Text style={styles.deleteButtonText}>{t('routes.delete')}</Text>
+                  </Pressable>
+                </View>
+              )}
             </View>
           ))
         )}
@@ -251,12 +298,30 @@ const styles = StyleSheet.create({
     paddingVertical: spacing[4],
     paddingBottom: spacing[8],
   },
+  selectHint: {
+    fontSize: typography.sizes.sm,
+    color: colors.textMuted,
+    marginBottom: spacing[4],
+  },
   importButton: {
     backgroundColor: colors.actionPrimary,
     borderRadius: radii.md,
     paddingVertical: spacing[4],
     alignItems: 'center',
     marginBottom: spacing[5],
+  },
+  clearButton: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    paddingVertical: spacing[4],
+    alignItems: 'center',
+    marginBottom: spacing[5],
+  },
+  clearButtonText: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
+    color: colors.textSecondary,
   },
   importButtonDisabled: {
     opacity: 0.6,
