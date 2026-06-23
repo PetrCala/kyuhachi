@@ -28,6 +28,7 @@ const en = {
   'tabs.home': 'Home',
   'tabs.map': 'Map',
   'tabs.onsens': 'Onsens',
+  'tabs.stats': 'Stats',
   'tabs.more': 'More',
 
   // home
@@ -75,6 +76,28 @@ const en = {
   'home.recentVisits.seeAll': 'See all',
   'home.recentVisits.empty': 'No visits yet',
 
+  // stats (cost/budget)
+  'stats.title': 'Stats',
+  'stats.empty': 'Start a challenge to track your onsen spending.',
+  'stats.spentSoFar': 'Spent so far',
+  'stats.projectedTotal': 'Projected total',
+  'stats.avgPerVisit': 'Avg per visit',
+  'stats.pricedNote': '{{priced}} of {{visited}} visited onsens are priced',
+  'stats.projectedNote': 'Cheapest way to finish your last {{count}} onsens',
+  'stats.projectedNoneLeft': 'Challenge complete — nothing left to spend',
+  'stats.budgetHeading': 'Budget',
+  'stats.byPrefecture': 'Spend by prefecture',
+  'stats.byTransport': 'Spend by transport',
+  'stats.breakdownEmpty': 'No priced visits yet',
+  'stats.groupCount_one': '{{count}} onsen',
+  'stats.groupCount_other': '{{count}} onsens',
+  'stats.prefectureUnknown': 'Other',
+  'stats.transport.foot': 'On foot',
+  'stats.transport.bicycle': 'Bicycle',
+  'stats.transport.public': 'Public transit',
+  'stats.transport.car': 'Car',
+  'stats.transport.unreported': 'Unreported',
+
   // visits (full history + feed cards)
   'visits.title': 'All visits',
   'visits.empty': 'No visits yet',
@@ -88,8 +111,6 @@ const en = {
   'more.challenges': 'Challenges',
   'more.routes': 'Routes',
   'more.preferences': 'Preferences',
-  'more.stats': 'Stats',
-  'more.statsBadge': 'Soon',
   'more.account': 'Account',
   'more.signOut': 'Sign out',
   'more.language': 'Language',

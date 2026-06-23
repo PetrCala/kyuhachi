@@ -100,8 +100,8 @@ export default function More() {
           icon="options-outline"
           label={t('more.preferences')}
           onPress={() => router.push('/more/preferences')}
+          last
         />
-        <Row icon="stats-chart-outline" label={t('more.stats')} badge={t('more.statsBadge')} disabled last />
       </View>
 
       <Text style={styles.sectionHeader}>{t('more.language')}</Text>

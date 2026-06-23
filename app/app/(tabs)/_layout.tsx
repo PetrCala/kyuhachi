@@ -43,6 +43,20 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="stats"
+        options={{
+          tabBarLabel: t('tabs.stats'),
+          headerTitle: t('stats.title'),
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? 'stats-chart' : 'stats-chart-outline'}
+              size={size}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="more"
         options={{
           tabBarLabel: t('tabs.more'),

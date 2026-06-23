@@ -30,6 +30,7 @@ const ja: Record<keyof typeof en, string> = {
   'tabs.home': 'ホーム',
   'tabs.map': '地図',
   'tabs.onsens': '温泉',
+  'tabs.stats': '統計',
   'tabs.more': 'その他',
 
   // home
@@ -77,6 +78,28 @@ const ja: Record<keyof typeof en, string> = {
   'home.recentVisits.seeAll': 'すべて見る',
   'home.recentVisits.empty': 'まだ訪問記録がありません',
 
+  // stats (cost/budget)
+  'stats.title': '統計',
+  'stats.empty': 'チャレンジを始めると、温泉の費用を記録できます。',
+  'stats.spentSoFar': 'これまでの費用',
+  'stats.projectedTotal': '達成までの予想総額',
+  'stats.avgPerVisit': '1湯あたり平均',
+  'stats.pricedNote': '訪問した温泉{{visited}}件のうち{{priced}}件に料金あり',
+  'stats.projectedNote': '残り{{count}}湯を最安で巡った場合の費用',
+  'stats.projectedNoneLeft': 'チャレンジ達成 — 残りの費用はありません',
+  'stats.budgetHeading': '費用',
+  'stats.byPrefecture': '県別の費用',
+  'stats.byTransport': '交通手段別の費用',
+  'stats.breakdownEmpty': '料金のある訪問がまだありません',
+  'stats.groupCount_one': '{{count}}湯',
+  'stats.groupCount_other': '{{count}}湯',
+  'stats.prefectureUnknown': 'その他',
+  'stats.transport.foot': '徒歩',
+  'stats.transport.bicycle': '自転車',
+  'stats.transport.public': '公共交通機関',
+  'stats.transport.car': '車',
+  'stats.transport.unreported': '未記録',
+
   // visits (full history + feed cards)
   'visits.title': '訪問履歴',
   'visits.empty': 'まだ訪問記録がありません',
@@ -90,8 +113,6 @@ const ja: Record<keyof typeof en, string> = {
   'more.challenges': 'チャレンジ',
   'more.routes': 'ルート',
   'more.preferences': '設定',
-  'more.stats': '統計',
-  'more.statsBadge': '近日公開',
   'more.account': 'アカウント',
   'more.signOut': 'サインアウト',
   'more.language': '言語',
