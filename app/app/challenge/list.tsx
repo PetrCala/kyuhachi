@@ -16,7 +16,9 @@ import {
   getDoc,
   getDocs,
   onSnapshot,
+  updateDoc,
   writeBatch,
+  serverTimestamp,
   type FirebaseFirestoreTypes,
 } from '@react-native-firebase/firestore';
 import type { ChallengeDocument, ChallengeTypeDocument } from '@kyuhachi/shared';
@@ -154,6 +156,37 @@ export default function ChallengeList() {
     }
   }
 
+  async function renameChallenge(id: string, name: string) {
+    if (!user) return;
+    try {
+      await updateDoc(
+        doc(db, COLLECTIONS.USERS, user.uid, SUBCOLLECTIONS.CHALLENGES, id),
+        { name, updatedAt: serverTimestamp() }
+      );
+    } catch (error) {
+      Alert.alert(t('challengeList.errorRename'), t(firebaseErrorKey(error)));
+    }
+  }
+
+  function promptRename(id: string, currentName: string) {
+    Alert.prompt(
+      t('challengeList.renameTitle'),
+      t('challengeList.renameMessage'),
+      [
+        { text: t('challengeList.cancel'), style: 'cancel' },
+        {
+          text: t('challengeList.renameConfirm'),
+          onPress: (value?: string) => {
+            const name = value?.trim();
+            if (name) renameChallenge(id, name);
+          },
+        },
+      ],
+      'plain-text',
+      currentName
+    );
+  }
+
   async function deleteChallenge(id: string) {
     if (!user) return;
     try {
@@ -225,16 +258,25 @@ export default function ChallengeList() {
                   </Text>
                 )}
               </Pressable>
-              {isActive ? (
-                <Text style={styles.activeBadge}>{t('challengeList.active')}</Text>
-              ) : (
+              <View style={styles.actions}>
+                {isActive && (
+                  <Text style={styles.activeBadge}>{t('challengeList.active')}</Text>
+                )}
                 <Pressable
-                  style={styles.deleteButton}
-                  onPress={() => confirmDelete(id, data.name)}
+                  style={styles.actionButton}
+                  onPress={() => promptRename(id, data.name)}
                 >
-                  <Text style={styles.deleteButtonText}>{t('challengeList.delete')}</Text>
+                  <Text style={styles.actionButtonText}>{t('challengeList.rename')}</Text>
                 </Pressable>
-              )}
+                {!isActive && (
+                  <Pressable
+                    style={styles.actionButton}
+                    onPress={() => confirmDelete(id, data.name)}
+                  >
+                    <Text style={styles.deleteButtonText}>{t('challengeList.delete')}</Text>
+                  </Pressable>
+                )}
+              </View>
             </View>
           );
         })}
@@ -306,12 +348,21 @@ const styles = StyleSheet.create({
     borderRadius: radii.full,
     overflow: 'hidden',
   },
-  deleteButton: {
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+  },
+  actionButton: {
     paddingHorizontal: spacing[3],
     paddingVertical: spacing[2],
     borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  actionButtonText: {
+    fontSize: typography.sizes.sm,
+    color: colors.textSecondary,
   },
   deleteButtonText: {
     fontSize: typography.sizes.sm,
