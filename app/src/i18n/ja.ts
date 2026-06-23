@@ -213,6 +213,7 @@ const ja: Record<keyof typeof en, string> = {
   'routes.selectTitle': 'ルートを選択',
   'routes.selectHint': 'チャレンジで使うルートをタップしてください。',
   'routes.errorAttach': 'チャレンジのルート更新に失敗しました',
+  'routes.drawingRoute': 'ルートを描いています…',
   'routes.import': 'ルートを取り込む',
   'routes.importing': '取り込み中…',
   'routes.empty': 'ルートはまだありません。.gpx、.kml、.tcx ファイルを取り込んで始めましょう。',
