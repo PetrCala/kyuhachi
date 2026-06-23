@@ -7,6 +7,15 @@
 (`_archive/data/db/kyushu.dev.db`, `raw_html` column, scraped 2026-02-10), **not** a fresh live
 fetch — see [Coverage & caveats](#coverage--rate-limit-caveats).
 
+> **Update (2026-06-23, post-audit):** acted on as a clean-slate replace rather than a
+> versioned backfill. `scripts/reseed-catalog.py` (PR #49) fully overwrote all 148 onsen
+> docs from the archive DB and wiped the throwaway challenge/visit data; the catalog now
+> populates `phone`, `businessHours.raw`, `admissionFee`, `springQuality`, `imageUrl`,
+> `websiteUrl` (137/148), and an authoritative `prefecture`. So the "what to capture next"
+> items below are **done except** `businessHours.schedule` (still `null` — the per-weekday
+> adapter) and the optional non-schema fields. The selector/parser notes remain the
+> reference for a future fresh canonical scrape in the data repo.
+
 ---
 
 ## TL;DR (headline findings)
