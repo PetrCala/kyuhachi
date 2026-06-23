@@ -34,6 +34,7 @@ import {
 } from '@/lib/route-import';
 import { firebaseErrorKey } from '@/lib/firebase-errors';
 import RowActionsButton from '@/components/RowActionsButton';
+import RouteDrawLoader from '@/components/RouteDrawLoader';
 import { colors, spacing, typography, radii } from '@/theme';
 
 interface RouteRow {
@@ -42,6 +43,10 @@ interface RouteRow {
 }
 
 const METERS_PER_KM = 1000;
+
+// Keep the draw overlay up a touch longer than the animation so the line
+// finishes before we navigate (the Firestore write is usually faster).
+const ROUTE_DRAW_DWELL_MS = 1250;
 
 export default function RoutesList() {
   const { t } = useTranslation();
@@ -55,6 +60,10 @@ export default function RoutesList() {
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const [selecting, setSelecting] = useState(false);
+  const [drawing, setDrawing] = useState<{
+    name: string;
+    points: { lat: number; lng: number }[];
+  } | null>(null);
 
   // Live subscription to the user's imported routes.
   useEffect(() => {
@@ -85,17 +94,28 @@ export default function RoutesList() {
   // Attach the active route on the challenge this picker was opened for, then
   // return to it. Cosmetic only — never touches completion logic. Clearing a
   // route lives on the challenge's route section, not here.
-  async function setChallengeRoute(routeId: string) {
+  async function setChallengeRoute(
+    routeId: string,
+    route?: { name: string; points: { lat: number; lng: number }[] }
+  ) {
     // Re-entrancy guard: the write below goes through App Check + the network,
     // so it isn't instant. Without this, a second tap (or an import that also
     // selects) queues a second navigation that fires once the screen is gone.
     if (!user || !selectFor || selecting) return;
     setSelecting(true);
+    // Show the route drawing itself in while the (optimistic, usually fast) write
+    // resolves. Hold a minimum beat so the animation actually plays.
+    const showDraw = !!route && route.points.length >= 2;
+    if (showDraw && route) setDrawing(route);
+    const minDwell = showDraw
+      ? new Promise<void>((resolve) => setTimeout(resolve, ROUTE_DRAW_DWELL_MS))
+      : Promise.resolve();
     try {
       await updateDoc(
         doc(db, COLLECTIONS.USERS, user.uid, SUBCOLLECTIONS.CHALLENGES, selectFor),
         { activeRouteId: routeId, updatedAt: serverTimestamp() }
       );
+      await minDwell;
       // By the time the write resolves the user may have already left this
       // screen — a second tap, or the edge-swipe back gesture. Pop only if we're
       // still here (otherwise return home, where this picker is always opened
@@ -106,6 +126,7 @@ export default function RoutesList() {
         router.replace('/');
       }
     } catch (error) {
+      setDrawing(null);
       Alert.alert(t('routes.errorAttach'), t(firebaseErrorKey(error)));
     } finally {
       setSelecting(false);
@@ -147,7 +168,7 @@ export default function RoutesList() {
       );
 
       if (selectMode) {
-        await setChallengeRoute(ref.id);
+        await setChallengeRoute(ref.id, { name: parsed.name, points: parsed.points });
       } else {
         router.push({ pathname: '/map', params: { routeId: ref.id } });
       }
@@ -259,7 +280,7 @@ export default function RoutesList() {
                 disabled={selecting}
                 onPress={() =>
                   selectMode
-                    ? setChallengeRoute(id)
+                    ? setChallengeRoute(id, { name: data.name, points: data.points })
                     : router.push({ pathname: '/map', params: { routeId: id } })
                 }
               >
@@ -295,6 +316,7 @@ export default function RoutesList() {
           </Text>
         </Pressable>
       </ScrollView>
+      {drawing && <RouteDrawLoader name={drawing.name} points={drawing.points} />}
     </>
   );
 }

@@ -223,6 +223,7 @@ const en = {
   'routes.selectTitle': 'Select a Route',
   'routes.selectHint': 'Tap a route to follow it in this challenge.',
   'routes.errorAttach': 'Failed to update the challenge route',
+  'routes.drawingRoute': 'Plotting your route…',
   'routes.import': 'Import route',
   'routes.importing': 'Importing…',
   'routes.empty': 'No routes yet. Import a .gpx, .kml, or .tcx file to get started.',
