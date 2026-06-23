@@ -7,6 +7,9 @@
 		"development": {
 			"developmentClient": true,
 			"distribution": "internal",
+			"env": {
+				"EXPO_PUBLIC_ENABLE_DEV_TOOLS": "true"
+			},
 			"ios": {
 				"simulator": false,
 				"resourceClass": "m-medium"
@@ -14,6 +17,9 @@
 		},
 		"preview": {
 			"distribution": "internal",
+			"env": {
+				"EXPO_PUBLIC_ENABLE_DEV_TOOLS": "true"
+			},
 			"ios": {
 				"resourceClass": "m-medium",
 				"autoIncrement": true

@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { signOut } from '@react-native-firebase/auth';
 import { useAuth } from '@/context/AuthContext';
 import { auth } from '@/firebase';
+import { DEV_TOOLS_ENABLED } from '@/lib/dev/flags';
 import { LANGUAGES, setAppLanguage } from '@/i18n';
 import { colors, spacing, typography, radii, shadows } from '@/theme';
 
@@ -122,6 +123,22 @@ export default function More() {
         ) : null}
         <Row icon="log-out-outline" label={t('more.signOut')} onPress={() => signOut(auth)} destructive last />
       </View>
+
+      {/* Dev-only entry; never rendered in App Store builds, so the labels are an
+          intentional exception to the i18n rule (the screen is English-only). */}
+      {DEV_TOOLS_ENABLED ? (
+        <>
+          <Text style={styles.sectionHeader}>Developer</Text>
+          <View style={styles.group}>
+            <Row
+              icon="construct-outline"
+              label="Mock data & resets"
+              onPress={() => router.push('/dev')}
+              last
+            />
+          </View>
+        </>
+      ) : null}
     </ScrollView>
   );
 }
