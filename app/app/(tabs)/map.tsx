@@ -39,10 +39,11 @@ const KYUSHU_REGION = {
 /** Roughly city-level zoom used when recentering the map on the user. */
 const USER_LOCATION_DELTA = 0.05;
 
-/** Rough web-mercator zoom for a longitude span, used to seed the zoom slider's
- *  knob before the map reports its first real camera reading. */
-function estimateZoom(longitudeDelta: number): number {
-  return Math.log2(360 / longitudeDelta);
+/** Rough Apple Maps camera altitude (metres) that frames a given latitude span,
+ *  used to seed the zoom slider's knob before the map reports its real camera.
+ *  ~111 km per degree of latitude; the map corrects this on its first reading. */
+function estimateAltitude(latitudeDelta: number): number {
+  return latitudeDelta * 111_000;
 }
 
 /** A map region that frames the route's bounding box with a little padding. */
@@ -70,9 +71,9 @@ export default function MapScreen() {
   const [routeLoaded, setRouteLoaded] = useState(false);
   // Whether foreground location permission is granted; gates the blue dot.
   const [locationGranted, setLocationGranted] = useState(false);
-  // Live camera zoom, read from the map after each gesture settles so the zoom
-  // slider's knob tracks pinch as well as its own drags.
-  const [zoom, setZoom] = useState<number | undefined>(undefined);
+  // Live camera altitude (Apple Maps), read after each gesture settles so the
+  // zoom slider's knob tracks pinch as well as its own drags.
+  const [altitude, setAltitude] = useState<number | undefined>(undefined);
 
   // Dev builds always stand in a simulated spot in Kyushu (on the active route
   // when there is one) so the location UX can be checked away from Japan;
@@ -134,14 +135,14 @@ export default function MapScreen() {
     }
   }, [simulated, locationGranted, t]);
 
-  // Read the actual camera zoom once a gesture settles (and on first ready) to
-  // keep the slider knob in sync with pinch. getCamera can reject during teardown.
+  // Read the actual camera altitude once a gesture settles (and on first ready)
+  // to keep the slider knob in sync with pinch. getCamera can reject in teardown.
   const handleCameraSettle = useCallback(async () => {
     try {
       const camera = await mapRef.current?.getCamera();
-      if (camera?.zoom !== undefined) setZoom(camera.zoom);
+      if (camera?.altitude !== undefined) setAltitude(camera.altitude);
     } catch {
-      // Map gone or camera unavailable — leave the last known zoom in place.
+      // Map gone or camera unavailable — leave the last known altitude in place.
     }
   }, []);
 
@@ -266,8 +267,8 @@ export default function MapScreen() {
       <View style={styles.zoomControlWrap} pointerEvents="box-none">
         <MapZoomControl
           mapRef={mapRef}
-          initialZoom={estimateZoom(initialRegion.longitudeDelta)}
-          zoom={zoom}
+          initialAltitude={estimateAltitude(initialRegion.latitudeDelta)}
+          altitude={altitude}
           zoomInLabel={t('map.zoomIn')}
           zoomOutLabel={t('map.zoomOut')}
         />
