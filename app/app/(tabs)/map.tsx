@@ -255,7 +255,7 @@ export default function MapScreen() {
           setRoute(null);
           return;
         }
-        const routeDoc = await getDoc(doc(userRef, SUBCOLLECTIONS.ROUTES, id));
+        const routeDoc = await getDoc(doc(db, COLLECTIONS.USERS, uid, SUBCOLLECTIONS.ROUTES, id));
         if (cancelled) return;
         setRoute(routeDoc.exists() ? (routeDoc.data() as RouteDocument) : null);
       })
