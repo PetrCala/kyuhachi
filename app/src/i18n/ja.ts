@@ -50,6 +50,8 @@ const ja: Record<keyof typeof en, string> = {
   'onsenList.title': '温泉一覧',
   'onsenList.searchPlaceholder': '温泉を検索…',
   'onsenList.sectionCount': '{{visited}}/{{total}}',
+  'onsenList.nearYouTitle': '近くの温泉',
+  'onsenList.distanceKm': '{{km}}km',
   'onsenList.prefectureUnknown': 'その他',
   'onsenList.emptySearch': '「{{query}}」に一致する温泉はありません',
   'onsenList.emptyData': '温泉データがありません',

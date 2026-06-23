@@ -34,6 +34,8 @@ export interface OnsenRow {
   name: string;
   areaName: string;
   prefecture: string;
+  lat: number;
+  lng: number;
   visited: boolean;
 }
 
@@ -42,6 +44,8 @@ export interface OnsenDisplayInfo {
   name: string;
   areaName: string;
   prefecture: string;
+  lat: number;
+  lng: number;
 }
 
 export interface ActiveChallengeProgress {
@@ -230,6 +234,8 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
               name: data.name,
               areaName: data.areaName,
               prefecture: data.prefecture,
+              lat: data.lat,
+              lng: data.lng,
             });
           }
           pending--;
@@ -271,6 +277,10 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
         name: info?.name ?? id,
         areaName: info?.areaName ?? '',
         prefecture: info?.prefecture ?? '',
+        // 0/0 is far from Kyushu, so an onsen whose info hasn't loaded just
+        // won't appear in the "near you" section until it does.
+        lat: info?.lat ?? 0,
+        lng: info?.lng ?? 0,
         visited: visitedIds.has(id),
       };
     });

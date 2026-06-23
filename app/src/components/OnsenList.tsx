@@ -11,27 +11,40 @@ import {
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { VisitedBadge } from '@/components/VisitedBadge';
+import { useUserLocation } from '@/hooks/useUserLocation';
+import { haversineKm } from '@/lib/geo';
+import { simulatedCoordinate } from '@/lib/dev-location';
 import { colors, spacing, typography, radii } from '@/theme';
+
+/** Radius for the "near you" section. */
+const NEAR_RADIUS_KM = 20;
 
 export interface OnsenListItem {
   id: string;
   name: string;
   areaName: string;
   prefecture: string;
+  lat: number;
+  lng: number;
   visited: boolean;
 }
 
+/** An item as rendered; the nearby section attaches the measured distance. */
+type DisplayItem = OnsenListItem & { distanceKm?: number };
+
 interface OnsenSection {
-  /** Unique across both blocks: a prefecture appears once unvisited, once visited. */
+  /** Unique across blocks: 'near', or a prefecture once unvisited and once visited. */
   key: string;
+  /** The top distance-sorted section, shown above the prefecture blocks. */
+  near: boolean;
   /** Raw Firestore prefecture; '' when missing (rendered with a fallback label). */
   prefecture: string;
   /** Whether this is a section of the bottom (visited) block. */
   visited: boolean;
-  /** Visited / total for the whole prefecture (same on both of its blocks' headers). */
+  /** Visited / total shown on the header (prefecture-wide, or section-wide for `near`). */
   visitedCount: number;
   total: number;
-  data: OnsenListItem[];
+  data: DisplayItem[];
 }
 
 interface OnsenListProps {
@@ -45,15 +58,18 @@ interface OnsenListProps {
 const OnsenListRow = memo(function OnsenListRow({
   item,
   unvisitedVariant,
+  distanceLabel,
 }: {
   item: OnsenListItem;
   unvisitedVariant: 'chevron' | 'circle';
+  distanceLabel?: string;
 }) {
   return (
     <Pressable style={styles.row} onPress={() => router.push(`/onsens/${item.id}`)}>
       <View style={styles.rowText}>
         <Text style={styles.rowName}>{item.name}</Text>
       </View>
+      {distanceLabel ? <Text style={styles.distance}>{distanceLabel}</Text> : null}
       {item.visited ? (
         <VisitedBadge />
       ) : unvisitedVariant === 'circle' ? (
@@ -67,19 +83,36 @@ const OnsenListRow = memo(function OnsenListRow({
 
 /**
  * The shared onsen list used by the Onsens browse tab and the record-a-visit
- * checklist: a search box over a list grouped into sticky prefecture sections.
- * Unvisited onsens come first (one section per prefecture), then all visited
- * onsens (again one section per prefecture) — so a visited onsen never sits
- * above an unvisited one. Each header shows the prefecture's visited/total.
- * Within a section, rows keep a stable alphabetical order. Tapping a row opens
- * its detail.
+ * checklist. A search box over a SectionList:
  *
- * Grouping by prefecture (rather than the finer area) keeps the number of
- * sticky headers small (~8), which is what makes the scroll feel smooth.
+ *  1. "Near you" — onsens within ~20km of the user (visited and unvisited),
+ *     nearest first, each row showing its distance. Hidden when there's no
+ *     location fix. Its onsens are pulled out of the prefecture blocks below so
+ *     they don't appear twice.
+ *  2. Unvisited prefectures, then visited prefectures — so a visited onsen never
+ *     sits above an unvisited one. Headers show the prefecture's visited/total.
+ *
+ * Grouping by prefecture (not the finer area) keeps the number of sticky headers
+ * small (~8), which is what makes the scroll feel smooth.
  */
 export function OnsenList({ data, loading, unvisitedVariant }: OnsenListProps) {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Real device location in production; a fixed Kyushu spot in dev so the nearby
+  // section can be exercised away from Japan (mirrors the map screen).
+  const deviceCoords = useUserLocation(!__DEV__);
+  const center = useMemo<{ lat: number; lng: number } | null>(() => {
+    if (__DEV__) {
+      if (data.length === 0) return null;
+      const sim = simulatedCoordinate(
+        null,
+        data.map((o) => ({ lat: o.lat, lng: o.lng }))
+      );
+      return { lat: sim.latitude, lng: sim.longitude };
+    }
+    return deviceCoords;
+  }, [deviceCoords, data]);
 
   const sections = useMemo<OnsenSection[]>(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -92,9 +125,28 @@ export function OnsenList({ data, loading, unvisitedVariant }: OnsenListProps) {
         )
       : data;
 
-    // Per-prefecture progress, shown identically on both of a prefecture's headers.
+    // "Near you": within radius of the user, nearest first, visited + unvisited
+    // together. Pulled out so they don't repeat in their prefecture sections.
+    const nearbyItems: DisplayItem[] = [];
+    const nearbyIds = new Set<string>();
+    if (center) {
+      const measured = filtered
+        .map((o) => ({ o, km: haversineKm(center, { lat: o.lat, lng: o.lng }) }))
+        .filter((x) => x.km <= NEAR_RADIUS_KM)
+        .sort((a, b) => a.km - b.km);
+      for (const { o, km } of measured) {
+        nearbyItems.push({ ...o, distanceKm: km });
+        nearbyIds.add(o.id);
+      }
+    }
+
+    const remaining = nearbyIds.size
+      ? filtered.filter((o) => !nearbyIds.has(o.id))
+      : filtered;
+
+    // Per-prefecture progress over what's actually shown in the prefecture blocks.
     const totals = new Map<string, { visited: number; total: number }>();
-    for (const item of filtered) {
+    for (const item of remaining) {
       const cur = totals.get(item.prefecture) ?? { visited: 0, total: 0 };
       cur.total += 1;
       if (item.visited) cur.visited += 1;
@@ -103,8 +155,8 @@ export function OnsenList({ data, loading, unvisitedVariant }: OnsenListProps) {
 
     // One block of prefecture sections for a given visited state.
     const block = (visited: boolean): OnsenSection[] => {
-      const byPrefecture = new Map<string, OnsenListItem[]>();
-      for (const item of filtered) {
+      const byPrefecture = new Map<string, DisplayItem[]>();
+      for (const item of remaining) {
         if (item.visited !== visited) continue;
         const rows = byPrefecture.get(item.prefecture);
         if (rows) rows.push(item);
@@ -115,6 +167,7 @@ export function OnsenList({ data, loading, unvisitedVariant }: OnsenListProps) {
           const progress = totals.get(prefecture) ?? { visited: 0, total: rows.length };
           return {
             key: `${visited ? 'v' : 'u'}:${prefecture}`,
+            near: false,
             prefecture,
             visited,
             visitedCount: progress.visited,
@@ -125,22 +178,46 @@ export function OnsenList({ data, loading, unvisitedVariant }: OnsenListProps) {
         .sort((a, b) => a.prefecture.localeCompare(b.prefecture));
     };
 
-    // Unvisited prefectures first, visited prefectures last.
-    return [...block(false), ...block(true)];
-  }, [data, searchQuery]);
+    const nearSection: OnsenSection[] = nearbyItems.length
+      ? [
+          {
+            key: 'near',
+            near: true,
+            prefecture: '',
+            visited: false,
+            visitedCount: nearbyItems.filter((o) => o.visited).length,
+            total: nearbyItems.length,
+            data: nearbyItems,
+          },
+        ]
+      : [];
+
+    // Near you, then unvisited prefectures, then visited prefectures.
+    return [...nearSection, ...block(false), ...block(true)];
+  }, [data, searchQuery, center]);
 
   const renderItem = useCallback(
-    ({ item }: { item: OnsenListItem }) => (
-      <OnsenListRow item={item} unvisitedVariant={unvisitedVariant} />
+    ({ item, section }: { item: DisplayItem; section: OnsenSection }) => (
+      <OnsenListRow
+        item={item}
+        unvisitedVariant={unvisitedVariant}
+        distanceLabel={
+          section.near && item.distanceKm !== undefined
+            ? t('onsenList.distanceKm', { km: item.distanceKm.toFixed(1) })
+            : undefined
+        }
+      />
     ),
-    [unvisitedVariant]
+    [unvisitedVariant, t]
   );
 
   const renderSectionHeader = useCallback(
     ({ section }: { section: OnsenSection }) => (
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, section.visited && styles.sectionTitleVisited]}>
-          {section.prefecture || t('onsenList.prefectureUnknown')}
+          {section.near
+            ? t('onsenList.nearYouTitle')
+            : section.prefecture || t('onsenList.prefectureUnknown')}
         </Text>
         <Text style={styles.sectionCount}>
           {t('onsenList.sectionCount', { visited: section.visitedCount, total: section.total })}
@@ -241,6 +318,11 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.medium,
     color: colors.textPrimary,
+  },
+  distance: {
+    fontSize: typography.sizes.sm,
+    color: colors.textMuted,
+    marginLeft: spacing[2],
   },
   chevron: {
     fontSize: typography.sizes.xl,
