@@ -3,6 +3,8 @@ const en = {
   'common.errorTitle': 'Error',
   'common.errorGeneric': 'Something went wrong. Please try again.',
   'common.errorNetwork': 'Network error. Check your connection and try again.',
+  'common.errorSessionExpired':
+    'Your session may have expired. Please sign out and back in, then try again.',
   'common.errorInvalidCredentials': 'Incorrect email or password.',
   'common.errorInvalidEmail': 'That email address is invalid.',
   'common.errorEmailInUse': 'That email address is already in use.',
