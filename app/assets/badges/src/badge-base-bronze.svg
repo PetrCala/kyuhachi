@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+  <!-- rim -->
+  <circle cx="120" cy="120" r="112" fill="#7a4527"/>
+  <!-- metal face -->
+  <circle cx="120" cy="120" r="104" fill="#a9663a"/>
+  
+  <!-- struck concentric ring -->
+  <circle cx="120" cy="120" r="95" fill="none" stroke="#7a4527" stroke-width="2" opacity="0.45"/>
+  <!-- soft upper sheen -->
+  <path d="M29.4 77.7 A100 100 0 0 1 210.6 77.7" fill="none" stroke="#c98a5c" stroke-width="3.5" stroke-linecap="round" opacity="0.55"/>
+  <!-- embossed "88" (upper portion) -->
+  <g>
+    <circle cx="105.75" cy="46" r="7" fill="none" stroke="#7a4527" stroke-width="4.5"/>
+    <circle cx="105.75" cy="61" r="9" fill="none" stroke="#7a4527" stroke-width="4.5"/>
+    <circle cx="134.25" cy="46" r="7" fill="none" stroke="#7a4527" stroke-width="4.5"/>
+    <circle cx="134.25" cy="61" r="9" fill="none" stroke="#7a4527" stroke-width="4.5"/></g>
+</svg>
