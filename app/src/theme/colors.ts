@@ -2,9 +2,15 @@
  * Color tokens. All color values in the app must reference this file.
  * Never use hex literals or named colors outside of this file.
  *
- * Structure: raw palette → semantic aliases exported as `colors`.
- * When dark mode is added, export a second `darkColors` object using the
- * same keys but different palette values — no other files need to change.
+ * Structure: raw palette → semantic aliases. `colors` (light) is the source of
+ * truth for the shape; `darkColors` is typed `typeof colors`, so a missing or
+ * extra key is a compile error (same guarantee as `ja.ts` for i18n).
+ *
+ * Components must NOT import `colors` directly if they want to react to theme
+ * changes — a `StyleSheet.create()` reads its values once at module load and
+ * never updates. Instead read the active palette from `useTheme()` and build
+ * styles with `useThemedStyles()`. The static `colors` export remains the light
+ * default for screens not yet converted.
  */
 
 const palette = {
@@ -88,3 +94,86 @@ export const colors = {
 } as const;
 
 export type Color = keyof typeof colors;
+
+/**
+ * The shape every theme must satisfy: every semantic key from `colors`, mapped
+ * to a (widened) color string. Light is the source of truth for the key set;
+ * `darkColors` is checked against it. Same guarantee as `ja.ts` for i18n.
+ */
+export type ThemeColors = Record<Color, string>;
+
+// Dark raw palette. iOS dark convention: the base screen is darkest and each
+// elevation step gets lighter (the inverse of light mode).
+const darkPalette = {
+  bgBase:     '#000000', // grouped-list backdrop (darkest layer)
+  bgSurface:  '#1c1c1e', // cards, primary surfaces
+  bgElevated: '#2c2c2e', // inputs, raised controls
+
+  textHigh:   '#f5f5f7', // headings, primary content
+  textMid:    '#c7c7cc', // supporting text
+  textLow:    '#aeaeb2', // hints, captions
+  textFaint:  '#8e8e93', // placeholder-level, divider labels
+  textGhost:  '#636366', // TextInput placeholder color
+
+  separator:  '#38383a', // hairlines, input borders
+
+  red: '#ff453a', // iOS dark-mode system red
+
+  scrim: 'rgba(0, 0, 0, 0.6)', // heavier dim behind sheets on a dark ground
+} as const;
+
+/**
+ * Dark theme. Keys mirror `colors` exactly (enforced by the `ThemeColors`
+ * annotation). Tier metals and the brand mark are identity colors and read
+ * fine on a dark ground, so they are intentionally carried over unchanged.
+ */
+export const darkColors: ThemeColors = {
+  // Surfaces
+  background:          darkPalette.bgSurface,
+  backgroundSecondary: darkPalette.bgBase,
+  backgroundElevated:  darkPalette.bgElevated,
+  overlay:             darkPalette.scrim,
+
+  // Text
+  textPrimary:     darkPalette.textHigh,
+  textSecondary:   darkPalette.textMid,
+  textTertiary:    darkPalette.textLow,
+  textMuted:       darkPalette.textFaint,
+  textPlaceholder: darkPalette.textGhost,
+  textInverted:    palette.black, // dark text on light/amber fills
+
+  // Interactive — primary button inverts to a light fill with dark text
+  actionPrimary:     darkPalette.textHigh,
+  actionPrimaryText: palette.black,
+  destructive:       darkPalette.red,
+
+  // Bottom tab bar
+  tabBarActive:   darkPalette.textHigh,
+  tabBarInactive: darkPalette.textFaint,
+
+  // Borders
+  border:    darkPalette.separator,
+  separator: darkPalette.separator,
+
+  // Tier badges — carried over (identity colors)
+  tierGold:   palette.gold,
+  tierSilver: palette.silver,
+  tierBronze: palette.bronze,
+  tierGoldDeep:   palette.goldDeep,
+  tierSilverDeep: palette.silverDeep,
+  tierBronzeDeep: palette.bronzeDeep,
+
+  // Brand mark — carried over (identity colors)
+  brand:      palette.ink,
+  brandGlyph: palette.amber,
+
+  // Map markers — carried over
+  onsenVisited: palette.water,
+};
+
+export const themes = {
+  light: colors,
+  dark: darkColors,
+} as const;
+
+export type ColorScheme = keyof typeof themes;

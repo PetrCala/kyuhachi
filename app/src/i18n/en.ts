@@ -88,6 +88,10 @@ const en = {
   'more.account': 'Account',
   'more.signOut': 'Sign out',
   'more.language': 'Language',
+  'more.appearance': 'Appearance',
+  'more.appearanceSystem': 'System',
+  'more.appearanceLight': 'Light',
+  'more.appearanceDark': 'Dark',
 
   // challenge progress
   'challengeProgress.title': 'Challenge Progress',
