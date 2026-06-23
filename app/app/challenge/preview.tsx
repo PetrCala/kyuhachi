@@ -85,7 +85,17 @@ export default function ChallengePreview() {
       // a missing doc fails the whole commit with firestore/not-found.
       let previousDefaultRef: FirebaseFirestoreTypes.DocumentReference | null = null;
       if (previousDefaultId) {
-        const ref = doc(userRef, SUBCOLLECTIONS.CHALLENGES, previousDefaultId);
+        // Build from `db`, not `userRef`: RN Firebase's modular doc() resolves a
+        // DocumentReference parent via `parent.doc(...)`, but DocumentReference
+        // has no `.doc` method (only `.collection`), so doc(userRef, ...) throws
+        // "Cannot read property 'call' of undefined".
+        const ref = doc(
+          db,
+          COLLECTIONS.USERS,
+          user.uid,
+          SUBCOLLECTIONS.CHALLENGES,
+          previousDefaultId
+        );
         if ((await getDoc(ref)).exists()) {
           previousDefaultRef = ref;
         }

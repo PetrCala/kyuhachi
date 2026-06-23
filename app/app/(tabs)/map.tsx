@@ -207,15 +207,20 @@ export default function MapScreen() {
     }
     setRouteLoaded(false);
     let cancelled = false;
-    const userRef = doc(db, COLLECTIONS.USERS, user.uid);
+    const uid = user.uid;
+    const userRef = doc(db, COLLECTIONS.USERS, uid);
 
     async function resolveRouteId(): Promise<string | null> {
       if (paramRouteId) return paramRouteId;
       const userDoc = await getDoc(userRef);
       const defaultChallengeId = (userDoc.data() as UserDocument | undefined)?.defaultChallengeId;
       if (!defaultChallengeId) return null;
+      // Build from `db`, not `userRef`: RN Firebase's modular doc() resolves a
+      // DocumentReference parent via `parent.doc(...)`, which DocumentReference
+      // doesn't have — doc(userRef, ...) throws "Cannot read property 'call' of
+      // undefined".
       const challengeDoc = await getDoc(
-        doc(userRef, SUBCOLLECTIONS.CHALLENGES, defaultChallengeId)
+        doc(db, COLLECTIONS.USERS, uid, SUBCOLLECTIONS.CHALLENGES, defaultChallengeId)
       );
       return (challengeDoc.data() as ChallengeDocument | undefined)?.activeRouteId ?? null;
     }
