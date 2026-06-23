@@ -21,29 +21,35 @@ const TRACK_HEIGHT = 132; // px the knob travels: top = zoomed in, bottom = out
 const KNOB_SIZE = 22;
 const RAIL_WIDTH = 3;
 
-// Slider zoom band. Apple Maps supports a wider span; we clamp the knob to the
-// range that's useful for browsing Kyushu and let pinch reach the extremes.
-const MIN_ZOOM = 4;
-const MAX_ZOOM = 18;
-const ZOOM_STEP = 1; // how much a +/- tap changes the zoom
+// We zoom by driving the Apple Maps camera altitude (metres above ground), since
+// the camera `zoom` field is Google-Maps-only and a no-op on PROVIDER_DEFAULT.
+// Lower altitude = closer in. The slider clamps to a comfortable browsing band;
+// pinch can still reach beyond it.
+const MIN_ALTITUDE = 1_000; // knob at top — streets
+const MAX_ALTITUDE = 2_000_000; // knob at bottom — the whole region
+const STEP_FACTOR = 2; // each +/- tap halves / doubles the altitude
 
-const clampZoom = (z: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
+const clampAltitude = (a: number) => Math.min(MAX_ALTITUDE, Math.max(MIN_ALTITUDE, a));
 
-/** Knob top-offset (px from track top) for a given zoom. Top = max, bottom = min. */
-const zoomToOffset = (z: number) =>
-  ((MAX_ZOOM - clampZoom(z)) / (MAX_ZOOM - MIN_ZOOM)) * TRACK_HEIGHT;
+// Altitude is exponential in perceived zoom, so map it to the knob on a log scale.
+const LOG_MIN = Math.log(MIN_ALTITUDE);
+const LOG_SPAN = Math.log(MAX_ALTITUDE) - LOG_MIN;
 
-/** Inverse of {@link zoomToOffset}: the zoom a knob offset represents. */
-const offsetToZoom = (offset: number) =>
-  MAX_ZOOM - (offset / TRACK_HEIGHT) * (MAX_ZOOM - MIN_ZOOM);
+/** Knob top-offset (px from track top) for an altitude. Top = in, bottom = out. */
+const altitudeToOffset = (altitude: number) =>
+  ((Math.log(clampAltitude(altitude)) - LOG_MIN) / LOG_SPAN) * TRACK_HEIGHT;
+
+/** Inverse of {@link altitudeToOffset}: the altitude a knob offset represents. */
+const offsetToAltitude = (offset: number) =>
+  Math.exp(LOG_MIN + (offset / TRACK_HEIGHT) * LOG_SPAN);
 
 interface MapZoomControlProps {
   mapRef: RefObject<MapView | null>;
-  /** Seed used only for the knob's first paint, before the map reports a zoom. */
-  initialZoom: number;
-  /** Live camera zoom from the map's onRegionChangeComplete; keeps the knob in
+  /** Seed used only for the knob's first paint, before the map reports a camera. */
+  initialAltitude: number;
+  /** Live camera altitude from the map's onRegionChangeComplete; keeps the knob in
    *  sync when the user pinches. Undefined until the first reading lands. */
-  zoom: number | undefined;
+  altitude: number | undefined;
   zoomInLabel: string;
   zoomOutLabel: string;
   style?: StyleProp<ViewStyle>;
@@ -52,21 +58,23 @@ interface MapZoomControlProps {
 /**
  * Vertical zoom slider, docked on the map's right edge (Mapy.com mobile style):
  * a draggable knob between a + and - end cap. Dragging the knob zooms the camera
- * live; tapping an end cap steps by one level. The knob follows pinch gestures
- * via the `zoom` prop, but never while a drag is in progress.
+ * live; tapping an end cap steps by a fixed factor. The knob follows pinch
+ * gestures via the `altitude` prop, but never while a drag is in progress.
  */
 export default function MapZoomControl({
   mapRef,
-  initialZoom,
-  zoom,
+  initialAltitude,
+  altitude,
   zoomInLabel,
   zoomOutLabel,
   style,
 }: MapZoomControlProps) {
-  const knobY = useRef(new Animated.Value(zoomToOffset(zoom ?? initialZoom))).current;
+  const knobY = useRef(
+    new Animated.Value(altitudeToOffset(altitude ?? initialAltitude))
+  ).current;
   // Plain mirrors of the animated value so the gesture handlers can read the
   // current knob position synchronously (Animated.Value has no getter).
-  const offsetRef = useRef(zoomToOffset(zoom ?? initialZoom));
+  const offsetRef = useRef(altitudeToOffset(altitude ?? initialAltitude));
   const dragStartOffsetRef = useRef(0);
   const draggingRef = useRef(false);
 
@@ -77,20 +85,21 @@ export default function MapZoomControl({
     return () => knobY.removeListener(id);
   }, [knobY]);
 
-  // Follow the map when it reports a new zoom (pinch/pan settle) — but never
+  // Follow the map when it reports a new altitude (pinch/pan settle) — but never
   // fight an in-progress drag, which owns the knob until released.
   useEffect(() => {
-    if (zoom === undefined || draggingRef.current) return;
+    if (altitude === undefined || draggingRef.current) return;
     Animated.timing(knobY, {
-      toValue: zoomToOffset(zoom),
+      toValue: altitudeToOffset(altitude),
       duration: 120,
-      useNativeDriver: true,
+      useNativeDriver: false,
     }).start();
-  }, [zoom, knobY]);
+  }, [altitude, knobY]);
 
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponderCapture: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: (evt) => {
         draggingRef.current = true;
@@ -102,7 +111,7 @@ export default function MapZoomControl({
         );
         dragStartOffsetRef.current = base;
         knobY.setValue(base);
-        mapRef.current?.setCamera({ zoom: offsetToZoom(base) });
+        mapRef.current?.setCamera({ altitude: offsetToAltitude(base) });
       },
       onPanResponderMove: (_evt, gesture) => {
         const next = Math.min(
@@ -110,7 +119,7 @@ export default function MapZoomControl({
           Math.max(0, dragStartOffsetRef.current + gesture.dy)
         );
         knobY.setValue(next);
-        mapRef.current?.setCamera({ zoom: offsetToZoom(next) });
+        mapRef.current?.setCamera({ altitude: offsetToAltitude(next) });
       },
       onPanResponderRelease: () => {
         draggingRef.current = false;
@@ -122,14 +131,15 @@ export default function MapZoomControl({
   ).current;
 
   const stepZoom = useCallback(
-    (delta: number) => {
-      const next = clampZoom(offsetToZoom(offsetRef.current) + delta);
+    (zoomIn: boolean) => {
+      const current = offsetToAltitude(offsetRef.current);
+      const next = clampAltitude(zoomIn ? current / STEP_FACTOR : current * STEP_FACTOR);
       Animated.timing(knobY, {
-        toValue: zoomToOffset(next),
+        toValue: altitudeToOffset(next),
         duration: 150,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }).start();
-      mapRef.current?.animateCamera({ zoom: next }, { duration: 200 });
+      mapRef.current?.animateCamera({ altitude: next }, { duration: 200 });
     },
     [knobY, mapRef]
   );
@@ -137,7 +147,7 @@ export default function MapZoomControl({
   return (
     <View style={[styles.container, shadows.md, style]}>
       <Pressable
-        onPress={() => stepZoom(ZOOM_STEP)}
+        onPress={() => stepZoom(true)}
         hitSlop={spacing[1]}
         accessibilityRole="button"
         accessibilityLabel={zoomInLabel}
@@ -154,7 +164,7 @@ export default function MapZoomControl({
       </View>
 
       <Pressable
-        onPress={() => stepZoom(-ZOOM_STEP)}
+        onPress={() => stepZoom(false)}
         hitSlop={spacing[1]}
         accessibilityRole="button"
         accessibilityLabel={zoomOutLabel}
