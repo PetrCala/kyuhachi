@@ -251,6 +251,8 @@ export default function EditVisit() {
             })}
           </View>
 
+          <View style={styles.spacer} />
+
           <Pressable
             style={[styles.saveButton, saving && styles.buttonDisabled]}
             onPress={handleSaveVisit}
@@ -279,6 +281,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
+    flexGrow: 1,
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[4],
     paddingBottom: spacing[10],
@@ -385,6 +388,9 @@ const styles = StyleSheet.create({
   transportChipTextSelected: {
     color: colors.actionPrimaryText,
     fontWeight: typography.weights.medium,
+  },
+  spacer: {
+    flex: 1,
   },
   saveButton: {
     backgroundColor: colors.actionPrimary,
