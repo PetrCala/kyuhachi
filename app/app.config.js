@@ -76,6 +76,11 @@ module.exports = {
     eas: {
       projectId: "52439120-a3fd-4ee0-a853-893741b69ea0",
     },
+    // In-app developer tools (mock-data generators) gate. ON for the
+    // development/preview EAS profiles (which set the env var) and any local
+    // run; left unset → false for the production (App Store) build. Read via
+    // DEV_TOOLS_ENABLED in app/src/lib/dev/flags.ts.
+    enableDevTools: process.env.EXPO_PUBLIC_ENABLE_DEV_TOOLS === "true",
   },
   owner: "petr.cala",
 };
