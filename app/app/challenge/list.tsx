@@ -28,6 +28,7 @@ import { useAuth } from '@/context/AuthContext';
 import { db } from '@/firebase';
 import { firebaseErrorKey } from '@/lib/firebase-errors';
 import { challengeTypeName } from '@/lib/challenge-i18n';
+import RowActionsButton from '@/components/RowActionsButton';
 import { colors, spacing, typography, radii } from '@/theme';
 
 interface ChallengeRow {
@@ -278,20 +279,26 @@ export default function ChallengeList() {
                 {isActive && (
                   <Text style={styles.activeBadge}>{t('challengeList.active')}</Text>
                 )}
-                <Pressable
-                  style={styles.actionButton}
-                  onPress={() => promptRename(id, data.name)}
-                >
-                  <Text style={styles.actionButtonText}>{t('challengeList.rename')}</Text>
-                </Pressable>
-                {!isActive && (
-                  <Pressable
-                    style={styles.actionButton}
-                    onPress={() => confirmDelete(id, data.name)}
-                  >
-                    <Text style={styles.deleteButtonText}>{t('challengeList.delete')}</Text>
-                  </Pressable>
-                )}
+                <RowActionsButton
+                  accessibilityLabel={t('challengeList.moreActions')}
+                  title={data.name}
+                  cancelLabel={t('challengeList.cancel')}
+                  actions={[
+                    ...(!isActive
+                      ? [{ label: t('challengeList.makeActive'), onPress: () => switchTo(id) }]
+                      : []),
+                    { label: t('challengeList.rename'), onPress: () => promptRename(id, data.name) },
+                    ...(!isActive
+                      ? [
+                          {
+                            label: t('challengeList.delete'),
+                            destructive: true,
+                            onPress: () => confirmDelete(id, data.name),
+                          },
+                        ]
+                      : []),
+                  ]}
+                />
               </View>
             </View>
           );
@@ -368,21 +375,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[2],
-  },
-  actionButton: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  actionButtonText: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
-  },
-  deleteButtonText: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
   },
   newButton: {
     marginTop: spacing[4],
