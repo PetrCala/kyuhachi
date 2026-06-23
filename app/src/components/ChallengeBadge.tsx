@@ -41,16 +41,16 @@ const FALLBACK_METAL = { fill: colors.textMuted, rim: colors.textTertiary };
 // so the two can be swapped over independently.
 // ---------------------------------------------------------------------------
 const BASE_ART: Partial<Record<string, ImageSourcePropType>> = {
-  // gold: require('../../assets/badges/badge-base-gold.png'),
-  // silver: require('../../assets/badges/badge-base-silver.png'),
-  // bronze: require('../../assets/badges/badge-base-bronze.png'),
+  gold: require('../../assets/badges/badge-base-gold.png'),
+  silver: require('../../assets/badges/badge-base-silver.png'),
+  bronze: require('../../assets/badges/badge-base-bronze.png'),
 };
 
 const TRANSPORT_ART: Partial<Record<TransportMode, ImageSourcePropType>> = {
-  // foot: require('../../assets/badges/transport-foot.png'),
-  // bicycle: require('../../assets/badges/transport-bicycle.png'),
-  // public: require('../../assets/badges/transport-public.png'),
-  // car: require('../../assets/badges/transport-car.png'),
+  foot: require('../../assets/badges/transport-foot.png'),
+  bicycle: require('../../assets/badges/transport-bicycle.png'),
+  public: require('../../assets/badges/transport-public.png'),
+  car: require('../../assets/badges/transport-car.png'),
 };
 
 // Placeholder geometry, as fractions of the medallion diameter.
