@@ -101,17 +101,13 @@ export default function MapZoomControl({
       onStartShouldSetPanResponder: () => true,
       onStartShouldSetPanResponderCapture: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (evt) => {
+      onPanResponderGrant: () => {
         draggingRef.current = true;
-        // Center the knob on the touch so a tap on the rail jumps there, then
-        // drags relative to that point.
-        const base = Math.min(
-          TRACK_HEIGHT,
-          Math.max(0, evt.nativeEvent.locationY - KNOB_SIZE / 2)
-        );
-        dragStartOffsetRef.current = base;
-        knobY.setValue(base);
-        mapRef.current?.setCamera({ altitude: offsetToAltitude(base) });
+        // Grab the knob where it sits and drag relative to that — don't jump to
+        // the touch point. (locationY is measured inside whichever child is hit,
+        // so pressing the knob vs. the rail would report different origins.)
+        knobY.stopAnimation();
+        dragStartOffsetRef.current = offsetRef.current;
       },
       onPanResponderMove: (_evt, gesture) => {
         const next = Math.min(
