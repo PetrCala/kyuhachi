@@ -8,18 +8,12 @@ import MapView, { Marker, Polyline, PROVIDER_DEFAULT, type Region } from 'react-
 import {
   collection,
   doc,
-  getDoc,
   query,
   where,
   onSnapshot,
   type FirebaseFirestoreTypes,
 } from '@react-native-firebase/firestore';
-import type {
-  ChallengeDocument,
-  OnsenDocument,
-  RouteDocument,
-  UserDocument,
-} from '@kyuhachi/shared';
+import type { OnsenDocument, RouteDocument } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/firebase';
@@ -67,16 +61,22 @@ export default function MapScreen() {
   const { user } = useAuth();
   const navigation = useNavigation();
   const { routeId: paramRouteId } = useLocalSearchParams<{ routeId?: string }>();
-  // kyuhachiIds visited in the active challenge — drives the visited pin color.
-  const { visitedIds } = useActiveChallengeProgress();
+  // kyuhachiIds visited in the active challenge (drives the visited pin color),
+  // plus the active challenge's route — both kept live by the progress hook.
+  const { visitedIds, activeRoute, loading: progressLoading } =
+    useActiveChallengeProgress();
   const mapRef = useRef<MapView>(null);
   const [onsens, setOnsens] = useState<OnsenRow[]>([]);
   const [onsensLoading, setOnsensLoading] = useState(true);
-  const [route, setRoute] = useState<RouteDocument | null>(null);
-  // We resolve a route on mount (an explicit param, or the active challenge's),
-  // and hold rendering until it loads so the map can mount already framed on the
-  // track rather than animating in afterwards.
-  const [routeLoaded, setRouteLoaded] = useState(false);
+  // An explicit `routeId` param (a just-imported route, or "View route on map")
+  // draws that specific route; otherwise the map draws the active challenge's
+  // route. Both are live subscriptions, and `route` is derived rather than
+  // stored, so a route attached, renamed, switched, or cleared while this tab
+  // stays mounted reflects on the map without a remount — which the previous
+  // one-shot read could not do.
+  const [paramRoute, setParamRoute] = useState<RouteDocument | null>(null);
+  const [paramRouteLoaded, setParamRouteLoaded] = useState(!paramRouteId);
+  const route = paramRouteId ? paramRoute : activeRoute;
   // Whether foreground location permission is granted; gates the blue dot.
   const [locationGranted, setLocationGranted] = useState(false);
   // Live camera altitude (Apple Maps), read after each gesture settles so the
@@ -219,58 +219,34 @@ export default function MapScreen() {
     return unsubscribe;
   }, []);
 
-  // Resolve which route to draw: an explicit routeId param wins; otherwise fall
-  // back to the active challenge's activeRouteId so a challenge's route shows on
-  // the map automatically. A dangling id (deleted route) resolves to no route.
+  // Subscribe to the param route (when one is given) so it draws live — a rename
+  // or edit reflects without a remount, and the empty→loaded transition mirrors
+  // how the active route loads. The active-challenge route needs no work here:
+  // the progress hook already subscribes to it and hands it back as activeRoute.
+  // A dangling id (deleted route) resolves to no route.
   useEffect(() => {
-    if (!user) {
-      setRoute(null);
-      setRouteLoaded(true);
+    if (!user || !paramRouteId) {
+      setParamRoute(null);
+      setParamRouteLoaded(true);
       return;
     }
-    setRouteLoaded(false);
-    let cancelled = false;
-    const uid = user.uid;
-    const userRef = doc(db, COLLECTIONS.USERS, uid);
-
-    async function resolveRouteId(): Promise<string | null> {
-      if (paramRouteId) return paramRouteId;
-      const userDoc = await getDoc(userRef);
-      const defaultChallengeId = (userDoc.data() as UserDocument | undefined)?.defaultChallengeId;
-      if (!defaultChallengeId) return null;
-      // Build from `db`, not `userRef`: RN Firebase's modular doc() resolves a
-      // DocumentReference parent via `parent.doc(...)`, which DocumentReference
-      // doesn't have — doc(userRef, ...) throws "Cannot read property 'call' of
-      // undefined".
-      const challengeDoc = await getDoc(
-        doc(db, COLLECTIONS.USERS, uid, SUBCOLLECTIONS.CHALLENGES, defaultChallengeId)
-      );
-      return (challengeDoc.data() as ChallengeDocument | undefined)?.activeRouteId ?? null;
-    }
-
-    resolveRouteId()
-      .then(async (id) => {
-        if (cancelled) return;
-        if (!id) {
-          setRoute(null);
-          return;
-        }
-        const routeDoc = await getDoc(doc(db, COLLECTIONS.USERS, uid, SUBCOLLECTIONS.ROUTES, id));
-        if (cancelled) return;
-        setRoute(routeDoc.exists() ? (routeDoc.data() as RouteDocument) : null);
-      })
-      .catch(() => {
-        if (!cancelled) setRoute(null);
-      })
-      .finally(() => {
-        if (!cancelled) setRouteLoaded(true);
-      });
-    return () => {
-      cancelled = true;
-    };
+    setParamRouteLoaded(false);
+    const unsub = onSnapshot(
+      doc(db, COLLECTIONS.USERS, user.uid, SUBCOLLECTIONS.ROUTES, paramRouteId),
+      (snapshot: FirebaseFirestoreTypes.DocumentSnapshot) => {
+        setParamRoute(snapshot.exists() ? (snapshot.data() as RouteDocument) : null);
+        setParamRouteLoaded(true);
+      },
+      () => {
+        setParamRoute(null);
+        setParamRouteLoaded(true);
+      }
+    );
+    return unsub;
   }, [user, paramRouteId]);
 
-  const loading = onsensLoading || !routeLoaded;
+  const loading =
+    onsensLoading || (paramRouteId ? !paramRouteLoaded : !!user && progressLoading);
   // Route names are user/Firestore data, shown as-is; fall back to the generic title.
   const title = route?.name ?? t('map.title');
   const initialRegion = route ? regionForBounds(route.bounds) : KYUSHU_REGION;
@@ -280,6 +256,21 @@ export default function MapScreen() {
   useEffect(() => {
     navigation.setOptions({ headerTitle: title });
   }, [navigation, title]);
+
+  // Keep the camera on the drawn route. `initialRegion` frames the route known
+  // at mount; this re-frames when the route arrives or changes afterward — e.g.
+  // a route attached or switched while the Map tab stayed mounted — which a
+  // static `initialRegion` can't. Keyed on the bounds so it animates once per
+  // distinct route, not on every snapshot.
+  const framedBoundsRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!route) return;
+    const { minLat, minLng, maxLat, maxLng } = route.bounds;
+    const key = `${minLat},${minLng},${maxLat},${maxLng}`;
+    if (key === framedBoundsRef.current) return;
+    framedBoundsRef.current = key;
+    mapRef.current?.animateToRegion(regionForBounds(route.bounds));
+  }, [route]);
 
   if (loading) {
     return (
