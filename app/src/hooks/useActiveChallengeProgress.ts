@@ -74,8 +74,8 @@ export interface ActiveChallengeProgress {
  * The shared data layer for the home dashboard and the record-a-visit list.
  * Subscribes to the active challenge (user → challenge → visits), its challenge
  * type (tiers / completion target), the eligible onsens' display data, and the
- * active route. Tier status is derived from progress where it's shown — see
- * src/lib/tier-eligibility.ts.
+ * active route. A challenge's tier (earnedTier) is maintained server-side by the
+ * visit Functions and read straight off the challenge doc where it's shown.
  */
 export function useActiveChallengeProgress(): ActiveChallengeProgress {
   const { t } = useTranslation();

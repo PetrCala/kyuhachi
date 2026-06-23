@@ -146,7 +146,7 @@ export default function ChallengePreview() {
         snapshotEligibleOnsenIds: eligibleOnsenIds,
         snapshotCatalogVersion: catalogVersion,
         activeRouteId: null,
-        claimedTier: null,
+        earnedTier: null,
         completedAt: null,
         createdAt: serverTimestamp(),
       });

@@ -175,7 +175,7 @@ export async function createMockChallenge(opts: CreateMockChallengeOptions): Pro
     snapshotEligibleOnsenIds: eligible,
     snapshotCatalogVersion: catalogVersion,
     activeRouteId,
-    claimedTier: null,
+    earnedTier: null,
     completedAt: completed ? serverTimestamp() : null,
     createdAt: serverTimestamp(),
   });
