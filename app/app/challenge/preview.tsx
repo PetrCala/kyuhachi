@@ -54,6 +54,18 @@ export default function ChallengePreview() {
 
   async function handleCreate() {
     if (!user || !typeId || !challengeType) return;
+
+    // The eligible pool is frozen onto the challenge at creation. If the type
+    // document is missing it (e.g. seeded before the onsen catalog was
+    // published), writing `undefined` throws a cryptic, codeless Firestore error
+    // — surfaced only as the generic "something went wrong" alert — and an empty
+    // pool would create an uncompletable 0/88 challenge. Fail clearly instead.
+    const eligibleOnsenIds = challengeType.eligibleOnsenIds;
+    if (!Array.isArray(eligibleOnsenIds) || eligibleOnsenIds.length === 0) {
+      Alert.alert(t('challenge.errorCreate'), t('challenge.errorNoEligibleOnsens'));
+      return;
+    }
+
     setCreating(true);
     try {
       const catalogSnap = await getDoc(doc(db, COLLECTIONS.CATALOG_META, CATALOG_META_DOC_ID));
@@ -87,7 +99,7 @@ export default function ChallengePreview() {
         name: t('challenge.defaultName'),
         startDate: serverTimestamp(),
         isDefault: true,
-        snapshotEligibleOnsenIds: challengeType.eligibleOnsenIds,
+        snapshotEligibleOnsenIds: eligibleOnsenIds,
         snapshotCatalogVersion: catalogVersion,
         activeRouteId: null,
         claimedTier: null,
@@ -106,6 +118,10 @@ export default function ChallengePreview() {
       await batch.commit();
       router.replace('/');
     } catch (error) {
+      // firebaseErrorKey collapses unrecognized codes (and codeless errors) into
+      // a generic message, so log the real error in dev to keep create failures
+      // diagnosable.
+      if (__DEV__) console.warn('[challenge] create failed', error);
       Alert.alert(t('challenge.errorCreate'), t(firebaseErrorKey(error)));
     } finally {
       setCreating(false);
