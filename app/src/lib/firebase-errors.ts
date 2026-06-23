@@ -34,6 +34,14 @@ export function firebaseErrorKey(error: unknown): string {
     case 'auth/network-request-failed':
     case 'firestore/unavailable':
       return 'common.errorNetwork';
+    // For this app every Firestore path is gated on `isOwner`, so a
+    // permission-denied/unauthenticated almost always means the request carried
+    // a stale auth or App Check token (e.g. the token lapsed and a write fired
+    // before it refreshed), not a genuine rules violation. Re-authenticating
+    // mints fresh tokens, so point the user there instead of a dead-end generic.
+    case 'firestore/permission-denied':
+    case 'firestore/unauthenticated':
+      return 'common.errorSessionExpired';
     default:
       return 'common.errorGeneric';
   }

@@ -5,6 +5,8 @@ const ja: Record<keyof typeof en, string> = {
   'common.errorTitle': 'エラー',
   'common.errorGeneric': '問題が発生しました。もう一度お試しください。',
   'common.errorNetwork': 'ネットワークエラーが発生しました。接続を確認してもう一度お試しください。',
+  'common.errorSessionExpired':
+    'セッションの有効期限が切れている可能性があります。サインアウトしてから再度サインインしてお試しください。',
   'common.errorInvalidCredentials': 'メールアドレスまたはパスワードが正しくありません。',
   'common.errorInvalidEmail': 'メールアドレスの形式が正しくありません。',
   'common.errorEmailInUse': 'このメールアドレスはすでに使用されています。',
