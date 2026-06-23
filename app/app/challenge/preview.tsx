@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
+  TextInput,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -14,25 +15,32 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
   onSnapshot,
   writeBatch,
   serverTimestamp,
   type FirebaseFirestoreTypes,
 } from '@react-native-firebase/firestore';
-import type { ChallengeTypeDocument, UserDocument } from '@kyuhachi/shared';
+import type { ChallengeDocument, ChallengeTypeDocument, UserDocument } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS, CATALOG_META_DOC_ID } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/firebase';
 import { ChallengeRulesView } from '@/components/ChallengeRulesView';
 import { firebaseErrorKey } from '@/lib/firebase-errors';
-import { localizeChallengeType } from '@/lib/challenge-i18n';
+import { challengeTypeName, localizeChallengeType } from '@/lib/challenge-i18n';
+import { uniqueChallengeName } from '@/lib/challenge-name';
 import { colors, spacing, typography, radii } from '@/theme';
+
+/** Cap a custom challenge name so it stays readable in the list/switcher. */
+const NAME_MAX_LENGTH = 60;
 
 export default function ChallengePreview() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { typeId } = useLocalSearchParams<{ typeId: string }>();
   const [challengeType, setChallengeType] = useState<ChallengeTypeDocument | null>(null);
+  const [name, setName] = useState('');
+  const [existingNames, setExistingNames] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
 
@@ -51,6 +59,32 @@ export default function ChallengePreview() {
     );
     return unsubscribe;
   }, [typeId]);
+
+  // Existing names disambiguate the auto-generated default (e.g. a second
+  // "Walking Challenge" becomes "Walking Challenge 2"). A one-shot read is
+  // enough — the set only needs to be current when this screen creates.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    getDocs(collection(doc(db, COLLECTIONS.USERS, user.uid), SUBCOLLECTIONS.CHALLENGES))
+      .then((snap: FirebaseFirestoreTypes.QuerySnapshot) => {
+        if (cancelled) return;
+        setExistingNames(snap.docs.map((d) => (d.data() as ChallengeDocument).name ?? ''));
+      })
+      .catch(() => {
+        // Non-fatal: without the set we just skip disambiguation.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  // The name written when the field is left blank, shown as the input's
+  // placeholder so the user sees exactly what they'll get.
+  const autoName = useMemo(() => {
+    if (!challengeType) return '';
+    return uniqueChallengeName(challengeTypeName(typeId, challengeType.name, t), existingNames);
+  }, [challengeType, typeId, existingNames, t]);
 
   async function handleCreate() {
     if (!user || !typeId || !challengeType) return;
@@ -106,7 +140,7 @@ export default function ChallengePreview() {
       const challengeRef = doc(collection(userRef, SUBCOLLECTIONS.CHALLENGES));
       batch.set(challengeRef, {
         typeId,
-        name: t('challenge.defaultName'),
+        name: name.trim() || autoName,
         startDate: serverTimestamp(),
         isDefault: true,
         snapshotEligibleOnsenIds: eligibleOnsenIds,
@@ -166,7 +200,20 @@ export default function ChallengePreview() {
     <>
       <Stack.Screen options={{ title: display.name, headerShown: true }} />
       <View style={styles.container}>
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <View style={styles.nameField}>
+            <Text style={styles.nameLabel}>{t('challenge.nameLabel')}</Text>
+            <TextInput
+              style={styles.nameInput}
+              value={name}
+              onChangeText={setName}
+              placeholder={autoName}
+              placeholderTextColor={colors.textPlaceholder}
+              maxLength={NAME_MAX_LENGTH}
+              returnKeyType="done"
+              editable={!creating}
+            />
+          </View>
           <ChallengeRulesView challengeType={display} />
         </ScrollView>
         <View style={styles.footer}>
@@ -204,6 +251,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[4],
     paddingBottom: spacing[8],
+  },
+  nameField: {
+    marginBottom: spacing[5],
+  },
+  nameLabel: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
+    color: colors.textSecondary,
+    marginBottom: spacing[2],
+  },
+  nameInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    fontSize: typography.sizes.md,
+    color: colors.textPrimary,
+    backgroundColor: colors.backgroundElevated,
   },
   footer: {
     paddingHorizontal: spacing[4],
