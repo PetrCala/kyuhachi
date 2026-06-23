@@ -5,6 +5,17 @@ name: Deploy Firestore rules
 # take effect in production once someone remembers to run `firebase deploy` by
 # hand — exactly how the route_plans -> routes rename shipped to the repo but
 # not to Firebase, breaking route imports with permission-denied in production.
+#
+# Required setup (in the kyuhachi-fddcc Google Cloud project):
+#   - Secret FIREBASE_SERVICE_ACCOUNT: the full JSON key of a service account,
+#     stored under Settings -> Secrets and variables -> Actions.
+#   - That service account needs all THREE of these roles:
+#       * roles/firebaserules.admin            (deploy firestore:rules)
+#       * roles/datastore.indexAdmin           (deploy firestore:indexes)
+#       * roles/serviceusage.serviceUsageConsumer
+#           The Firebase CLI calls the Service Usage API to verify
+#           firestore.googleapis.com is enabled before deploying; without this
+#           role the deploy fails with a 403 on serviceusage.googleapis.com.
 on:
   push:
     branches: [master]
