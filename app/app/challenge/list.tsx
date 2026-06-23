@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Animated,
   LayoutAnimation,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
@@ -55,6 +56,16 @@ interface ChallengeStats {
   eligibleVisits: number;
   /** Transport mode of each eligible visit — drives the shortcut count. */
   eligibleTransports: (TransportMode | null)[];
+}
+
+/** Fades its child in on mount, so the tier marker appears smoothly once its
+ *  (asynchronously loaded) tier resolves rather than snapping into place. */
+function FadeIn({ children }: { children: ReactNode }) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+  }, [opacity]);
+  return <Animated.View style={{ opacity }}>{children}</Animated.View>;
 }
 
 export default function ChallengeList() {
@@ -319,17 +330,21 @@ export default function ChallengeList() {
           const tier = tierByChallenge.get(id);
           return (
             <View key={id} style={styles.card}>
-              {tier ? (
-                <View style={styles.tierMarker}>
-                  <ChallengeBadge
-                    tierId={tier.id}
-                    size={spacing[10]}
-                    accessibilityLabel={t('challengeList.tierMarkerLabel', {
-                      tier: t(`challengeTier.${tier.id}`, { defaultValue: tier.id }),
-                    })}
-                  />
-                </View>
-              ) : null}
+              {/* Slot is always reserved (fixed width) so the marker fades in
+                  when its tier resolves without shifting the card content. */}
+              <View style={styles.tierMarker}>
+                {tier ? (
+                  <FadeIn>
+                    <ChallengeBadge
+                      tierId={tier.id}
+                      size={spacing[10]}
+                      accessibilityLabel={t('challengeList.tierMarkerLabel', {
+                        tier: t(`challengeTier.${tier.id}`, { defaultValue: tier.id }),
+                      })}
+                    />
+                  </FadeIn>
+                ) : null}
+              </View>
               <Pressable style={styles.cardMain} onPress={() => switchTo(id)} disabled={isActive}>
                 <Text style={styles.cardName}>{data.name}</Text>
                 <Text style={styles.cardType}>
@@ -409,7 +424,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing[3],
   },
   tierMarker: {
+    width: spacing[10],
     marginRight: spacing[3],
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cardMain: {
     flex: 1,
