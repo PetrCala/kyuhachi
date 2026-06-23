@@ -33,6 +33,7 @@ import {
   RouteImportError,
 } from '@/lib/route-import';
 import { firebaseErrorKey } from '@/lib/firebase-errors';
+import RowActionsButton from '@/components/RowActionsButton';
 import { colors, spacing, typography, radii } from '@/theme';
 
 interface RouteRow {
@@ -248,16 +249,6 @@ export default function RoutesList() {
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         {selectMode && <Text style={styles.selectHint}>{t('routes.selectHint')}</Text>}
 
-        <Pressable
-          style={[styles.importButton, (importing || selecting) && styles.importButtonDisabled]}
-          onPress={handleImport}
-          disabled={importing || selecting}
-        >
-          <Text style={styles.importButtonText}>
-            {importing ? t('routes.importing') : t('routes.import')}
-          </Text>
-        </Pressable>
-
         {sorted.length === 0 ? (
           <Text style={styles.empty}>{t('routes.empty')}</Text>
         ) : (
@@ -276,24 +267,33 @@ export default function RoutesList() {
                 <Text style={styles.cardMeta}>{metaLine(data)}</Text>
               </Pressable>
               {!selectMode && (
-                <View style={styles.actions}>
-                  <Pressable
-                    style={styles.actionButton}
-                    onPress={() => promptRename(id, data.name)}
-                  >
-                    <Text style={styles.actionButtonText}>{t('routes.rename')}</Text>
-                  </Pressable>
-                  <Pressable
-                    style={styles.actionButton}
-                    onPress={() => confirmDelete(id, data.name)}
-                  >
-                    <Text style={styles.deleteButtonText}>{t('routes.delete')}</Text>
-                  </Pressable>
-                </View>
+                <RowActionsButton
+                  accessibilityLabel={t('routes.moreActions')}
+                  title={data.name}
+                  cancelLabel={t('routes.cancel')}
+                  actions={[
+                    { label: t('routes.rename'), onPress: () => promptRename(id, data.name) },
+                    {
+                      label: t('routes.delete'),
+                      destructive: true,
+                      onPress: () => confirmDelete(id, data.name),
+                    },
+                  ]}
+                />
               )}
             </View>
           ))
         )}
+
+        <Pressable
+          style={[styles.importButton, (importing || selecting) && styles.importButtonDisabled]}
+          onPress={handleImport}
+          disabled={importing || selecting}
+        >
+          <Text style={styles.importButtonText}>
+            {importing ? t('routes.importing') : t('routes.import')}
+          </Text>
+        </Pressable>
       </ScrollView>
     </>
   );
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     paddingVertical: spacing[4],
     alignItems: 'center',
-    marginBottom: spacing[5],
+    marginTop: spacing[4],
   },
   importButtonDisabled: {
     opacity: 0.6,
@@ -363,25 +363,5 @@ const styles = StyleSheet.create({
   cardMeta: {
     fontSize: typography.sizes.sm,
     color: colors.textMuted,
-  },
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[2],
-  },
-  actionButton: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  actionButtonText: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
-  },
-  deleteButtonText: {
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
   },
 });
