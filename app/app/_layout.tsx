@@ -48,7 +48,12 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <NavigationController />
-      <Stack screenOptions={{ headerShown: false, headerBackButtonDisplayMode: 'minimal' }} />
+      <Stack screenOptions={{ headerShown: false, headerBackButtonDisplayMode: 'minimal' }}>
+        <Stack.Screen
+          name="onsens/edit-visit"
+          options={{ presentation: 'modal', headerShown: true }}
+        />
+      </Stack>
     </AuthProvider>
   );
 }

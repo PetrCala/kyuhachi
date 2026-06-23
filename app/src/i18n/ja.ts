@@ -242,6 +242,18 @@ const ja: Record<keyof typeof en, string> = {
   'onsenDetail.chooseFromLibrary': 'ライブラリから選択',
   'onsenDetail.uploading': 'アップロード中...',
   'onsenDetail.cancel': 'キャンセル',
+  'onsenDetail.editTitle': '訪問を編集',
+  'onsenDetail.editDetails': '詳細を編集',
+  'onsenDetail.showHours': '週間営業時間を表示',
+  'onsenDetail.hideHours': '週間営業時間を隠す',
+  'onsenDetail.closed': '定休日',
+  'onsenDetail.day.monday': '月曜日',
+  'onsenDetail.day.tuesday': '火曜日',
+  'onsenDetail.day.wednesday': '水曜日',
+  'onsenDetail.day.thursday': '木曜日',
+  'onsenDetail.day.friday': '金曜日',
+  'onsenDetail.day.saturday': '土曜日',
+  'onsenDetail.day.sunday': '日曜日',
 } as const;
 
 export default ja;
