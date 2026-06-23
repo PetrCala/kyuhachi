@@ -38,6 +38,7 @@ const en = {
   'map.locationDeniedMessage':
     'Enable location access for Kyuhachi in Settings to see where you are on the map.',
   'map.locationError': 'Could not find your location. Please try again.',
+  'map.simulatedLocation': 'Simulated location',
 
   // onsen list
   'onsenList.title': 'Onsen List',
@@ -81,6 +82,10 @@ const en = {
   'more.account': 'Account',
   'more.signOut': 'Sign out',
   'more.language': 'Language',
+
+  // more (dev-only; __DEV__ builds)
+  'more.dev.sectionTitle': 'Developer',
+  'more.dev.simulateLocation': 'Simulate location in Japan',
 
   // challenge progress
   'challengeProgress.title': 'Challenge Progress',

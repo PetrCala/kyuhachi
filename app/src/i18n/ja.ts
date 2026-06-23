@@ -40,6 +40,7 @@ const ja: Record<keyof typeof en, string> = {
   'map.locationDeniedMessage':
     '地図上に現在地を表示するには、設定でKyuhachiの位置情報アクセスを許可してください。',
   'map.locationError': '現在地を取得できませんでした。もう一度お試しください。',
+  'map.simulatedLocation': 'シミュレートされた位置',
 
   // onsen list
   'onsenList.title': '温泉一覧',
@@ -83,6 +84,10 @@ const ja: Record<keyof typeof en, string> = {
   'more.account': 'アカウント',
   'more.signOut': 'サインアウト',
   'more.language': '言語',
+
+  // more (dev-only; __DEV__ builds)
+  'more.dev.sectionTitle': '開発者',
+  'more.dev.simulateLocation': '日本の位置をシミュレート',
 
   // challenge progress
   'challengeProgress.title': 'チャレンジ進捗',

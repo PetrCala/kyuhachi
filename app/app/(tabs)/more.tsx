@@ -1,10 +1,11 @@
 import type { ComponentProps } from 'react';
-import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
+import { ScrollView, View, Text, Pressable, Switch, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { signOut } from '@react-native-firebase/auth';
 import { useAuth } from '@/context/AuthContext';
+import { useDevSettings } from '@/context/DevSettingsContext';
 import { auth } from '@/firebase';
 import { LANGUAGES, setAppLanguage } from '@/i18n';
 import { colors, spacing, typography, radii, shadows } from '@/theme';
@@ -80,6 +81,7 @@ function LanguageToggle() {
 export default function More() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { simulateLocation, setSimulateLocation } = useDevSettings();
   const accountLabel = user?.email ?? user?.displayName ?? '';
 
   return (
@@ -122,6 +124,30 @@ export default function More() {
         ) : null}
         <Row icon="log-out-outline" label={t('more.signOut')} onPress={() => signOut(auth)} destructive last />
       </View>
+
+      {__DEV__ ? (
+        <>
+          <Text style={styles.sectionHeader}>{t('more.dev.sectionTitle')}</Text>
+          <View style={styles.group}>
+            <View style={[styles.row, styles.rowLast]}>
+              <Ionicons
+                name="locate-outline"
+                size={typography.sizes.xl}
+                color={colors.textSecondary}
+                style={styles.rowIcon}
+              />
+              <Text style={styles.rowLabel}>{t('more.dev.simulateLocation')}</Text>
+              <Switch
+                value={simulateLocation}
+                onValueChange={setSimulateLocation}
+                trackColor={{ true: colors.actionPrimary, false: colors.separator }}
+                ios_backgroundColor={colors.separator}
+                accessibilityLabel={t('more.dev.simulateLocation')}
+              />
+            </View>
+          </View>
+        </>
+      ) : null}
     </ScrollView>
   );
 }
