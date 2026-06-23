@@ -80,7 +80,8 @@ export default function OnsenDetail() {
   }, [id]);
 
   // Quick one-tap check-in. Creates the visit with empty details (which already
-  // counts toward the challenge); the user fills in details later via the modal.
+  // counts toward the challenge), then opens the edit modal so the user can fill
+  // in details right away.
   async function handleMarkVisited() {
     if (!user || !challengeId || !id) return;
     setMarking(true);
@@ -109,6 +110,7 @@ export default function OnsenDetail() {
           updatedAt: serverTimestamp(),
         }
       );
+      router.push({ pathname: '/onsens/edit-visit', params: { id } });
     } catch (error) {
       Alert.alert(t('common.errorTitle'), t(firebaseErrorKey(error)));
     } finally {
