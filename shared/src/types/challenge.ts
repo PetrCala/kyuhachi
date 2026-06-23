@@ -77,11 +77,12 @@ export interface ChallengeDocument {
    */
   activeRouteId: string | null
   /**
-   * @deprecated No longer used by the app — tier status is derived from progress
-   * (see app/src/lib/tier-eligibility.ts). Still written as null on creation;
-   * safe to drop from the model in a future cleanup.
+   * Highest tier the challenge currently qualifies for ("gold" | "silver" |
+   * "bronze"), or null. Maintained by the onVisitCreated / onVisitDeleted
+   * Functions so it rides the initial snapshot — the app reads it, never writes
+   * it. Created as null; the trigger fills it on the first qualifying visit.
    */
-  claimedTier: string | null
+  earnedTier: string | null
   /** Set by onVisitCreated Function when unique eligible visits >= completionCount */
   completedAt: Timestamp | null
   createdAt: Timestamp
