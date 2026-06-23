@@ -21,11 +21,9 @@ import type {
   OnsenDocument,
   RouteDocument,
   Tier,
-  TierCondition,
-  TransportMode,
   VisitDocument,
 } from '@kyuhachi/shared';
-import { COLLECTIONS, SUBCOLLECTIONS, isFasterThan } from '@kyuhachi/shared';
+import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/firebase';
 import { firebaseErrorKey } from '@/lib/firebase-errors';
@@ -52,13 +50,8 @@ export interface ActiveChallengeProgress {
   challengeId: string | null;
   challenge: ChallengeDocument | null;
   tiers: Tier[];
-  /** The active challenge type's base transport mode (drawn on the tier badge). */
-  baseMode: TransportMode | null;
   completionCount: number | null;
   eligibleVisitCount: number;
-  /** First eligible tier (tiers are ordered best → worst), or null. */
-  highestEligibleTier: Tier | null;
-  canUpgrade: boolean;
   activeRoute: RouteDocument | null;
   /** kyuhachiIds of every onsen visited in the active challenge (not just eligible ones). */
   visitedIds: Set<string>;
@@ -68,7 +61,6 @@ export interface ActiveChallengeProgress {
   onsenMap: Map<string, OnsenDisplayInfo>;
   /** Eligible onsens for the active challenge; display order is handled by OnsenList. */
   rows: OnsenRow[];
-  claimTier: (tierId: string) => Promise<void>;
   clearRoute: () => Promise<void>;
   selectRoute: () => void;
 }
@@ -76,8 +68,9 @@ export interface ActiveChallengeProgress {
 /**
  * The shared data layer for the home dashboard and the record-a-visit list.
  * Subscribes to the active challenge (user → challenge → visits), its challenge
- * type (tiers / completion target / base transport mode), the eligible onsens'
- * display data, and the active route, then derives tier eligibility.
+ * type (tiers / completion target), the eligible onsens' display data, and the
+ * active route. Tier status is derived from progress where it's shown — see
+ * src/lib/tier-eligibility.ts.
  */
 export function useActiveChallengeProgress(): ActiveChallengeProgress {
   const { t } = useTranslation();
@@ -89,7 +82,6 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
   const [visits, setVisits] = useState<Map<string, VisitDocument>>(new Map());
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [completionCount, setCompletionCount] = useState<number | null>(null);
-  const [baseMode, setBaseMode] = useState<TransportMode | null>(null);
   const [onsenMap, setOnsenMap] = useState<Map<string, OnsenDisplayInfo>>(new Map());
   const [activeRoute, setActiveRoute] = useState<RouteDocument | null>(null);
   const [loading, setLoading] = useState(true);
@@ -194,7 +186,6 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
     if (!challenge) {
       setTiers([]);
       setCompletionCount(null);
-      setBaseMode(null);
       return;
     }
     const unsub = onSnapshot(
@@ -203,13 +194,11 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
         if (!snapshot.exists()) {
           setTiers([]);
           setCompletionCount(null);
-          setBaseMode(null);
           return;
         }
         const data = snapshot.data() as ChallengeTypeDocument;
         setTiers((data.tiers ?? []).map((tier) => localizeTier(challenge.typeId, tier, t)));
         setCompletionCount(data.completionCount);
-        setBaseMode(data.baseMode ?? null);
       }
     );
     return unsub;
@@ -291,55 +280,6 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
     return [...visitedIds].filter((id) => eligible.has(id)).length;
   }, [challenge, visitedIds]);
 
-  const shortcutCount = useMemo(() => {
-    if (!challenge || !baseMode) return 0;
-    const eligible = new Set(challenge.snapshotEligibleOnsenIds);
-    let count = 0;
-    for (const [id, visit] of visits) {
-      if (eligible.has(id) && isFasterThan(visit.structuredData.transportMode, baseMode)) {
-        count++;
-      }
-    }
-    return count;
-  }, [challenge, visits, baseMode]);
-
-  const daysSinceStart = useMemo(() => {
-    if (!challenge?.startDate) return 0;
-    const start = challenge.startDate.toDate();
-    return Math.floor((Date.now() - start.getTime()) / (1000 * 60 * 60 * 24));
-  }, [challenge?.startDate]);
-
-  const isTierEligible = useCallback(
-    (tier: Tier): boolean => {
-      return tier.conditions.every((cond: TierCondition) => {
-        switch (cond.type) {
-          case 'minVisits':
-            return eligibleVisitCount >= cond.value;
-          case 'maxFasterVisits':
-            return shortcutCount <= cond.value;
-          case 'maxCalendarDays':
-            return daysSinceStart <= cond.value;
-          default:
-            return false;
-        }
-      });
-    },
-    [eligibleVisitCount, shortcutCount, daysSinceStart]
-  );
-
-  // Tiers are ordered best → worst; first eligible is the highest
-  const highestEligibleTier = useMemo(() => {
-    return tiers.find((tier) => isTierEligible(tier)) ?? null;
-  }, [tiers, isTierEligible]);
-
-  const canUpgrade = useMemo(() => {
-    if (!challenge?.claimedTier || !highestEligibleTier) return false;
-    const claimedIndex = tiers.findIndex((tier) => tier.id === challenge.claimedTier);
-    const highestIndex = tiers.findIndex((tier) => tier.id === highestEligibleTier.id);
-    // Lower index = better tier (ordered best → worst)
-    return highestIndex < claimedIndex;
-  }, [challenge?.claimedTier, highestEligibleTier, tiers]);
-
   const selectRoute = useCallback(() => {
     if (!challengeId) return;
     router.push({ pathname: '/routes', params: { selectFor: challengeId } });
@@ -357,38 +297,19 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
     }
   }, [user, challengeId, t]);
 
-  const claimTier = useCallback(
-    async (tierId: string) => {
-      if (!user || !challengeId) return;
-      try {
-        await updateDoc(
-          doc(db, COLLECTIONS.USERS, user.uid, SUBCOLLECTIONS.CHALLENGES, challengeId),
-          { claimedTier: tierId, updatedAt: serverTimestamp() }
-        );
-      } catch (error) {
-        Alert.alert(t('challengeProgress.errorClaim'), t(firebaseErrorKey(error)));
-      }
-    },
-    [user, challengeId, t]
-  );
-
   return {
     loading,
     hasChallenge,
     challengeId,
     challenge,
     tiers,
-    baseMode,
     completionCount,
     eligibleVisitCount,
-    highestEligibleTier,
-    canUpgrade,
     activeRoute,
     visitedIds,
     visits,
     onsenMap,
     rows,
-    claimTier,
     clearRoute,
     selectRoute,
   };

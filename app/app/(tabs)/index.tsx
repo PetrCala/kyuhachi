@@ -32,12 +32,9 @@ export default function Home() {
     tiers,
     completionCount,
     eligibleVisitCount,
-    highestEligibleTier,
-    canUpgrade,
     activeRoute,
     visits,
     onsenMap,
-    claimTier,
     clearRoute,
     selectRoute,
   } = useActiveChallengeProgress();
@@ -89,9 +86,6 @@ export default function Home() {
       </SafeAreaView>
     );
   }
-
-  const claimedTierName =
-    tiers.find((tier) => tier.id === challenge.claimedTier)?.name ?? challenge.claimedTier;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -164,29 +158,6 @@ export default function Home() {
               )}
             </View>
             <ProgressBar value={eligibleVisitCount} total={completionCount} markers={markers} />
-          </View>
-        )}
-
-        {highestEligibleTier && !challenge.claimedTier && (
-          <View style={styles.claimSection}>
-            <Pressable style={styles.claimButton} onPress={() => claimTier(highestEligibleTier.id)}>
-              <Text style={styles.claimButtonText}>
-                {t('challengeProgress.claimTier', { tier: highestEligibleTier.name })}
-              </Text>
-            </Pressable>
-          </View>
-        )}
-
-        {highestEligibleTier && canUpgrade && (
-          <View style={styles.claimSection}>
-            <Text style={styles.claimedCurrentText}>
-              {t('challengeProgress.claimedTier', { tier: claimedTierName })}
-            </Text>
-            <Pressable style={styles.claimButton} onPress={() => claimTier(highestEligibleTier.id)}>
-              <Text style={styles.claimButtonText}>
-                {t('challengeProgress.upgradeTier', { tier: highestEligibleTier.name })}
-              </Text>
-            </Pressable>
           </View>
         )}
 
@@ -350,29 +321,6 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.medium,
     color: colors.actionPrimary,
-  },
-  claimSection: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.separator,
-    alignItems: 'center',
-  },
-  claimedCurrentText: {
-    fontSize: typography.sizes.sm,
-    color: colors.textMuted,
-    marginBottom: spacing[2],
-  },
-  claimButton: {
-    backgroundColor: colors.actionPrimary,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing[6],
-    paddingVertical: spacing[3],
-  },
-  claimButtonText: {
-    color: colors.actionPrimaryText,
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.semibold,
   },
   recentSection: {
     paddingHorizontal: spacing[4],
