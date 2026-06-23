@@ -11,13 +11,11 @@ import {
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { VisitedBadge } from '@/components/VisitedBadge';
+import { usePreferences } from '@/context/PreferencesContext';
 import { useUserLocation } from '@/hooks/useUserLocation';
 import { haversineKm } from '@/lib/geo';
 import { simulatedCoordinate } from '@/lib/dev-location';
 import { colors, spacing, typography, radii } from '@/theme';
-
-/** Radius for the "near you" section. */
-const NEAR_RADIUS_KM = 20;
 
 export interface OnsenListItem {
   id: string;
@@ -97,12 +95,15 @@ const OnsenListRow = memo(function OnsenListRow({
  */
 export function OnsenList({ data, loading, unvisitedVariant }: OnsenListProps) {
   const { t } = useTranslation();
+  const { showNearby, nearRadiusKm, loaded: prefsLoaded } = usePreferences();
   const [searchQuery, setSearchQuery] = useState('');
 
   // Real device location in production; a fixed Kyushu spot in dev so the nearby
-  // section can be exercised away from Japan (mirrors the map screen).
-  const deviceCoords = useUserLocation(!__DEV__);
+  // section can be exercised away from Japan (mirrors the map screen). Skip the
+  // location request entirely when the user has turned the nearby section off.
+  const deviceCoords = useUserLocation(!__DEV__ && prefsLoaded && showNearby);
   const center = useMemo<{ lat: number; lng: number } | null>(() => {
+    if (!showNearby) return null;
     if (__DEV__) {
       if (data.length === 0) return null;
       const sim = simulatedCoordinate(
@@ -112,7 +113,7 @@ export function OnsenList({ data, loading, unvisitedVariant }: OnsenListProps) {
       return { lat: sim.latitude, lng: sim.longitude };
     }
     return deviceCoords;
-  }, [deviceCoords, data]);
+  }, [showNearby, deviceCoords, data]);
 
   const sections = useMemo<OnsenSection[]>(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -132,7 +133,7 @@ export function OnsenList({ data, loading, unvisitedVariant }: OnsenListProps) {
     if (center) {
       const measured = filtered
         .map((o) => ({ o, km: haversineKm(center, { lat: o.lat, lng: o.lng }) }))
-        .filter((x) => x.km <= NEAR_RADIUS_KM)
+        .filter((x) => x.km <= nearRadiusKm)
         .sort((a, b) => a.km - b.km);
       for (const { o, km } of measured) {
         nearbyItems.push({ ...o, distanceKm: km });
@@ -194,7 +195,7 @@ export function OnsenList({ data, loading, unvisitedVariant }: OnsenListProps) {
 
     // Near you, then unvisited prefectures, then visited prefectures.
     return [...nearSection, ...block(false), ...block(true)];
-  }, [data, searchQuery, center]);
+  }, [data, searchQuery, center, nearRadiusKm]);
 
   const renderItem = useCallback(
     ({ item, section }: { item: DisplayItem; section: OnsenSection }) => (

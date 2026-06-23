@@ -87,11 +87,20 @@ const en = {
   'more.title': 'More',
   'more.challenges': 'Challenges',
   'more.routes': 'Routes',
+  'more.preferences': 'Preferences',
   'more.stats': 'Stats',
   'more.statsBadge': 'Soon',
   'more.account': 'Account',
   'more.signOut': 'Sign out',
   'more.language': 'Language',
+
+  // preferences
+  'preferences.title': 'Preferences',
+  'preferences.showNearby': 'Show nearby onsens',
+  'preferences.showNearbyHint':
+    'Shows a section at the top of the onsen list with springs near your current location.',
+  'preferences.radiusTitle': 'Distance (km)',
+  'preferences.radiusHint': 'Onsens within {{km}} km of you appear in the “Near you” section.',
 
   // challenge progress
   'challengeProgress.title': 'Challenge Progress',
