@@ -23,6 +23,10 @@ const palette = {
   gold:   '#b8893b',
   silver: '#8a8a8f',
   bronze: '#a9663a',
+  // Deeper shade of each metal — struck-rim outline + embossed glyph on the badge
+  goldDeep:   '#7a5a23',
+  silverDeep: '#5b5b60',
+  bronzeDeep: '#7a4527',
 
   // System red (destructive actions)
   red: '#ff3b30', // iOS system red
@@ -66,6 +70,10 @@ export const colors = {
   tierGold:   palette.gold,
   tierSilver: palette.silver,
   tierBronze: palette.bronze,
+  // Deeper metal shade for the challenge badge rim + embossed mark
+  tierGoldDeep:   palette.goldDeep,
+  tierSilverDeep: palette.silverDeep,
+  tierBronzeDeep: palette.bronzeDeep,
 
   // Brand mark (the logo tile on sign-in mirrors the app icon)
   brand:      palette.ink,   // brand surface / icon ground

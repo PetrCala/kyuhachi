@@ -31,7 +31,11 @@ export function ChallengeRulesView({
       {challengeType.tiers.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('challengeRules.tiersHeading')}</Text>
-          <TierCarousel tiers={challengeType.tiers} highlightTierId={highlightTierId} />
+          <TierCarousel
+            tiers={challengeType.tiers}
+            transportMode={challengeType.baseMode}
+            highlightTierId={highlightTierId}
+          />
         </View>
       )}
 

@@ -52,6 +52,8 @@ export interface ActiveChallengeProgress {
   challengeId: string | null;
   challenge: ChallengeDocument | null;
   tiers: Tier[];
+  /** The active challenge type's base transport mode (drawn on the tier badge). */
+  baseMode: TransportMode | null;
   completionCount: number | null;
   eligibleVisitCount: number;
   /** First eligible tier (tiers are ordered best → worst), or null. */
@@ -376,6 +378,7 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
     challengeId,
     challenge,
     tiers,
+    baseMode,
     completionCount,
     eligibleVisitCount,
     highestEligibleTier,

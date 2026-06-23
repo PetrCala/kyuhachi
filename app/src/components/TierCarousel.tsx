@@ -9,13 +9,15 @@ import {
   type NativeScrollEvent,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import type { Tier, TierCondition } from '@kyuhachi/shared';
-import { TierBadge } from './TierBadge';
+import type { Tier, TierCondition, TransportMode } from '@kyuhachi/shared';
+import { ChallengeBadge } from './ChallengeBadge';
 import { colors, spacing, typography, radii } from '@/theme';
 
 interface TierCarouselProps {
   /** Ordered best → worst. */
   tiers: Tier[];
+  /** The challenge's base transport mode; drawn on each tier badge. */
+  transportMode?: TransportMode | null;
   /** Id of the tier the user currently qualifies for; marked as reached. */
   highlightTierId?: string | null;
 }
@@ -25,7 +27,11 @@ interface TierCarouselProps {
  * (badge → summary → condition bullets) so swiping surfaces only the deltas.
  * One page snaps to the carousel's measured width; a dots row tracks position.
  */
-export function TierCarousel({ tiers, highlightTierId = null }: TierCarouselProps) {
+export function TierCarousel({
+  tiers,
+  transportMode = null,
+  highlightTierId = null,
+}: TierCarouselProps) {
   const { t } = useTranslation();
   const [width, setWidth] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -71,7 +77,13 @@ export function TierCarousel({ tiers, highlightTierId = null }: TierCarouselProp
           {tiers.map((tier) => (
             <View key={tier.id} style={[styles.page, { width }]}>
               <View style={styles.card}>
-                <TierBadge tierId={tier.id} name={tier.name} size={72} />
+                <ChallengeBadge
+                  tierId={tier.id}
+                  transportMode={transportMode}
+                  size={80}
+                  accessibilityLabel={tier.name}
+                />
+                <Text style={styles.tierName}>{tier.name}</Text>
                 <Text style={styles.summary}>{tier.conditionSummary}</Text>
                 {tier.conditions.length > 0 && (
                   <View style={styles.conditionList}>
@@ -120,11 +132,18 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing[2],
     alignItems: 'center',
   },
+  tierName: {
+    marginTop: spacing[3],
+    fontSize: typography.sizes.xl,
+    fontWeight: typography.weights.semibold,
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
   summary: {
-    marginTop: spacing[4],
+    marginTop: spacing[2],
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.medium,
-    color: colors.textPrimary,
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
   },
