@@ -38,7 +38,16 @@ export function useVisit(onsenId: string | undefined): UseVisitResult {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user || !onsenId) return;
+    // No user (auth still restoring) or no onsenId (e.g. the edit-visit modal
+    // re-presented by navigation state restoration on reload without its `id`
+    // param). Resolve to "nothing to load" instead of leaving loading stuck at
+    // its initial true, so consumers can react rather than hang on a spinner.
+    if (!user || !onsenId) {
+      setChallengeId(null);
+      setVisit(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
 
     let unsubVisit: (() => void) | null = null;

@@ -57,9 +57,15 @@ export default function EditVisit() {
     setTransportMode(visit.structuredData.transportMode ?? null);
   }, [visit]);
 
-  // If the visit is deleted elsewhere while the modal is open, dismiss.
+  // Dismiss when there's nothing to edit: the visit was deleted elsewhere while
+  // the modal is open, or the modal was re-presented by navigation state
+  // restoration on reload (without its `id` param, or before auth restored). In
+  // the restore case there may be no underlying screen to pop to, so fall back
+  // to the home route instead of a no-op back().
   useEffect(() => {
-    if (!loading && !visit) router.back();
+    if (loading || visit) return;
+    if (router.canGoBack()) router.back();
+    else router.replace('/');
   }, [loading, visit, router]);
 
   async function handleSaveVisit() {
