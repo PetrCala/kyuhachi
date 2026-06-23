@@ -53,6 +53,7 @@ export default function RoutesList() {
   const [routes, setRoutes] = useState<RouteRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
+  const [selecting, setSelecting] = useState(false);
 
   // Live subscription to the user's imported routes.
   useEffect(() => {
@@ -84,15 +85,29 @@ export default function RoutesList() {
   // return to it. Cosmetic only — never touches completion logic. Clearing a
   // route lives on the challenge's route section, not here.
   async function setChallengeRoute(routeId: string) {
-    if (!user || !selectFor) return;
+    // Re-entrancy guard: the write below goes through App Check + the network,
+    // so it isn't instant. Without this, a second tap (or an import that also
+    // selects) queues a second navigation that fires once the screen is gone.
+    if (!user || !selectFor || selecting) return;
+    setSelecting(true);
     try {
       await updateDoc(
         doc(db, COLLECTIONS.USERS, user.uid, SUBCOLLECTIONS.CHALLENGES, selectFor),
         { activeRouteId: routeId, updatedAt: serverTimestamp() }
       );
-      router.back();
+      // By the time the write resolves the user may have already left this
+      // screen — a second tap, or the edge-swipe back gesture. Pop only if we're
+      // still here (otherwise return home, where this picker is always opened
+      // from) so React Navigation never logs "GO_BACK was not handled".
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace('/');
+      }
     } catch (error) {
       Alert.alert(t('routes.errorAttach'), t(firebaseErrorKey(error)));
+    } finally {
+      setSelecting(false);
     }
   }
 
@@ -234,9 +249,9 @@ export default function RoutesList() {
         {selectMode && <Text style={styles.selectHint}>{t('routes.selectHint')}</Text>}
 
         <Pressable
-          style={[styles.importButton, importing && styles.importButtonDisabled]}
+          style={[styles.importButton, (importing || selecting) && styles.importButtonDisabled]}
           onPress={handleImport}
-          disabled={importing}
+          disabled={importing || selecting}
         >
           <Text style={styles.importButtonText}>
             {importing ? t('routes.importing') : t('routes.import')}
@@ -250,6 +265,7 @@ export default function RoutesList() {
             <View key={id} style={styles.card}>
               <Pressable
                 style={styles.cardMain}
+                disabled={selecting}
                 onPress={() =>
                   selectMode
                     ? setChallengeRoute(id)
