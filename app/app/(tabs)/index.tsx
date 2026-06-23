@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { useActiveChallengeProgress } from '@/hooks/useActiveChallengeProgress';
 import { ProgressBar, type ProgressMarker } from '@/components/ProgressBar';
 import { VisitCard } from '@/components/VisitCard';
+import RecordVisitFab from '@/components/RecordVisitFab';
 import { buildVisitFeed } from '@/lib/visit-feed';
 import { colors, spacing, typography, radii } from '@/theme';
 
@@ -199,15 +200,6 @@ export default function Home() {
           </View>
         )}
 
-        <View style={styles.recordSection}>
-          <Pressable
-            style={styles.primaryButton}
-            onPress={() => router.push('/challenge/onsens')}
-          >
-            <Text style={styles.primaryButtonText}>{t('home.recordVisit')}</Text>
-          </Pressable>
-        </View>
-
         <View style={styles.recentSection}>
           <View style={styles.recentHeaderRow}>
             <Text style={styles.sectionHeading}>{t('home.recentVisits.title')}</Text>
@@ -230,6 +222,11 @@ export default function Home() {
           )}
         </View>
       </ScrollView>
+      <RecordVisitFab
+        style={styles.fab}
+        accessibilityLabel={t('home.recordVisit')}
+        onPress={() => router.push('/challenge/onsens')}
+      />
     </SafeAreaView>
   );
 }
@@ -249,7 +246,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: spacing[8],
+    // Clear the floating record-visit FAB so the last card never hides behind it.
+    paddingBottom: spacing[8] + spacing[12],
+  },
+  fab: {
+    position: 'absolute',
+    right: spacing[4],
+    bottom: spacing[4],
   },
   wordmark: {
     fontFamily: typography.fonts.brand,
@@ -391,11 +394,6 @@ const styles = StyleSheet.create({
     color: colors.actionPrimaryText,
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
-  },
-  recordSection: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[6],
-    alignItems: 'center',
   },
   recentSection: {
     paddingHorizontal: spacing[4],
