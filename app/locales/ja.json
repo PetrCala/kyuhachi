@@ -1,4 +1,5 @@
 {
   "NSCameraUsageDescription": "訪問の写真を撮影するため、カメラへのアクセスを許可してください。",
-  "NSPhotoLibraryUsageDescription": "訪問の写真を追加するため、写真ライブラリへのアクセスを許可してください。"
+  "NSPhotoLibraryUsageDescription": "訪問の写真を追加するため、写真ライブラリへのアクセスを許可してください。",
+  "NSLocationWhenInUseUsageDescription": "地図上に現在地を表示するため、位置情報へのアクセスを許可してください。"
 }
