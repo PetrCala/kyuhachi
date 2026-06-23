@@ -57,7 +57,6 @@ export default function OnsenDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [onsen, setOnsen] = useState<OnsenWithId | null>(null);
   const [loading, setLoading] = useState(true);
-  const [marking, setMarking] = useState(false);
   const [hoursExpanded, setHoursExpanded] = useState(false);
 
   const { challengeId, visit, loading: visitLoading } = useVisit(id);
@@ -81,41 +80,40 @@ export default function OnsenDetail() {
 
   // Quick one-tap check-in. Creates the visit with empty details (which already
   // counts toward the challenge), then opens the edit modal so the user can fill
-  // in details right away.
-  async function handleMarkVisited() {
+  // in details right away. The write hits the local cache synchronously and the
+  // visit listener reflects it immediately, so we navigate without awaiting the
+  // server round-trip — this keeps the flow instant and works offline. A
+  // server-side rejection rolls the write back (the edit modal self-dismisses)
+  // and surfaces here.
+  function handleMarkVisited() {
     if (!user || !challengeId || !id) return;
-    setMarking(true);
-    try {
-      await setDoc(
-        doc(
-          db,
-          COLLECTIONS.USERS,
-          user.uid,
-          SUBCOLLECTIONS.CHALLENGES,
-          challengeId,
-          SUBCOLLECTIONS.VISITS,
-          id
-        ),
-        {
-          visitedAt: serverTimestamp(),
-          notes: null,
-          photoUrl: null,
-          structuredData: {
-            rating: null,
-            waterTemp: null,
-            duration: null,
-            transportMode: null,
-          },
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        }
-      );
-      router.push({ pathname: '/onsens/edit-visit', params: { id } });
-    } catch (error) {
+    setDoc(
+      doc(
+        db,
+        COLLECTIONS.USERS,
+        user.uid,
+        SUBCOLLECTIONS.CHALLENGES,
+        challengeId,
+        SUBCOLLECTIONS.VISITS,
+        id
+      ),
+      {
+        visitedAt: serverTimestamp(),
+        notes: null,
+        photoUrl: null,
+        structuredData: {
+          rating: null,
+          waterTemp: null,
+          duration: null,
+          transportMode: null,
+        },
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }
+    ).catch((error) => {
       Alert.alert(t('common.errorTitle'), t(firebaseErrorKey(error)));
-    } finally {
-      setMarking(false);
-    }
+    });
+    router.push({ pathname: '/onsens/edit-visit', params: { id } });
   }
 
   if (loading) {
@@ -218,11 +216,7 @@ export default function OnsenDetail() {
 
         {challengeId && !visit && !visitLoading && (
           <View style={styles.visitSection}>
-            <Pressable
-              style={[styles.visitButton, marking && styles.visitButtonDisabled]}
-              onPress={handleMarkVisited}
-              disabled={marking}
-            >
+            <Pressable style={styles.visitButton} onPress={handleMarkVisited}>
               <Text style={styles.visitButtonText}>{t('onsenDetail.markVisited')}</Text>
             </Pressable>
           </View>
@@ -358,9 +352,6 @@ const styles = StyleSheet.create({
     borderRadius: radii.md,
     paddingHorizontal: spacing[8],
     paddingVertical: spacing[4],
-  },
-  visitButtonDisabled: {
-    opacity: 0.4,
   },
   visitButtonText: {
     color: colors.actionPrimaryText,
