@@ -47,6 +47,8 @@ const en = {
   // onsen list
   'onsenList.title': 'Onsen List',
   'onsenList.searchPlaceholder': 'Search onsens...',
+  'onsenList.sectionCount': '{{visited}}/{{total}}',
+  'onsenList.areaUnknown': 'Other',
   'onsenList.emptySearch': 'No onsens matching "{{query}}"',
   'onsenList.emptyData': 'No onsen data',
 
