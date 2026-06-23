@@ -12,7 +12,6 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useActiveChallengeProgress } from '@/hooks/useActiveChallengeProgress';
 import { ProgressBar, type ProgressMarker } from '@/components/ProgressBar';
-import { ChallengeBadge } from '@/components/ChallengeBadge';
 import { VisitCard } from '@/components/VisitCard';
 import RecordVisitFab from '@/components/RecordVisitFab';
 import { buildVisitFeed } from '@/lib/visit-feed';
@@ -31,7 +30,6 @@ export default function Home() {
     loading,
     challenge,
     tiers,
-    baseMode,
     completionCount,
     eligibleVisitCount,
     highestEligibleTier,
@@ -166,21 +164,6 @@ export default function Home() {
               )}
             </View>
             <ProgressBar value={eligibleVisitCount} total={completionCount} markers={markers} />
-          </View>
-        )}
-
-        {tiers.length > 0 && challenge.claimedTier && !canUpgrade && (
-          <View style={styles.claimSection}>
-            <ChallengeBadge
-              tierId={challenge.claimedTier}
-              transportMode={baseMode}
-              accessibilityLabel={claimedTierName}
-            />
-            <View style={[styles.claimedBadge, styles.claimedBadgeSpacing]}>
-              <Text style={styles.claimedBadgeText}>
-                {t('challengeProgress.claimedTier', { tier: claimedTierName })}
-              </Text>
-            </View>
           </View>
         )}
 
@@ -374,20 +357,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.separator,
     alignItems: 'center',
-  },
-  claimedBadge: {
-    backgroundColor: colors.backgroundSecondary,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
-  },
-  claimedBadgeSpacing: {
-    marginTop: spacing[4],
-  },
-  claimedBadgeText: {
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.semibold,
-    color: colors.actionPrimary,
   },
   claimedCurrentText: {
     fontSize: typography.sizes.sm,
