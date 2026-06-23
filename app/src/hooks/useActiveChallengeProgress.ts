@@ -33,6 +33,7 @@ export interface OnsenRow {
   id: string;
   name: string;
   areaName: string;
+  prefecture: string;
   visited: boolean;
 }
 
@@ -262,13 +263,14 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
 
   const rows = useMemo<OnsenRow[]>(() => {
     if (!challenge) return [];
-    // Display order (visited last, then area, then name) is applied by OnsenList.
+    // Grouping/order (unvisited first, by prefecture, then name) is applied by OnsenList.
     return challenge.snapshotEligibleOnsenIds.map((id) => {
       const info = onsenMap.get(id);
       return {
         id,
         name: info?.name ?? id,
         areaName: info?.areaName ?? '',
+        prefecture: info?.prefecture ?? '',
         visited: visitedIds.has(id),
       };
     });
