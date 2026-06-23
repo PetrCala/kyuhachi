@@ -4,7 +4,6 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, KleeOne_600SemiBold } from '@expo-google-fonts/klee-one';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
-import { DevSettingsProvider } from '@/context/DevSettingsContext';
 
 // Keep the native splash visible until the brand font has loaded, so the
 // 九八 mark never flashes in a fallback face.
@@ -48,10 +47,8 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <DevSettingsProvider>
-        <NavigationController />
-        <Stack screenOptions={{ headerShown: false, headerBackButtonDisplayMode: 'minimal' }} />
-      </DevSettingsProvider>
+      <NavigationController />
+      <Stack screenOptions={{ headerShown: false, headerBackButtonDisplayMode: 'minimal' }} />
     </AuthProvider>
   );
 }

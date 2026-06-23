@@ -85,10 +85,6 @@ const ja: Record<keyof typeof en, string> = {
   'more.signOut': 'サインアウト',
   'more.language': '言語',
 
-  // more (dev-only; __DEV__ builds)
-  'more.dev.sectionTitle': '開発者',
-  'more.dev.simulateLocation': '日本の位置をシミュレート',
-
   // challenge progress
   'challengeProgress.title': 'チャレンジ進捗',
   'challengeProgress.progressHeading': '進捗',
