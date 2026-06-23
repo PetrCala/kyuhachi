@@ -29,12 +29,22 @@ they register cleanly when composited.
 - **Medallion** — flat "struck commemorative medal": metal disc + darker rim +
   thin concentric struck ring + a soft upper sheen arc. The ♨ hot-spring mark
   (reused from `app/assets/onsen-symbol.png`, recoloured to the deep metal
-  shade) is the centre hero; "88" is embossed tone-on-tone in the upper field.
-  The lower-centre is left calm for the transport pin. The optional Kyushu
-  silhouette was omitted — at this size it reads as a smudge rather than an
-  island.
+  shade) is the centre hero; the brand mark **九八** (kyu-hachi, the same glyphs
+  as the app logo, set in Klee One SemiBold) is embossed tone-on-tone across the
+  upper field. The lower-centre is left calm for the transport pin. The optional
+  Kyushu silhouette was omitted — at this size it reads as a smudge rather than
+  an island.
 - **Pin** — deep-indigo enamel field (`#262837`, brand ink), thin light rim,
   single white glyph. One family; only the glyph differs.
+
+### Glyph provenance
+
+- **九 / 八** — outlines extracted from **Klee One SemiBold** (the app's brand
+  font, `@expo-google-fonts/klee-one`; SIL OFL 1.1), baked into `build.mjs` as
+  path data. Same mark as the sign-in logo.
+- **Transport icons** — **Google Material Icons** (Apache-2.0): `directions_walk`,
+  `directions_bike`, `directions_bus`, `directions_car`, recoloured white and
+  centred in the pin. No custom-drawn glyphs.
 
 Metal colorways (match the app theme tokens):
 
@@ -53,8 +63,8 @@ Sources live in `src/`:
 - `badge-base-*.preview.svg` — self-contained preview with the ♨ embedded and
   recoloured (renders in a browser/Inkscape; `sharp` drops embedded raster
   images, which is why the build composites instead).
-- `transport-*.svg` — pure-vector pins.
-- `build.mjs` — the generator (geometry source of truth).
+- `transport-*.svg` — self-contained pins (Material icon path + centring transform).
+- `build.mjs` — the generator (geometry + baked glyph path data; source of truth).
 
 ```sh
 cd app/assets/badges/src
