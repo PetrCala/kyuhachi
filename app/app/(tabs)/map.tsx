@@ -24,6 +24,7 @@ import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/firebase';
 import { simulatedCoordinate } from '@/lib/dev-location';
+import MapZoomControl from '@/components/MapZoomControl';
 import { colors, spacing, radii, shadows } from '@/theme';
 
 type OnsenRow = OnsenDocument & { id: string };
@@ -37,6 +38,12 @@ const KYUSHU_REGION = {
 
 /** Roughly city-level zoom used when recentering the map on the user. */
 const USER_LOCATION_DELTA = 0.05;
+
+/** Rough web-mercator zoom for a longitude span, used to seed the zoom slider's
+ *  knob before the map reports its first real camera reading. */
+function estimateZoom(longitudeDelta: number): number {
+  return Math.log2(360 / longitudeDelta);
+}
 
 /** A map region that frames the route's bounding box with a little padding. */
 function regionForBounds(bounds: RouteDocument['bounds']): Region {
@@ -63,6 +70,9 @@ export default function MapScreen() {
   const [routeLoaded, setRouteLoaded] = useState(false);
   // Whether foreground location permission is granted; gates the blue dot.
   const [locationGranted, setLocationGranted] = useState(false);
+  // Live camera zoom, read from the map after each gesture settles so the zoom
+  // slider's knob tracks pinch as well as its own drags.
+  const [zoom, setZoom] = useState<number | undefined>(undefined);
 
   // Dev builds always stand in a simulated spot in Kyushu (on the active route
   // when there is one) so the location UX can be checked away from Japan;
@@ -123,6 +133,17 @@ export default function MapScreen() {
       Alert.alert(t('common.errorTitle'), t('map.locationError'));
     }
   }, [simulated, locationGranted, t]);
+
+  // Read the actual camera zoom once a gesture settles (and on first ready) to
+  // keep the slider knob in sync with pinch. getCamera can reject during teardown.
+  const handleCameraSettle = useCallback(async () => {
+    try {
+      const camera = await mapRef.current?.getCamera();
+      if (camera?.zoom !== undefined) setZoom(camera.zoom);
+    } catch {
+      // Map gone or camera unavailable — leave the last known zoom in place.
+    }
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(
@@ -211,6 +232,8 @@ export default function MapScreen() {
         provider={PROVIDER_DEFAULT}
         initialRegion={initialRegion}
         showsUserLocation={!simulated && locationGranted}
+        onMapReady={handleCameraSettle}
+        onRegionChangeComplete={handleCameraSettle}
       >
         {onsens.map((onsen) => (
           <Marker
@@ -240,6 +263,15 @@ export default function MapScreen() {
           </Marker>
         )}
       </MapView>
+      <View style={styles.zoomControlWrap} pointerEvents="box-none">
+        <MapZoomControl
+          mapRef={mapRef}
+          initialZoom={estimateZoom(initialRegion.longitudeDelta)}
+          zoom={zoom}
+          zoomInLabel={t('map.zoomIn')}
+          zoomOutLabel={t('map.zoomOut')}
+        />
+      </View>
       <Pressable
         style={[styles.recenterButton, shadows.md]}
         onPress={handleRecenter}
@@ -264,6 +296,16 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+  },
+  // Full-height column pinned to the right edge so the zoom slider centers
+  // vertically without hardcoding its height; box-none lets map gestures through
+  // the empty space above and below the control.
+  zoomControlWrap: {
+    position: 'absolute',
+    right: spacing[4],
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
   },
   recenterButton: {
     position: 'absolute',

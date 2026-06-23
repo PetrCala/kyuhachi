@@ -36,6 +36,8 @@ const ja: Record<keyof typeof en, string> = {
   // map
   'map.title': '地図',
   'map.recenter': '現在地を表示',
+  'map.zoomIn': '拡大',
+  'map.zoomOut': '縮小',
   'map.locationDeniedTitle': '位置情報の許可が必要です',
   'map.locationDeniedMessage':
     '地図上に現在地を表示するには、設定でKyuhachiの位置情報アクセスを許可してください。',

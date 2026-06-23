@@ -34,6 +34,8 @@ const en = {
   // map
   'map.title': 'Map',
   'map.recenter': 'Show my location',
+  'map.zoomIn': 'Zoom in',
+  'map.zoomOut': 'Zoom out',
   'map.locationDeniedTitle': 'Location access needed',
   'map.locationDeniedMessage':
     'Enable location access for Kyuhachi in Settings to see where you are on the map.',
