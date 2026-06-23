@@ -19,13 +19,18 @@ const TRANSPORT_ICONS: Record<TransportMode, IoniconName> = {
 
 interface VisitCardProps {
   item: VisitFeedItem;
-  onPress: () => void;
+  onPress?: () => void;
+  /** Hide the avatar/name/location header — used on the onsen's own detail
+   *  screen, where the name is already shown above. The date is kept. */
+  hideOnsenHeader?: boolean;
+  /** When set, render an "Edit details" affordance in the header. */
+  onEdit?: () => void;
 }
 
 /** One visit rendered as a social-feed card. Each row of detail appears only
  *  when its underlying field is present, so a quick check-in collapses to a
  *  tight header while a richly-logged visit reads like a Strava post. */
-export function VisitCard({ item, onPress }: VisitCardProps) {
+export function VisitCard({ item, onPress, hideOnsenHeader = false, onEdit }: VisitCardProps) {
   const { t, i18n } = useTranslation();
   const { visit, onsenName, areaName, prefecture } = item;
   const { rating, transportMode, duration, waterTemp } = visit.structuredData;
@@ -37,20 +42,31 @@ export function VisitCard({ item, onPress }: VisitCardProps) {
   return (
     <Pressable style={styles.card} onPress={onPress}>
       <View style={styles.header}>
-        <View style={styles.avatar}>
-          <OnsenIcon color={colors.brandGlyph} size={spacing[5]} />
-        </View>
-        <View style={styles.headerText}>
-          <Text style={styles.onsenName} numberOfLines={1}>
-            {onsenName}
-          </Text>
-          {location ? (
-            <Text style={styles.location} numberOfLines={1}>
-              {location}
-            </Text>
-          ) : null}
-        </View>
-        <Text style={styles.date}>{dateLabel}</Text>
+        {hideOnsenHeader ? (
+          <Text style={styles.compactDate}>{dateLabel}</Text>
+        ) : (
+          <>
+            <View style={styles.avatar}>
+              <OnsenIcon color={colors.brandGlyph} size={spacing[5]} />
+            </View>
+            <View style={styles.headerText}>
+              <Text style={styles.onsenName} numberOfLines={1}>
+                {onsenName}
+              </Text>
+              {location ? (
+                <Text style={styles.location} numberOfLines={1}>
+                  {location}
+                </Text>
+              ) : null}
+            </View>
+            <Text style={styles.date}>{dateLabel}</Text>
+          </>
+        )}
+        {onEdit ? (
+          <Pressable onPress={onEdit} hitSlop={8}>
+            <Text style={styles.editLink}>{t('onsenDetail.editDetails')}</Text>
+          </Pressable>
+        ) : null}
       </View>
 
       {visit.photoUrl ? (
@@ -147,6 +163,16 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.xs,
     color: colors.textMuted,
     marginLeft: spacing[2],
+  },
+  compactDate: {
+    flex: 1,
+    fontSize: typography.sizes.xs,
+    color: colors.textMuted,
+  },
+  editLink: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
+    color: colors.actionPrimary,
   },
   photo: {
     width: '100%',

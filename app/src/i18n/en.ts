@@ -251,6 +251,18 @@ const en = {
   'onsenDetail.chooseFromLibrary': 'Choose from Library',
   'onsenDetail.uploading': 'Uploading...',
   'onsenDetail.cancel': 'Cancel',
+  'onsenDetail.editTitle': 'Edit visit',
+  'onsenDetail.editDetails': 'Edit details',
+  'onsenDetail.showHours': 'Show weekly hours',
+  'onsenDetail.hideHours': 'Hide weekly hours',
+  'onsenDetail.closed': 'Closed',
+  'onsenDetail.day.monday': 'Monday',
+  'onsenDetail.day.tuesday': 'Tuesday',
+  'onsenDetail.day.wednesday': 'Wednesday',
+  'onsenDetail.day.thursday': 'Thursday',
+  'onsenDetail.day.friday': 'Friday',
+  'onsenDetail.day.saturday': 'Saturday',
+  'onsenDetail.day.sunday': 'Sunday',
 } as const;
 
 export default en;
