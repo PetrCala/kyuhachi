@@ -22,7 +22,6 @@ import type {
 } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
-import { useDevSettings } from '@/context/DevSettingsContext';
 import { db } from '@/firebase';
 import { simulatedCoordinate } from '@/lib/dev-location';
 import { colors, spacing, radii, shadows } from '@/theme';
@@ -52,7 +51,6 @@ function regionForBounds(bounds: RouteDocument['bounds']): Region {
 export default function MapScreen() {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { simulateLocation } = useDevSettings();
   const navigation = useNavigation();
   const { routeId: paramRouteId } = useLocalSearchParams<{ routeId?: string }>();
   const mapRef = useRef<MapView>(null);
@@ -66,11 +64,11 @@ export default function MapScreen() {
   // Whether foreground location permission is granted; gates the blue dot.
   const [locationGranted, setLocationGranted] = useState(false);
 
-  // Dev-only: stand in a simulated spot in Kyushu (on the active route when
-  // there is one) so the location UX can be checked away from Japan. Gated on
-  // __DEV__ so the whole branch is stripped from release builds.
-  const simulating = __DEV__ && simulateLocation;
-  const simulated = simulating ? simulatedCoordinate(route, onsens) : null;
+  // Dev builds always stand in a simulated spot in Kyushu (on the active route
+  // when there is one) so the location UX can be checked away from Japan;
+  // production always shows the real device location. Gated on __DEV__ so the
+  // whole branch is stripped from release builds.
+  const simulated = __DEV__ ? simulatedCoordinate(route, onsens) : null;
 
   // Ask for foreground location once on mount so the blue dot can show. The
   // recenter button re-prompts if the user hasn't decided yet.

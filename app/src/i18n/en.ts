@@ -83,10 +83,6 @@ const en = {
   'more.signOut': 'Sign out',
   'more.language': 'Language',
 
-  // more (dev-only; __DEV__ builds)
-  'more.dev.sectionTitle': 'Developer',
-  'more.dev.simulateLocation': 'Simulate location in Japan',
-
   // challenge progress
   'challengeProgress.title': 'Challenge Progress',
   'challengeProgress.progressHeading': 'Progress',
