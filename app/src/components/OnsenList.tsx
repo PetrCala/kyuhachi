@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import {
   View,
   Text,
-  FlatList,
+  SectionList,
   TextInput,
   Pressable,
   StyleSheet,
@@ -20,6 +20,16 @@ export interface OnsenListItem {
   visited: boolean;
 }
 
+interface OnsenSection {
+  /** Raw Firestore area name; '' when the onsen has no area (rendered with a fallback label). */
+  areaName: string;
+  visitedCount: number;
+  total: number;
+  /** Every onsen in the area has been visited — these sections sink to the bottom. */
+  complete: boolean;
+  data: OnsenListItem[];
+}
+
 interface OnsenListProps {
   data: OnsenListItem[];
   loading: boolean;
@@ -29,27 +39,47 @@ interface OnsenListProps {
 
 /**
  * The shared onsen list used by the Onsens browse tab and the record-a-visit
- * checklist: a search box over a list that always sinks visited onsens to the
- * bottom (then orders by area, then name). Visited rows show the amber tick;
- * unvisited rows show the per-screen idiom. Tapping a row opens its detail.
+ * checklist: a search box over a list grouped into sticky area sections. Each
+ * header shows the area's visited/total count; fully-visited areas sink to the
+ * bottom so what's left stays near the top. Within an area, rows keep a stable
+ * alphabetical order (visited rows just gain the amber tick rather than moving).
+ * Unvisited rows show the per-screen idiom; tapping a row opens its detail.
  */
 export function OnsenList({ data, loading, unvisitedVariant }: OnsenListProps) {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
 
-  const items = useMemo(() => {
+  const sections = useMemo<OnsenSection[]>(() => {
     const q = searchQuery.trim().toLowerCase();
     const filtered = q
       ? data.filter(
           (o) => o.name.toLowerCase().includes(q) || o.areaName.toLowerCase().includes(q)
         )
       : data;
-    return [...filtered].sort((a, b) => {
-      // Visited last, then alphabetical by area then name.
-      if (a.visited !== b.visited) return a.visited ? 1 : -1;
-      const areaComp = a.areaName.localeCompare(b.areaName);
-      if (areaComp !== 0) return areaComp;
-      return a.name.localeCompare(b.name);
+
+    const byArea = new Map<string, OnsenListItem[]>();
+    for (const item of filtered) {
+      const rows = byArea.get(item.areaName);
+      if (rows) rows.push(item);
+      else byArea.set(item.areaName, [item]);
+    }
+
+    const result: OnsenSection[] = [...byArea.entries()].map(([areaName, rows]) => {
+      const visitedCount = rows.filter((r) => r.visited).length;
+      return {
+        areaName,
+        visitedCount,
+        total: rows.length,
+        complete: visitedCount === rows.length,
+        // Stable order within an area; visited rows stay put and gain the tick.
+        data: [...rows].sort((a, b) => a.name.localeCompare(b.name)),
+      };
+    });
+
+    // Areas with onsens still to visit first, then completed areas; alphabetical within each group.
+    return result.sort((a, b) => {
+      if (a.complete !== b.complete) return a.complete ? 1 : -1;
+      return a.areaName.localeCompare(b.areaName);
     });
   }, [data, searchQuery]);
 
@@ -68,14 +98,13 @@ export function OnsenList({ data, loading, unvisitedVariant }: OnsenListProps) {
       {loading ? (
         <ActivityIndicator style={styles.centered} />
       ) : (
-        <FlatList
-          data={items}
+        <SectionList
+          sections={sections}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <Pressable style={styles.row} onPress={() => router.push(`/onsens/${item.id}`)}>
               <View style={styles.rowText}>
                 <Text style={styles.rowName}>{item.name}</Text>
-                <Text style={styles.rowArea}>{item.areaName}</Text>
               </View>
               {item.visited ? (
                 <VisitedBadge />
@@ -86,6 +115,19 @@ export function OnsenList({ data, loading, unvisitedVariant }: OnsenListProps) {
               )}
             </Pressable>
           )}
+          renderSectionHeader={({ section }) => (
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>
+                {section.areaName || t('onsenList.areaUnknown')}
+              </Text>
+              <Text style={styles.sectionCount}>
+                {t('onsenList.sectionCount', {
+                  visited: section.visitedCount,
+                  total: section.total,
+                })}
+              </Text>
+            </View>
+          )}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           ListEmptyComponent={
             <Text style={styles.empty}>
@@ -94,7 +136,8 @@ export function OnsenList({ data, loading, unvisitedVariant }: OnsenListProps) {
                 : t('onsenList.emptyData')}
             </Text>
           }
-          contentContainerStyle={items.length === 0 && styles.emptyContainer}
+          contentContainerStyle={sections.length === 0 && styles.emptyContainer}
+          stickySectionHeadersEnabled
         />
       )}
     </View>
@@ -118,6 +161,23 @@ const styles = StyleSheet.create({
   centered: {
     flex: 1,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    backgroundColor: colors.backgroundSecondary,
+  },
+  sectionTitle: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    color: colors.textSecondary,
+  },
+  sectionCount: {
+    fontSize: typography.sizes.sm,
+    color: colors.textMuted,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -132,11 +192,6 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.medium,
     color: colors.textPrimary,
-    marginBottom: spacing[1],
-  },
-  rowArea: {
-    fontSize: typography.sizes.sm,
-    color: colors.textMuted,
   },
   chevron: {
     fontSize: typography.sizes.xl,
