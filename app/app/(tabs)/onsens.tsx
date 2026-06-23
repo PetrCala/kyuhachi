@@ -48,6 +48,8 @@ export default function OnsenBrowse() {
         name: o.name,
         areaName: o.areaName,
         prefecture: o.prefecture,
+        lat: o.lat,
+        lng: o.lng,
         visited: visitedIds.has(o.id),
       })),
     [onsens, visitedIds]
