@@ -22,12 +22,19 @@ import {
   serverTimestamp,
   type FirebaseFirestoreTypes,
 } from '@react-native-firebase/firestore';
-import type { ChallengeDocument, ChallengeTypeDocument } from '@kyuhachi/shared';
+import type {
+  ChallengeDocument,
+  ChallengeTypeDocument,
+  Tier,
+  TransportMode,
+  VisitDocument,
+} from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/firebase';
 import { firebaseErrorKey } from '@/lib/firebase-errors';
 import { challengeTypeName } from '@/lib/challenge-i18n';
+import { countShortcuts, highestEligibleTier } from '@/lib/tier-eligibility';
 import RowActionsButton from '@/components/RowActionsButton';
 import { ChallengeBadge } from '@/components/ChallengeBadge';
 import { colors, spacing, typography, radii } from '@/theme';
@@ -40,6 +47,14 @@ interface ChallengeRow {
 interface TypeInfo {
   name: string;
   completionCount: number;
+  tiers: Tier[];
+  baseMode: TransportMode;
+}
+
+interface ChallengeStats {
+  eligibleVisits: number;
+  /** Transport mode of each eligible visit — drives the shortcut count. */
+  eligibleTransports: (TransportMode | null)[];
 }
 
 export default function ChallengeList() {
@@ -47,7 +62,7 @@ export default function ChallengeList() {
   const { user } = useAuth();
   const [challenges, setChallenges] = useState<ChallengeRow[]>([]);
   const [typeInfo, setTypeInfo] = useState<Map<string, TypeInfo>>(new Map());
-  const [progress, setProgress] = useState<Map<string, number>>(new Map());
+  const [stats, setStats] = useState<Map<string, ChallengeStats>>(new Map());
   const [loading, setLoading] = useState(true);
   // Track the active challenge across snapshots so we can animate the list
   // settling only when it actually changes (not on first load or unrelated edits).
@@ -101,7 +116,14 @@ export default function ChallengeList() {
       if (cancelled) return;
       const map = new Map<string, TypeInfo>();
       for (const [id, data] of entries) {
-        if (data) map.set(id, { name: data.name, completionCount: data.completionCount });
+        if (data) {
+          map.set(id, {
+            name: data.name,
+            completionCount: data.completionCount,
+            tiers: data.tiers ?? [],
+            baseMode: data.baseMode,
+          });
+        }
       }
       setTypeInfo(map);
     });
@@ -110,14 +132,15 @@ export default function ChallengeList() {
     };
   }, [typeIdsKey]);
 
-  // Count eligible visits per challenge (snapshot at open; refreshes on add/delete)
+  // Per-challenge eligible visit count + transports (snapshot at open; refreshes
+  // on add/delete) — feeds both the progress text and the computed tier marker.
   const progressKey = useMemo(
     () => challenges.map((c) => c.id).sort().join(','),
     [challenges]
   );
   useEffect(() => {
     if (!user || challenges.length === 0) {
-      setProgress(new Map());
+      setStats(new Map());
       return;
     }
     let cancelled = false;
@@ -134,17 +157,47 @@ export default function ChallengeList() {
           )
         );
         const eligible = new Set(c.data.snapshotEligibleOnsenIds);
-        return [c.id, visitsSnap.docs.filter((d) => eligible.has(d.id)).length] as const;
+        const eligibleDocs = visitsSnap.docs.filter((d) => eligible.has(d.id));
+        const eligibleTransports = eligibleDocs.map(
+          (d) => (d.data() as VisitDocument).structuredData?.transportMode ?? null
+        );
+        return [
+          c.id,
+          { eligibleVisits: eligibleDocs.length, eligibleTransports },
+        ] as const;
       })
     ).then((entries) => {
       if (cancelled) return;
-      setProgress(new Map(entries));
+      setStats(new Map(entries));
     });
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, progressKey]);
+
+  // The highest tier each challenge currently qualifies for, derived from its
+  // progress (there is no stored "claimed" tier). null = no tier reached yet.
+  const tierByChallenge = useMemo(() => {
+    const map = new Map<string, Tier | null>();
+    for (const c of challenges) {
+      const info = typeInfo.get(c.data.typeId);
+      const s = stats.get(c.id);
+      if (!info || !s) continue;
+      const daysSinceStart = c.data.startDate
+        ? Math.floor((Date.now() - c.data.startDate.toDate().getTime()) / (1000 * 60 * 60 * 24))
+        : 0;
+      map.set(
+        c.id,
+        highestEligibleTier(info.tiers, {
+          eligibleVisits: s.eligibleVisits,
+          shortcutCount: countShortcuts(s.eligibleTransports, info.baseMode),
+          daysSinceStart,
+        })
+      );
+    }
+    return map;
+  }, [challenges, typeInfo, stats]);
 
   const sorted = useMemo(() => {
     return [...challenges].sort((a, b) => {
@@ -262,16 +315,17 @@ export default function ChallengeList() {
         {sorted.map(({ id, data }) => {
           const isActive = data.isDefault;
           const info = typeInfo.get(data.typeId);
-          const visited = progress.get(id);
+          const visited = stats.get(id)?.eligibleVisits;
+          const tier = tierByChallenge.get(id);
           return (
             <View key={id} style={styles.card}>
-              {data.claimedTier ? (
+              {tier ? (
                 <View style={styles.tierMarker}>
                   <ChallengeBadge
-                    tierId={data.claimedTier}
+                    tierId={tier.id}
                     size={spacing[10]}
                     accessibilityLabel={t('challengeList.tierMarkerLabel', {
-                      tier: t(`challengeTier.${data.claimedTier}`, { defaultValue: data.claimedTier }),
+                      tier: t(`challengeTier.${tier.id}`, { defaultValue: tier.id }),
                     })}
                   />
                 </View>

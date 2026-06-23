@@ -76,7 +76,11 @@ export interface ChallengeDocument {
    * User can change this freely.
    */
   activeRouteId: string | null
-  /** Set by user at completion (self-reported) */
+  /**
+   * @deprecated No longer used by the app — tier status is derived from progress
+   * (see app/src/lib/tier-eligibility.ts). Still written as null on creation;
+   * safe to drop from the model in a future cleanup.
+   */
   claimedTier: string | null
   /** Set by onVisitCreated Function when unique eligible visits >= completionCount */
   completedAt: Timestamp | null
