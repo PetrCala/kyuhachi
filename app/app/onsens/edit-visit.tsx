@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { doc, updateDoc, serverTimestamp } from '@react-native-firebase/firestore';
+import { doc, updateDoc, deleteDoc, serverTimestamp } from '@react-native-firebase/firestore';
 import { ref, putFile, getDownloadURL } from '@react-native-firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 import type { TransportMode } from '@kyuhachi/shared';
@@ -40,6 +40,7 @@ export default function EditVisit() {
   const [transportMode, setTransportMode] = useState<TransportMode | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const seeded = useRef(false);
 
   // Seed the form from the visit once it first loads. The ref guard means later
@@ -92,6 +93,41 @@ export default function EditVisit() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleRemoveVisit() {
+    if (!user || !challengeId || !id) return;
+    setRemoving(true);
+    try {
+      await deleteDoc(
+        doc(
+          db,
+          COLLECTIONS.USERS,
+          user.uid,
+          SUBCOLLECTIONS.CHALLENGES,
+          challengeId,
+          SUBCOLLECTIONS.VISITS,
+          id
+        )
+      );
+      // The visit subscription drops to null, which dismisses the modal via the
+      // effect above. The onVisitDeleted Function cleans up any photo. Only
+      // re-enable the button on failure, since success unmounts this screen.
+    } catch (error) {
+      setRemoving(false);
+      Alert.alert(t('onsenDetail.errorRemove'), t(firebaseErrorKey(error)));
+    }
+  }
+
+  function confirmRemoveVisit() {
+    Alert.alert(t('onsenDetail.removeTitle'), t('onsenDetail.removeMessage'), [
+      { text: t('onsenDetail.cancel'), style: 'cancel' },
+      {
+        text: t('onsenDetail.removeConfirm'),
+        style: 'destructive',
+        onPress: handleRemoveVisit,
+      },
+    ]);
   }
 
   async function uploadPhoto(uri: string) {
@@ -254,16 +290,29 @@ export default function EditVisit() {
           <View style={styles.spacer} />
 
           <Pressable
-            style={[styles.saveButton, saving && styles.buttonDisabled]}
+            style={[styles.saveButton, (saving || removing) && styles.buttonDisabled]}
             onPress={handleSaveVisit}
-            disabled={saving}
+            disabled={saving || removing}
           >
             <Text style={styles.saveButtonText}>
               {saving ? t('onsenDetail.saving') : t('onsenDetail.saveButton')}
             </Text>
           </Pressable>
-          <Pressable style={styles.cancelButton} onPress={() => router.back()}>
+          <Pressable
+            style={styles.cancelButton}
+            onPress={() => router.back()}
+            disabled={saving || removing}
+          >
             <Text style={styles.cancelButtonText}>{t('onsenDetail.cancel')}</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.removeButton, removing && styles.buttonDisabled]}
+            onPress={confirmRemoveVisit}
+            disabled={saving || removing}
+          >
+            <Text style={styles.removeButtonText}>
+              {removing ? t('onsenDetail.removing') : t('onsenDetail.removeVisit')}
+            </Text>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -414,6 +463,16 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     color: colors.textMuted,
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.medium,
+  },
+  removeButton: {
+    paddingVertical: spacing[3],
+    alignItems: 'center',
+    marginTop: spacing[2],
+  },
+  removeButtonText: {
+    color: colors.destructive,
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.medium,
   },
