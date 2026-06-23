@@ -89,11 +89,19 @@ const ja: Record<keyof typeof en, string> = {
   'more.title': 'その他',
   'more.challenges': 'チャレンジ',
   'more.routes': 'ルート',
+  'more.preferences': '設定',
   'more.stats': '統計',
   'more.statsBadge': '近日公開',
   'more.account': 'アカウント',
   'more.signOut': 'サインアウト',
   'more.language': '言語',
+
+  // preferences
+  'preferences.title': '設定',
+  'preferences.showNearby': '近くの温泉を表示',
+  'preferences.showNearbyHint': '温泉一覧の上部に、現在地の近くにある温泉のセクションを表示します。',
+  'preferences.radiusTitle': '距離（km）',
+  'preferences.radiusHint': '現在地から{{km}}km以内の温泉が「近くの温泉」に表示されます。',
 
   // challenge progress
   'challengeProgress.title': 'チャレンジ進捗',
