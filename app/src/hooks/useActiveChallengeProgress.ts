@@ -37,6 +37,13 @@ export interface OnsenRow {
   visited: boolean;
 }
 
+/** Display fields for an eligible onsen, keyed by onsenId in `onsenMap`. */
+export interface OnsenDisplayInfo {
+  name: string;
+  areaName: string;
+  prefecture: string;
+}
+
 export interface ActiveChallengeProgress {
   loading: boolean;
   /** null while the user doc is still resolving, then whether a default challenge exists. */
@@ -52,6 +59,10 @@ export interface ActiveChallengeProgress {
   activeRoute: RouteDocument | null;
   /** kyuhachiIds of every onsen visited in the active challenge (not just eligible ones). */
   visitedIds: Set<string>;
+  /** Every visit in the active challenge, keyed by onsenId. */
+  visits: Map<string, VisitDocument>;
+  /** Display info for the active challenge's eligible onsens, keyed by onsenId. */
+  onsenMap: Map<string, OnsenDisplayInfo>;
   /** Eligible onsens for the active challenge; display order is handled by OnsenList. */
   rows: OnsenRow[];
   claimTier: (tierId: string) => Promise<void>;
@@ -76,9 +87,7 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [completionCount, setCompletionCount] = useState<number | null>(null);
   const [baseMode, setBaseMode] = useState<TransportMode | null>(null);
-  const [onsenMap, setOnsenMap] = useState<Map<string, { name: string; areaName: string }>>(
-    new Map()
-  );
+  const [onsenMap, setOnsenMap] = useState<Map<string, OnsenDisplayInfo>>(new Map());
   const [activeRoute, setActiveRoute] = useState<RouteDocument | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -200,7 +209,7 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
     // Firestore 'in' queries support max 30 values, so batch
     const BATCH_SIZE = 30;
     const unsubscribes: (() => void)[] = [];
-    const collected = new Map<string, { name: string; areaName: string }>();
+    const collected = new Map<string, OnsenDisplayInfo>();
 
     let pending = Math.ceil(ids.length / BATCH_SIZE);
 
@@ -211,7 +220,11 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
         (snap: FirebaseFirestoreTypes.QuerySnapshot) => {
           for (const d of snap.docs) {
             const data = d.data() as OnsenDocument;
-            collected.set(d.id, { name: data.name, areaName: data.areaName });
+            collected.set(d.id, {
+              name: data.name,
+              areaName: data.areaName,
+              prefecture: data.prefecture,
+            });
           }
           pending--;
           if (pending <= 0) {
@@ -355,6 +368,8 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
     canUpgrade,
     activeRoute,
     visitedIds,
+    visits,
+    onsenMap,
     rows,
     claimTier,
     clearRoute,

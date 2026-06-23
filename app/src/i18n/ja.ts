@@ -57,6 +57,17 @@ const ja: Record<keyof typeof en, string> = {
   'home.noChallenge': 'チャレンジ未開始',
   'home.startChallenge': 'チャレンジ開始',
   'home.recordVisit': '訪問を記録',
+  'home.recentVisits.title': '最近の訪問',
+  'home.recentVisits.seeAll': 'すべて見る',
+  'home.recentVisits.empty': 'まだ訪問記録がありません',
+
+  // visits (full history + feed cards)
+  'visits.title': '訪問履歴',
+  'visits.empty': 'まだ訪問記録がありません',
+  'visits.today': '今日',
+  'visits.yesterday': '昨日',
+  'visits.daysAgo': '{{count}}日前',
+  'visits.durationMinutes': '{{count}}分',
 
   // more (settings tab)
   'more.title': 'その他',

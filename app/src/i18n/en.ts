@@ -55,6 +55,17 @@ const en = {
   'home.noChallenge': 'No active challenge',
   'home.startChallenge': 'Start Challenge',
   'home.recordVisit': 'Record a visit',
+  'home.recentVisits.title': 'Recent visits',
+  'home.recentVisits.seeAll': 'See all',
+  'home.recentVisits.empty': 'No visits yet',
+
+  // visits (full history + feed cards)
+  'visits.title': 'All visits',
+  'visits.empty': 'No visits yet',
+  'visits.today': 'Today',
+  'visits.yesterday': 'Yesterday',
+  'visits.daysAgo': '{{count}}d ago',
+  'visits.durationMinutes': '{{count}} min',
 
   // more (settings tab)
   'more.title': 'More',
