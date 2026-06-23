@@ -30,6 +30,9 @@ const palette = {
   // Brand (app icon / splash / logo mark — the vertical 九八 in Klee One)
   ink:   '#262837', // dark ground behind the mark
   amber: '#ffb300', // amber glyph on the mark
+
+  // Onsen water — bath-blue used to mark visited onsens on the map
+  water: '#2e8bc0',
 } as const;
 
 export const colors = {
@@ -67,6 +70,9 @@ export const colors = {
   // Brand mark (the logo tile on sign-in mirrors the app icon)
   brand:      palette.ink,   // brand surface / icon ground
   brandGlyph: palette.amber, // amber glyph on the brand surface
+
+  // Map markers
+  onsenVisited: palette.water, // bath-water blue pin for visited onsens
 } as const;
 
 export type Color = keyof typeof colors;

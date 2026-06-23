@@ -24,6 +24,7 @@ import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/firebase';
 import { simulatedCoordinate } from '@/lib/dev-location';
+import { useActiveChallengeProgress } from '@/hooks/useActiveChallengeProgress';
 import MapZoomControl from '@/components/MapZoomControl';
 import { colors, spacing, radii, shadows } from '@/theme';
 
@@ -66,6 +67,8 @@ export default function MapScreen() {
   const { user } = useAuth();
   const navigation = useNavigation();
   const { routeId: paramRouteId } = useLocalSearchParams<{ routeId?: string }>();
+  // kyuhachiIds visited in the active challenge — drives the visited pin color.
+  const { visitedIds } = useActiveChallengeProgress();
   const mapRef = useRef<MapView>(null);
   const [onsens, setOnsens] = useState<OnsenRow[]>([]);
   const [onsensLoading, setOnsensLoading] = useState(true);
@@ -306,6 +309,9 @@ export default function MapScreen() {
             coordinate={{ latitude: onsen.lat, longitude: onsen.lng }}
             title={onsen.name}
             description={onsen.areaName}
+            // Visited onsens in the active challenge get a bath-water blue pin;
+            // unvisited keep the default red pin.
+            pinColor={visitedIds.has(onsen.id) ? colors.onsenVisited : undefined}
             onCalloutPress={() => router.push(`/onsens/${onsen.id}`)}
           />
         ))}
