@@ -57,6 +57,8 @@ const en = {
   'challenge.defaultName': 'My Challenge',
   'challenge.errorLoad': 'Failed to load challenge type',
   'challenge.errorCreate': 'Failed to create challenge',
+  'challenge.errorNoEligibleOnsens':
+    'This challenge has no eligible onsens yet. Please try again later.',
 
   // home (challenge state)
   'home.progress': '{{visited}}/{{total}}',

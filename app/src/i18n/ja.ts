@@ -59,6 +59,8 @@ const ja: Record<keyof typeof en, string> = {
   'challenge.defaultName': 'マイチャレンジ',
   'challenge.errorLoad': 'チャレンジタイプの読み込みに失敗しました',
   'challenge.errorCreate': 'チャレンジの作成に失敗しました',
+  'challenge.errorNoEligibleOnsens':
+    'このチャレンジには対象の温泉がまだありません。しばらくしてからもう一度お試しください。',
 
   // home (challenge state)
   'home.progress': '{{visited}}/{{total}}',
