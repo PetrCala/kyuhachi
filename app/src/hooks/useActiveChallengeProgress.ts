@@ -10,6 +10,7 @@ import {
   onSnapshot,
   updateDoc,
   serverTimestamp,
+  Timestamp,
   documentId,
   type FirebaseFirestoreTypes,
 } from '@react-native-firebase/firestore';
@@ -147,9 +148,22 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
               ),
               (visitsSnap: FirebaseFirestoreTypes.QuerySnapshot) => {
                 setVisitedIds(new Set(visitsSnap.docs.map((d) => d.id)));
+                // RNFirebase has no `serverTimestamps: 'estimate'` read option, so a
+                // just-recorded visit's optimistic (pending-write) snapshot reports its
+                // serverTimestamp() fields as null until the server write lands. Fill
+                // those nulls with a local now() estimate so consumers never touch null
+                // (the feed sort calls `.toMillis()`, VisitCard calls `.toDate()`). The
+                // real server values replace the estimate on the next snapshot.
+                const estimate = Timestamp.now();
                 const visitMap = new Map<string, VisitDocument>();
                 for (const d of visitsSnap.docs) {
-                  visitMap.set(d.id, d.data() as VisitDocument);
+                  const visit = d.data() as VisitDocument;
+                  visitMap.set(d.id, {
+                    ...visit,
+                    visitedAt: visit.visitedAt ?? estimate,
+                    createdAt: visit.createdAt ?? estimate,
+                    updatedAt: visit.updatedAt ?? estimate,
+                  });
                 }
                 setVisits(visitMap);
                 setLoading(false);
