@@ -46,6 +46,8 @@ export interface OnsenDisplayInfo {
   prefecture: string;
   lat: number;
   lng: number;
+  /** Adult walk-in fee in yen; null when no parseable fee. Powers the Stats budget. */
+  adultFee: number | null;
 }
 
 export interface ActiveChallengeProgress {
@@ -236,6 +238,7 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
               prefecture: data.prefecture,
               lat: data.lat,
               lng: data.lng,
+              adultFee: data.adultFee,
             });
           }
           pending--;
