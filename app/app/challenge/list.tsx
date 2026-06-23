@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  LayoutAnimation,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -46,6 +47,10 @@ export default function ChallengeList() {
   const [typeInfo, setTypeInfo] = useState<Map<string, TypeInfo>>(new Map());
   const [progress, setProgress] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
+  // Track the active challenge across snapshots so we can animate the list
+  // settling only when it actually changes (not on first load or unrelated edits).
+  const initializedRef = useRef(false);
+  const activeIdRef = useRef<string | null>(null);
 
   // Subscribe to the user's challenges
   useEffect(() => {
@@ -53,9 +58,20 @@ export default function ChallengeList() {
     const unsubscribe = onSnapshot(
       collection(db, COLLECTIONS.USERS, user.uid, SUBCOLLECTIONS.CHALLENGES),
       (snap: FirebaseFirestoreTypes.QuerySnapshot) => {
-        setChallenges(
-          snap.docs.map((d) => ({ id: d.id, data: d.data() as ChallengeDocument }))
-        );
+        const rows = snap.docs.map((d) => ({
+          id: d.id,
+          data: d.data() as ChallengeDocument,
+        }));
+        // When the active challenge changes it jumps to the top of the sorted
+        // list. Animate that next layout commit so the card visibly slides into
+        // place instead of teleporting. Suppress it on the initial population.
+        const nextActiveId = rows.find((r) => r.data.isDefault)?.id ?? null;
+        if (initializedRef.current && nextActiveId !== activeIdRef.current) {
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        }
+        initializedRef.current = true;
+        activeIdRef.current = nextActiveId;
+        setChallenges(rows);
         setLoading(false);
       },
       () => setLoading(false)
