@@ -22,7 +22,9 @@ import type {
 } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
+import { useDevSettings } from '@/context/DevSettingsContext';
 import { db } from '@/firebase';
+import { simulatedCoordinate } from '@/lib/dev-location';
 import { colors, spacing, radii, shadows } from '@/theme';
 
 type OnsenRow = OnsenDocument & { id: string };
@@ -50,6 +52,7 @@ function regionForBounds(bounds: RouteDocument['bounds']): Region {
 export default function MapScreen() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { simulateLocation } = useDevSettings();
   const navigation = useNavigation();
   const { routeId: paramRouteId } = useLocalSearchParams<{ routeId?: string }>();
   const mapRef = useRef<MapView>(null);
@@ -62,6 +65,12 @@ export default function MapScreen() {
   const [routeLoaded, setRouteLoaded] = useState(false);
   // Whether foreground location permission is granted; gates the blue dot.
   const [locationGranted, setLocationGranted] = useState(false);
+
+  // Dev-only: stand in a simulated spot in Kyushu (on the active route when
+  // there is one) so the location UX can be checked away from Japan. Gated on
+  // __DEV__ so the whole branch is stripped from release builds.
+  const simulating = __DEV__ && simulateLocation;
+  const simulated = simulating ? simulatedCoordinate(route, onsens) : null;
 
   // Ask for foreground location once on mount so the blue dot can show. The
   // recenter button re-prompts if the user hasn't decided yet.
@@ -82,6 +91,16 @@ export default function MapScreen() {
   // Center the map on the user. Re-request permission if undecided; if denied,
   // point them at Settings since iOS won't prompt a second time.
   const handleRecenter = useCallback(async () => {
+    // When simulating, recenter on the fake spot — no permission or GPS needed.
+    if (simulated) {
+      mapRef.current?.animateToRegion({
+        latitude: simulated.latitude,
+        longitude: simulated.longitude,
+        latitudeDelta: USER_LOCATION_DELTA,
+        longitudeDelta: USER_LOCATION_DELTA,
+      });
+      return;
+    }
     let granted = locationGranted;
     if (!granted) {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -105,7 +124,7 @@ export default function MapScreen() {
     } catch {
       Alert.alert(t('common.errorTitle'), t('map.locationError'));
     }
-  }, [locationGranted, t]);
+  }, [simulated, locationGranted, t]);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(
@@ -193,7 +212,7 @@ export default function MapScreen() {
         style={styles.map}
         provider={PROVIDER_DEFAULT}
         initialRegion={initialRegion}
-        showsUserLocation={locationGranted}
+        showsUserLocation={!simulated && locationGranted}
       >
         {onsens.map((onsen) => (
           <Marker
@@ -210,6 +229,17 @@ export default function MapScreen() {
             strokeColor={colors.actionPrimary}
             strokeWidth={spacing[1]}
           />
+        )}
+        {simulated && (
+          <Marker
+            key="dev-simulated"
+            coordinate={simulated}
+            anchor={{ x: 0.5, y: 0.5 }}
+            title={t('map.simulatedLocation')}
+            tracksViewChanges={false}
+          >
+            <View style={styles.simDot} />
+          </Marker>
         )}
       </MapView>
       <Pressable
@@ -247,5 +277,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // Dev-only simulated-location dot — amber with a white ring so it reads as
+  // "me" and stays distinct from the default red onsen pins.
+  simDot: {
+    width: spacing[4],
+    height: spacing[4],
+    borderRadius: radii.full,
+    backgroundColor: colors.brandGlyph,
+    borderWidth: 2,
+    borderColor: colors.textInverted,
   },
 });
