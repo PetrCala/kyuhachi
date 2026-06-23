@@ -8,9 +8,24 @@ import { useAuth } from '@/context/AuthContext';
 import { auth } from '@/firebase';
 import { DEV_TOOLS_ENABLED } from '@/lib/dev/flags';
 import { LANGUAGES, setAppLanguage } from '@/i18n';
-import { colors, spacing, typography, radii, shadows } from '@/theme';
+import {
+  spacing,
+  typography,
+  radii,
+  shadows,
+  useTheme,
+  useThemedStyles,
+  type ThemeColors,
+  type ThemePreference,
+} from '@/theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
+
+const APPEARANCE_OPTIONS: { value: ThemePreference; labelKey: string }[] = [
+  { value: 'system', labelKey: 'more.appearanceSystem' },
+  { value: 'light', labelKey: 'more.appearanceLight' },
+  { value: 'dark', labelKey: 'more.appearanceDark' },
+];
 
 type RowProps = {
   icon: IconName;
@@ -23,6 +38,9 @@ type RowProps = {
 };
 
 function Row({ icon, label, onPress, badge, destructive, disabled, last }: RowProps) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+
   const tint = destructive
     ? colors.destructive
     : disabled
@@ -56,6 +74,7 @@ function Row({ icon, label, onPress, badge, destructive, disabled, last }: RowPr
 
 function LanguageToggle() {
   const { i18n } = useTranslation();
+  const styles = useThemedStyles(makeStyles);
   const current = i18n.resolvedLanguage ?? i18n.language;
 
   return (
@@ -78,9 +97,38 @@ function LanguageToggle() {
   );
 }
 
+function AppearanceToggle() {
+  const { t } = useTranslation();
+  const { preference, setPreference } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+
+  return (
+    <View style={styles.segmented}>
+      {APPEARANCE_OPTIONS.map(({ value, labelKey }) => {
+        const active = preference === value;
+        return (
+          <Pressable
+            key={value}
+            onPress={() => setPreference(value)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
+            style={[styles.segment, active && styles.segmentActive, active && shadows.sm]}
+          >
+            <Text style={[styles.segmentLabel, active && styles.segmentLabelActive]}>
+              {t(labelKey)}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 export default function More() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const styles = useThemedStyles(makeStyles);
+  const { colors } = useTheme();
   const accountLabel = user?.email ?? user?.displayName ?? '';
 
   return (
@@ -97,6 +145,13 @@ export default function More() {
           onPress={() => router.push('/routes')}
         />
         <Row icon="stats-chart-outline" label={t('more.stats')} badge={t('more.statsBadge')} disabled last />
+      </View>
+
+      <Text style={styles.sectionHeader}>{t('more.appearance')}</Text>
+      <View style={styles.group}>
+        <View style={styles.languageRow}>
+          <AppearanceToggle />
+        </View>
       </View>
 
       <Text style={styles.sectionHeader}>{t('more.language')}</Text>
@@ -143,87 +198,88 @@ export default function More() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.backgroundSecondary,
-  },
-  content: {
-    padding: spacing[4],
-  },
-  group: {
-    backgroundColor: colors.background,
-    borderRadius: radii.lg,
-    overflow: 'hidden',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.separator,
-  },
-  rowLast: {
-    borderBottomWidth: 0,
-  },
-  rowIcon: {
-    marginRight: spacing[3],
-  },
-  rowLabel: {
-    flex: 1,
-    fontSize: typography.sizes.md,
-    color: colors.textPrimary,
-  },
-  rowLabelDestructive: {
-    color: colors.destructive,
-  },
-  rowLabelDisabled: {
-    color: colors.tabBarInactive,
-  },
-  rowValue: {
-    flex: 1,
-    fontSize: typography.sizes.md,
-    color: colors.textSecondary,
-  },
-  badge: {
-    fontSize: typography.sizes.sm,
-    color: colors.textMuted,
-    marginRight: spacing[2],
-  },
-  sectionHeader: {
-    fontSize: typography.sizes.sm,
-    color: colors.textMuted,
-    marginTop: spacing[6],
-    marginBottom: spacing[2],
-    marginLeft: spacing[4],
-  },
-  languageRow: {
-    padding: spacing[3],
-  },
-  segmented: {
-    flexDirection: 'row',
-    backgroundColor: colors.backgroundSecondary,
-    borderRadius: radii.md,
-    padding: spacing[1],
-  },
-  segment: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing[2],
-    borderRadius: radii.sm,
-  },
-  segmentActive: {
-    backgroundColor: colors.background,
-  },
-  segmentLabel: {
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.medium,
-    color: colors.textSecondary,
-  },
-  segmentLabelActive: {
-    color: colors.textPrimary,
-    fontWeight: typography.weights.semibold,
-  },
-});
+const makeStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.backgroundSecondary,
+    },
+    content: {
+      padding: spacing[4],
+    },
+    group: {
+      backgroundColor: colors.background,
+      borderRadius: radii.lg,
+      overflow: 'hidden',
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: spacing[4],
+      paddingVertical: spacing[4],
+      borderBottomWidth: 1,
+      borderBottomColor: colors.separator,
+    },
+    rowLast: {
+      borderBottomWidth: 0,
+    },
+    rowIcon: {
+      marginRight: spacing[3],
+    },
+    rowLabel: {
+      flex: 1,
+      fontSize: typography.sizes.md,
+      color: colors.textPrimary,
+    },
+    rowLabelDestructive: {
+      color: colors.destructive,
+    },
+    rowLabelDisabled: {
+      color: colors.tabBarInactive,
+    },
+    rowValue: {
+      flex: 1,
+      fontSize: typography.sizes.md,
+      color: colors.textSecondary,
+    },
+    badge: {
+      fontSize: typography.sizes.sm,
+      color: colors.textMuted,
+      marginRight: spacing[2],
+    },
+    sectionHeader: {
+      fontSize: typography.sizes.sm,
+      color: colors.textMuted,
+      marginTop: spacing[6],
+      marginBottom: spacing[2],
+      marginLeft: spacing[4],
+    },
+    languageRow: {
+      padding: spacing[3],
+    },
+    segmented: {
+      flexDirection: 'row',
+      backgroundColor: colors.backgroundSecondary,
+      borderRadius: radii.md,
+      padding: spacing[1],
+    },
+    segment: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: spacing[2],
+      borderRadius: radii.sm,
+    },
+    segmentActive: {
+      backgroundColor: colors.background,
+    },
+    segmentLabel: {
+      fontSize: typography.sizes.md,
+      fontWeight: typography.weights.medium,
+      color: colors.textSecondary,
+    },
+    segmentLabelActive: {
+      color: colors.textPrimary,
+      fontWeight: typography.weights.semibold,
+    },
+  });

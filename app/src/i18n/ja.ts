@@ -90,6 +90,10 @@ const ja: Record<keyof typeof en, string> = {
   'more.account': 'アカウント',
   'more.signOut': 'サインアウト',
   'more.language': '言語',
+  'more.appearance': '外観',
+  'more.appearanceSystem': 'システム',
+  'more.appearanceLight': 'ライト',
+  'more.appearanceDark': 'ダーク',
 
   // challenge progress
   'challengeProgress.title': 'チャレンジ進捗',
