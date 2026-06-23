@@ -129,6 +129,7 @@ The `data/mappings/onsen_id_map.json` file is the most critical piece of the dat
   phone: string | null
   businessHours: ParsedHours | null     # structured, from data repo parser
   admissionFee: string | null
+  adultFee: number | null               # adult weekday walk-in yen; null if no parseable individual fee
   springQuality: string | null
   websiteUrl: string | null
   imageUrl: string | null
