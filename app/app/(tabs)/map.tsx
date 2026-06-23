@@ -182,6 +182,26 @@ export default function MapScreen() {
     }
   }, []);
 
+  // True while a streaming altitude read is in flight, so the per-frame reads
+  // below never pile up overlapping getCamera calls.
+  const streamingReadRef = useRef(false);
+
+  // Fires continuously while the camera moves — a pinch or a programmatic
+  // recenter animation. Reads the live altitude so the zoom knob tracks the map
+  // in near real time instead of only snapping into place once motion settles.
+  // Guarded to one read at a time; onRegionChangeComplete still does the final,
+  // authoritative read.
+  const handleRegionChange = useCallback(async () => {
+    bumpZoom();
+    if (streamingReadRef.current) return;
+    streamingReadRef.current = true;
+    try {
+      await handleCameraSettle();
+    } finally {
+      streamingReadRef.current = false;
+    }
+  }, [bumpZoom, handleCameraSettle]);
+
   useEffect(() => {
     const unsubscribe = onSnapshot(
       query(collection(db, COLLECTIONS.ONSENS), where('isActive', '==', true)),
@@ -275,7 +295,7 @@ export default function MapScreen() {
         initialRegion={initialRegion}
         showsUserLocation={!simulated && locationGranted}
         onMapReady={handleCameraSettle}
-        onRegionChange={bumpZoom}
+        onRegionChange={handleRegionChange}
         onPanDrag={bumpZoom}
         onPress={bumpZoom}
         onRegionChangeComplete={handleCameraSettle}
