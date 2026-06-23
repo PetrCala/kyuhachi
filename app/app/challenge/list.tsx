@@ -29,6 +29,7 @@ import { db } from '@/firebase';
 import { firebaseErrorKey } from '@/lib/firebase-errors';
 import { challengeTypeName } from '@/lib/challenge-i18n';
 import RowActionsButton from '@/components/RowActionsButton';
+import { ChallengeBadge } from '@/components/ChallengeBadge';
 import { colors, spacing, typography, radii } from '@/theme';
 
 interface ChallengeRow {
@@ -264,6 +265,17 @@ export default function ChallengeList() {
           const visited = progress.get(id);
           return (
             <View key={id} style={styles.card}>
+              {data.claimedTier ? (
+                <View style={styles.tierMarker}>
+                  <ChallengeBadge
+                    tierId={data.claimedTier}
+                    size={spacing[10]}
+                    accessibilityLabel={t('challengeList.tierMarkerLabel', {
+                      tier: t(`challengeTier.${data.claimedTier}`, { defaultValue: data.claimedTier }),
+                    })}
+                  />
+                </View>
+              ) : null}
               <Pressable style={styles.cardMain} onPress={() => switchTo(id)} disabled={isActive}>
                 <Text style={styles.cardName}>{data.name}</Text>
                 <Text style={styles.cardType}>
@@ -341,6 +353,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[4],
     marginBottom: spacing[3],
+  },
+  tierMarker: {
+    marginRight: spacing[3],
   },
   cardMain: {
     flex: 1,
