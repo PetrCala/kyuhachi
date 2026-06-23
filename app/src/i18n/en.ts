@@ -56,7 +56,7 @@ const en = {
     'Visit 88 of the eligible hot springs across Kyushu to complete the challenge.',
   'challenge.startButton': 'Start Challenge',
   'challenge.startingButton': 'Starting...',
-  'challenge.defaultName': 'My Challenge',
+  'challenge.nameLabel': 'Challenge name (optional)',
   'challenge.errorLoad': 'Failed to load challenge type',
   'challenge.errorCreate': 'Failed to create challenge',
   'challenge.errorNoEligibleOnsens':

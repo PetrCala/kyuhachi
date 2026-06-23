@@ -58,7 +58,7 @@ const ja: Record<keyof typeof en, string> = {
     '九州各地の対象温泉の中から88箇所を訪問して、チャレンジを達成しましょう。',
   'challenge.startButton': 'チャレンジ開始',
   'challenge.startingButton': '作成中...',
-  'challenge.defaultName': 'マイチャレンジ',
+  'challenge.nameLabel': '挑戦の名前（任意）',
   'challenge.errorLoad': 'チャレンジタイプの読み込みに失敗しました',
   'challenge.errorCreate': 'チャレンジの作成に失敗しました',
   'challenge.errorNoEligibleOnsens':
