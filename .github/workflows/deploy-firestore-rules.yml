@@ -11,6 +11,10 @@ on:
     paths:
       - firebase/firestore.rules
       - firebase/firestore.indexes.json
+  # Manual trigger: lets a maintainer re-deploy the current rules/indexes on
+  # demand (e.g. to verify the service-account auth, or to push state that has
+  # drifted) without having to touch a rules file.
+  workflow_dispatch:
 
 # Serialize deploys so two pushes in quick succession can't race each other to
 # Firebase. cancel-in-progress is false so an in-flight deploy is never killed.
