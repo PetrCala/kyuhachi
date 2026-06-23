@@ -37,6 +37,9 @@ const palette = {
 
   // Onsen water — bath-blue used to mark visited onsens on the map
   water: '#2e8bc0',
+
+  // Scrim behind modal sheets (semi-transparent black)
+  scrim: 'rgba(0, 0, 0, 0.4)',
 } as const;
 
 export const colors = {
@@ -44,6 +47,7 @@ export const colors = {
   background:          palette.white,   // primary screen background
   backgroundSecondary: palette.gray100, // grouped lists, inset sections
   backgroundElevated:  palette.gray50,  // cards, text inputs
+  overlay:             palette.scrim,   // dimming behind bottom-sheet modals
 
   // Text
   textPrimary:     palette.black,  // headings, primary content
