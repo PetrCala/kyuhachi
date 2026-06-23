@@ -38,6 +38,7 @@ The onsen catalog. Written exclusively by the data repo's publish script via ser
 | `phone` | `string \| null` | Phone number; null if unknown |
 | `businessHours` | `ParsedHours \| null` | Structured hours from data repo parser; null if unparseable |
 | `admissionFee` | `string \| null` | Raw fee string (e.g. "大人500円"); null if unknown |
+| `adultFee` | `number \| null` | Adult weekday walk-in admission in yen; null if no parseable individual fee. Derived from `admissionFee` by the data repo. |
 | `springQuality` | `string \| null` | Onsen spring type (e.g. "単純温泉"); null if unknown |
 | `websiteUrl` | `string \| null` | Official website; null if none |
 | `imageUrl` | `string \| null` | Representative photo URL; null if none |

@@ -38,6 +38,8 @@ export interface OnsenDocument {
   phone: string | null;
   businessHours: ParsedHours | null;
   admissionFee: string | null;
+  /** Adult weekday walk-in admission in yen; null if no parseable individual fee. Derived from admissionFee by the data repo. */
+  adultFee: number | null;
   springQuality: string | null;
   websiteUrl: string | null;
   imageUrl: string | null;

@@ -52,6 +52,7 @@ interface OnsenWritePayload {
   phone: null;
   businessHours: null;
   admissionFee: null;
+  adultFee: null;
   springQuality: null;
   websiteUrl: null;
   imageUrl: null;
@@ -220,6 +221,7 @@ async function main(): Promise<void> {
       phone: null,
       businessHours: null,
       admissionFee: null,
+      adultFee: null,
       springQuality: null,
       websiteUrl: null,
       imageUrl: null,
