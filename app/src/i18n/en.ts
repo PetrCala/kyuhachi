@@ -196,6 +196,7 @@ const en = {
   'challengeList.cancel': 'Cancel',
   'challengeList.errorDelete': 'Failed to delete challenge',
   'challengeList.errorSwitch': 'Failed to switch challenge',
+  'challengeList.tierMarkerLabel': '{{tier}} tier completed',
 
   // routes (import + management)
   'routes.title': 'Routes',

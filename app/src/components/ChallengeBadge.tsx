@@ -96,11 +96,14 @@ export function ChallengeBadge({
   const innerSize = size * (1 - RING_INSET_RATIO * 2);
 
   const baseArt = BASE_ART[tierId];
+  const hasEmblem = transportMode != null;
   const transportArt = transportMode ? TRANSPORT_ART[transportMode] : undefined;
 
   return (
     <View
-      style={[styles.container, { width: size, height: size + emblem / 2 }, locked && styles.locked]}
+      // Reserve the extra lower space only when a pin hangs off the rim; without
+      // one (e.g. a list marker) the medallion is exactly `size` and centers cleanly.
+      style={[styles.container, { width: size, height: hasEmblem ? size + emblem / 2 : size }, locked && styles.locked]}
       accessible
       accessibilityRole="image"
       accessibilityLabel={accessibilityLabel ?? undefined}
@@ -137,7 +140,7 @@ export function ChallengeBadge({
         </View>
       )}
 
-      {transportMode ? (
+      {hasEmblem ? (
         <View
           style={[
             styles.emblem,

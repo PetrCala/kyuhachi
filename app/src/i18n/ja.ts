@@ -187,6 +187,7 @@ const ja: Record<keyof typeof en, string> = {
   'challengeList.cancel': 'キャンセル',
   'challengeList.errorDelete': 'チャレンジの削除に失敗しました',
   'challengeList.errorSwitch': 'チャレンジの切り替えに失敗しました',
+  'challengeList.tierMarkerLabel': '{{tier}}ティア達成',
 
   // routes (import + management)
   'routes.title': 'ルート',
