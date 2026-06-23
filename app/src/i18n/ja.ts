@@ -134,6 +134,17 @@ const ja: Record<keyof typeof en, string> = {
   'challengeRules.condition.maxCalendarDays_other': '{{count}}日以内に達成',
   'challengeRules.conditionUnknown': '{{type}}: {{value}}',
 
+  // tier-earned celebration (fired when a challenge crosses a tier threshold)
+  'tierClaim.earnedTitle': '称号を獲得！',
+  'tierClaim.upgradedTitle': '称号がアップ！',
+  'tierClaim.finaleTitle': '達成おめでとう！',
+  'tierClaim.caption': 'このバッジがチャレンジに加わりました。',
+  'tierClaim.upgradeCaption': 'チャレンジが{{tier}}バッジになりました。',
+  'tierClaim.finaleCaption': 'すべての称号を制覇 — 九州八十八湯、完全達成。',
+  'tierClaim.nextHint': '次は: {{tier}}',
+  'tierClaim.done': '完了',
+  'tierClaim.a11yLabel': '称号獲得のお祝い',
+
   // challenge type picker
   'challengeNew.title': 'チャレンジを選ぶ',
   'challengeNew.heading': 'どのチャレンジに挑戦しますか？',

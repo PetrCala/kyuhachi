@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { useActiveChallengeProgress } from '@/hooks/useActiveChallengeProgress';
 import { ProgressBar, type ProgressMarker } from '@/components/ProgressBar';
 import { VisitCard } from '@/components/VisitCard';
+import { TierClaimModal, type TierCelebration } from '@/components/TierClaimModal';
 import RecordVisitFab from '@/components/RecordVisitFab';
 import { buildVisitFeed } from '@/lib/visit-feed';
 import { colors, spacing, typography, radii } from '@/theme';
@@ -28,6 +29,7 @@ export default function Home() {
   const { t } = useTranslation();
   const {
     loading,
+    challengeId,
     challenge,
     tiers,
     completionCount,
@@ -57,6 +59,45 @@ export default function Home() {
   }, [tiers, eligibleVisitCount]);
 
   const feed = useMemo(() => buildVisitFeed(visits, onsenMap), [visits, onsenMap]);
+
+  const [celebration, setCelebration] = useState<TierCelebration | null>(null);
+
+  // Celebrate when the active challenge steps up a tier. earnedTier is
+  // maintained server-side, so it arrives via the snapshot; we track the
+  // last-seen tier per challenge to fire only on a genuine increase during the
+  // session — switching challenges or the first load syncs silently.
+  const seenTierRef = useRef<{ challengeId: string | null; tierId: string | null }>({
+    challengeId: null,
+    tierId: null,
+  });
+  useEffect(() => {
+    const current = challenge?.earnedTier ?? null;
+    const prev = seenTierRef.current;
+    if (prev.challengeId !== challengeId) {
+      // Switched challenge (or first observation) — sync without celebrating.
+      seenTierRef.current = { challengeId, tierId: current };
+      return;
+    }
+    if (current && current !== prev.tierId && tiers.length > 0) {
+      const newIndex = tiers.findIndex((tier) => tier.id === current);
+      // Tiers are ordered best → worst, so a lower index is a better tier; a
+      // null previous tier ranks below the worst (the first tier earned counts).
+      const prevIndex = prev.tierId
+        ? tiers.findIndex((tier) => tier.id === prev.tierId)
+        : tiers.length;
+      if (newIndex !== -1 && newIndex < prevIndex) {
+        setCelebration({
+          tierId: current,
+          tierName: tiers[newIndex].name,
+          transportMode: null,
+          variant: prev.tierId == null ? 'claim' : 'upgrade',
+          isTopTier: newIndex === 0,
+          nextTierName: newIndex > 0 ? tiers[newIndex - 1].name : null,
+        });
+      }
+    }
+    seenTierRef.current = { challengeId, tierId: current };
+  }, [challenge?.earnedTier, challengeId, tiers]);
 
   function openRules() {
     if (!challenge) return;
@@ -188,6 +229,7 @@ export default function Home() {
         accessibilityLabel={t('home.recordVisit')}
         onPress={() => router.push('/challenge/onsens')}
       />
+      <TierClaimModal celebration={celebration} onDismiss={() => setCelebration(null)} />
     </SafeAreaView>
   );
 }

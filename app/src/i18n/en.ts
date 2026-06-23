@@ -135,6 +135,17 @@ const en = {
   'challengeRules.condition.maxCalendarDays_other': 'Finish within {{count}} calendar days',
   'challengeRules.conditionUnknown': '{{type}}: {{value}}',
 
+  // tier-earned celebration (fired when a challenge crosses a tier threshold)
+  'tierClaim.earnedTitle': 'Tier earned!',
+  'tierClaim.upgradedTitle': 'Tier upgraded!',
+  'tierClaim.finaleTitle': 'You did it!',
+  'tierClaim.caption': 'This badge is now part of your challenge.',
+  'tierClaim.upgradeCaption': 'Your challenge now flies the {{tier}} badge.',
+  'tierClaim.finaleCaption': 'Every tier conquered — the full Kyushu 88.',
+  'tierClaim.nextHint': 'Next up: {{tier}}',
+  'tierClaim.done': 'Done',
+  'tierClaim.a11yLabel': 'Tier earned celebration',
+
   // challenge type picker
   'challengeNew.title': 'Choose a Challenge',
   'challengeNew.heading': 'Which challenge will you take on?',
