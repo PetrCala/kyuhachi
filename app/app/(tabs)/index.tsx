@@ -12,11 +12,16 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useActiveChallengeProgress } from '@/hooks/useActiveChallengeProgress';
 import { ProgressBar, type ProgressMarker } from '@/components/ProgressBar';
+import { VisitCard } from '@/components/VisitCard';
+import { buildVisitFeed } from '@/lib/visit-feed';
 import { colors, spacing, typography, radii } from '@/theme';
 
 // Brand wordmark: 九八 (kyuhachi) set in Klee One. Not a translatable string —
 // it's the app's visual identity and renders identically in every locale.
 const HOME_WORDMARK = '九八';
+
+// How many of the most recent visits the home screen previews before "See all".
+const RECENT_VISITS_PREVIEW = 3;
 
 export default function Home() {
   const { t } = useTranslation();
@@ -29,6 +34,8 @@ export default function Home() {
     highestEligibleTier,
     canUpgrade,
     activeRoute,
+    visits,
+    onsenMap,
     claimTier,
     clearRoute,
     selectRoute,
@@ -50,6 +57,8 @@ export default function Home() {
       })
       .filter((m): m is ProgressMarker => m !== null);
   }, [tiers, eligibleVisitCount]);
+
+  const feed = useMemo(() => buildVisitFeed(visits, onsenMap), [visits, onsenMap]);
 
   function openRules() {
     if (!challenge) return;
@@ -197,6 +206,28 @@ export default function Home() {
           >
             <Text style={styles.primaryButtonText}>{t('home.recordVisit')}</Text>
           </Pressable>
+        </View>
+
+        <View style={styles.recentSection}>
+          <View style={styles.recentHeaderRow}>
+            <Text style={styles.sectionHeading}>{t('home.recentVisits.title')}</Text>
+            {feed.length > RECENT_VISITS_PREVIEW && (
+              <Pressable onPress={() => router.push('/visits')}>
+                <Text style={styles.howTiersLink}>{t('home.recentVisits.seeAll')} ›</Text>
+              </Pressable>
+            )}
+          </View>
+          {feed.length === 0 ? (
+            <Text style={styles.recentEmpty}>{t('home.recentVisits.empty')}</Text>
+          ) : (
+            feed.slice(0, RECENT_VISITS_PREVIEW).map((item) => (
+              <VisitCard
+                key={item.onsenId}
+                item={item}
+                onPress={() => router.push(`/onsens/${item.onsenId}`)}
+              />
+            ))
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -365,6 +396,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[6],
     alignItems: 'center',
+  },
+  recentSection: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[5],
+    borderTopWidth: 1,
+    borderTopColor: colors.separator,
+  },
+  recentHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing[4],
+  },
+  recentEmpty: {
+    fontSize: typography.sizes.sm,
+    color: colors.textMuted,
   },
   primaryButton: {
     backgroundColor: colors.actionPrimary,
