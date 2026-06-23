@@ -53,6 +53,9 @@ interface MapZoomControlProps {
   zoomInLabel: string;
   zoomOutLabel: string;
   style?: StyleProp<ViewStyle>;
+  /** Called on any interaction with the control (knob drag start, +/- tap) so a
+   *  parent auto-hide timer can treat the slider's own use as activity. */
+  onActivity?: () => void;
 }
 
 /**
@@ -68,6 +71,7 @@ export default function MapZoomControl({
   zoomInLabel,
   zoomOutLabel,
   style,
+  onActivity,
 }: MapZoomControlProps) {
   const knobY = useRef(
     new Animated.Value(altitudeToOffset(altitude ?? initialAltitude))
@@ -77,6 +81,10 @@ export default function MapZoomControl({
   const offsetRef = useRef(altitudeToOffset(altitude ?? initialAltitude));
   const dragStartOffsetRef = useRef(0);
   const draggingRef = useRef(false);
+  // Keep the latest onActivity in a ref so the once-built PanResponder and the
+  // memoized stepZoom call the current callback, not the one captured first.
+  const onActivityRef = useRef(onActivity);
+  onActivityRef.current = onActivity;
 
   useEffect(() => {
     const id = knobY.addListener(({ value }) => {
@@ -102,6 +110,7 @@ export default function MapZoomControl({
       onStartShouldSetPanResponderCapture: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
+        onActivityRef.current?.();
         draggingRef.current = true;
         // Grab the knob where it sits and drag relative to that — don't jump to
         // the touch point. (locationY is measured inside whichever child is hit,
@@ -128,6 +137,7 @@ export default function MapZoomControl({
 
   const stepZoom = useCallback(
     (zoomIn: boolean) => {
+      onActivityRef.current?.();
       const current = offsetToAltitude(offsetRef.current);
       const next = clampAltitude(zoomIn ? current / STEP_FACTOR : current * STEP_FACTOR);
       Animated.timing(knobY, {

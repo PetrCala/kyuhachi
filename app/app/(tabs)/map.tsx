@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { View, ActivityIndicator, Alert, Pressable, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, Alert, Animated, Pressable, StyleSheet } from 'react-native';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
@@ -39,6 +39,11 @@ const KYUSHU_REGION = {
 /** Roughly city-level zoom used when recentering the map on the user. */
 const USER_LOCATION_DELTA = 0.05;
 
+/** Idle time (ms) with no map interaction before the zoom slider fades out, and
+ *  how long that fade takes. The slider reappears on any map touch. */
+const ZOOM_HIDE_DELAY = 2500;
+const ZOOM_FADE_DURATION = 250;
+
 /** Rough Apple Maps camera altitude (metres) that frames a given latitude span,
  *  used to seed the zoom slider's knob before the map reports its real camera.
  *  ~111 km per degree of latitude; the map corrects this on its first reading. */
@@ -74,6 +79,37 @@ export default function MapScreen() {
   // Live camera altitude (Apple Maps), read after each gesture settles so the
   // zoom slider's knob tracks pinch as well as its own drags.
   const [altitude, setAltitude] = useState<number | undefined>(undefined);
+
+  // The zoom slider auto-hides after a spell of no interaction and reappears on
+  // any map touch. `zoomVisible` drives both its opacity and whether it accepts
+  // touches; `bumpZoom` is the single "there was activity" signal that the map's
+  // gesture callbacks and the slider itself both fire.
+  const [zoomVisible, setZoomVisible] = useState(true);
+  const zoomOpacity = useRef(new Animated.Value(1)).current;
+  const zoomHideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const bumpZoom = useCallback(() => {
+    setZoomVisible(true);
+    if (zoomHideTimer.current) clearTimeout(zoomHideTimer.current);
+    zoomHideTimer.current = setTimeout(() => setZoomVisible(false), ZOOM_HIDE_DELAY);
+  }, []);
+
+  // Fade the slider whenever its visibility flips. Opacity rides the native driver.
+  useEffect(() => {
+    Animated.timing(zoomOpacity, {
+      toValue: zoomVisible ? 1 : 0,
+      duration: ZOOM_FADE_DURATION,
+      useNativeDriver: true,
+    }).start();
+  }, [zoomVisible, zoomOpacity]);
+
+  // Start the first countdown on mount; clear the pending timer on unmount.
+  useEffect(() => {
+    bumpZoom();
+    return () => {
+      if (zoomHideTimer.current) clearTimeout(zoomHideTimer.current);
+    };
+  }, [bumpZoom]);
 
   // Dev builds always stand in a simulated spot in Kyushu (on the active route
   // when there is one) so the location UX can be checked away from Japan;
@@ -234,6 +270,9 @@ export default function MapScreen() {
         initialRegion={initialRegion}
         showsUserLocation={!simulated && locationGranted}
         onMapReady={handleCameraSettle}
+        onRegionChange={bumpZoom}
+        onPanDrag={bumpZoom}
+        onPress={bumpZoom}
         onRegionChangeComplete={handleCameraSettle}
       >
         {onsens.map((onsen) => (
@@ -264,15 +303,19 @@ export default function MapScreen() {
           </Marker>
         )}
       </MapView>
-      <View style={styles.zoomControlWrap} pointerEvents="box-none">
+      <Animated.View
+        style={[styles.zoomControlWrap, { opacity: zoomOpacity }]}
+        pointerEvents={zoomVisible ? 'box-none' : 'none'}
+      >
         <MapZoomControl
           mapRef={mapRef}
           initialAltitude={estimateAltitude(initialRegion.latitudeDelta)}
           altitude={altitude}
           zoomInLabel={t('map.zoomIn')}
           zoomOutLabel={t('map.zoomOut')}
+          onActivity={bumpZoom}
         />
-      </View>
+      </Animated.View>
       <Pressable
         style={[styles.recenterButton, shadows.md]}
         onPress={handleRecenter}
