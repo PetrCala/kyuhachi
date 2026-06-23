@@ -33,6 +33,11 @@ const en = {
 
   // map
   'map.title': 'Map',
+  'map.recenter': 'Show my location',
+  'map.locationDeniedTitle': 'Location access needed',
+  'map.locationDeniedMessage':
+    'Enable location access for Kyuhachi in Settings to see where you are on the map.',
+  'map.locationError': 'Could not find your location. Please try again.',
 
   // onsen list
   'onsenList.title': 'Onsen List',

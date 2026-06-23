@@ -1,4 +1,5 @@
 {
   "NSCameraUsageDescription": "Allow Kyuhachi to access your camera to take visit photos.",
-  "NSPhotoLibraryUsageDescription": "Allow Kyuhachi to access your photos to add visit photos."
+  "NSPhotoLibraryUsageDescription": "Allow Kyuhachi to access your photos to add visit photos.",
+  "NSLocationWhenInUseUsageDescription": "Allow Kyuhachi to use your location to show where you are on the map."
 }

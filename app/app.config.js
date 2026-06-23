@@ -61,6 +61,12 @@ module.exports = {
         "photosPermission": "Allow Kyuhachi to access your photos to add visit photos."
       }
     ],
+    [
+      "expo-location",
+      {
+        "locationWhenInUsePermission": "Allow Kyuhachi to use your location to show where you are on the map."
+      }
+    ],
   ],
   // Expo Router typed route generation breaks in this npm workspace layout:
   // Expo CLI resolves from the repo root, but expo-router is nested under

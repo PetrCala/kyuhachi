@@ -1,7 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { View, ActivityIndicator, Alert, Pressable, StyleSheet } from 'react-native';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT, type Region } from 'react-native-maps';
 import {
   collection,
@@ -21,7 +23,7 @@ import type {
 import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/firebase';
-import { colors, spacing } from '@/theme';
+import { colors, spacing, radii, shadows } from '@/theme';
 
 type OnsenRow = OnsenDocument & { id: string };
 
@@ -31,6 +33,9 @@ const KYUSHU_REGION = {
   latitudeDelta: 4,
   longitudeDelta: 4,
 };
+
+/** Roughly city-level zoom used when recentering the map on the user. */
+const USER_LOCATION_DELTA = 0.05;
 
 /** A map region that frames the route's bounding box with a little padding. */
 function regionForBounds(bounds: RouteDocument['bounds']): Region {
@@ -55,6 +60,52 @@ export default function MapScreen() {
   // and hold rendering until it loads so the map can mount already framed on the
   // track rather than animating in afterwards.
   const [routeLoaded, setRouteLoaded] = useState(false);
+  // Whether foreground location permission is granted; gates the blue dot.
+  const [locationGranted, setLocationGranted] = useState(false);
+
+  // Ask for foreground location once on mount so the blue dot can show. The
+  // recenter button re-prompts if the user hasn't decided yet.
+  useEffect(() => {
+    let cancelled = false;
+    Location.requestForegroundPermissionsAsync()
+      .then(({ status }) => {
+        if (!cancelled) setLocationGranted(status === 'granted');
+      })
+      .catch(() => {
+        if (!cancelled) setLocationGranted(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Center the map on the user. Re-request permission if undecided; if denied,
+  // point them at Settings since iOS won't prompt a second time.
+  const handleRecenter = useCallback(async () => {
+    let granted = locationGranted;
+    if (!granted) {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      granted = status === 'granted';
+      setLocationGranted(granted);
+    }
+    if (!granted) {
+      Alert.alert(t('map.locationDeniedTitle'), t('map.locationDeniedMessage'));
+      return;
+    }
+    try {
+      const { coords } = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      mapRef.current?.animateToRegion({
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        latitudeDelta: USER_LOCATION_DELTA,
+        longitudeDelta: USER_LOCATION_DELTA,
+      });
+    } catch {
+      Alert.alert(t('common.errorTitle'), t('map.locationError'));
+    }
+  }, [locationGranted, t]);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(
@@ -136,29 +187,40 @@ export default function MapScreen() {
   }
 
   return (
-    <MapView
-      ref={mapRef}
-      style={styles.map}
-      provider={PROVIDER_DEFAULT}
-      initialRegion={initialRegion}
-    >
-      {onsens.map((onsen) => (
-        <Marker
-          key={onsen.id}
-          coordinate={{ latitude: onsen.lat, longitude: onsen.lng }}
-          title={onsen.name}
-          description={onsen.areaName}
-          onCalloutPress={() => router.push(`/onsens/${onsen.id}`)}
-        />
-      ))}
-      {route && (
-        <Polyline
-          coordinates={route.points.map((p) => ({ latitude: p.lat, longitude: p.lng }))}
-          strokeColor={colors.actionPrimary}
-          strokeWidth={spacing[1]}
-        />
-      )}
-    </MapView>
+    <View style={styles.container}>
+      <MapView
+        ref={mapRef}
+        style={styles.map}
+        provider={PROVIDER_DEFAULT}
+        initialRegion={initialRegion}
+        showsUserLocation={locationGranted}
+      >
+        {onsens.map((onsen) => (
+          <Marker
+            key={onsen.id}
+            coordinate={{ latitude: onsen.lat, longitude: onsen.lng }}
+            title={onsen.name}
+            description={onsen.areaName}
+            onCalloutPress={() => router.push(`/onsens/${onsen.id}`)}
+          />
+        ))}
+        {route && (
+          <Polyline
+            coordinates={route.points.map((p) => ({ latitude: p.lat, longitude: p.lng }))}
+            strokeColor={colors.actionPrimary}
+            strokeWidth={spacing[1]}
+          />
+        )}
+      </MapView>
+      <Pressable
+        style={[styles.recenterButton, shadows.md]}
+        onPress={handleRecenter}
+        accessibilityRole="button"
+        accessibilityLabel={t('map.recenter')}
+      >
+        <Ionicons name="locate" size={spacing[6]} color={colors.actionPrimary} />
+      </Pressable>
+    </View>
   );
 }
 
@@ -169,7 +231,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.background,
   },
+  container: {
+    flex: 1,
+  },
   map: {
     flex: 1,
+  },
+  recenterButton: {
+    position: 'absolute',
+    right: spacing[4],
+    bottom: spacing[6],
+    width: spacing[12],
+    height: spacing[12],
+    borderRadius: radii.full,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
