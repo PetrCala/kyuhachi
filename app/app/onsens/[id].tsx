@@ -237,6 +237,20 @@ export default function OnsenDetail() {
               <Text style={styles.archivedText}>{t('onsenDetail.archived')}</Text>
             </View>
           )}
+          {challengeId && !visit && !visitLoading && (
+            <Pressable
+              style={styles.visitPill}
+              onPress={handleMarkVisited}
+              accessibilityRole="button"
+            >
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={typography.sizes.md}
+                color={colors.actionPrimaryText}
+              />
+              <Text style={styles.visitPillText}>{t('onsenDetail.markVisited')}</Text>
+            </Pressable>
+          )}
         </View>
 
         <View style={styles.section}>
@@ -330,14 +344,6 @@ export default function OnsenDetail() {
               hitSlop={4}
             >
               <Text style={styles.websiteLink}>{onsen.websiteUrl}</Text>
-            </Pressable>
-          </View>
-        )}
-
-        {challengeId && !visit && !visitLoading && (
-          <View style={styles.visitSection}>
-            <Pressable style={styles.visitButton} onPress={handleMarkVisited}>
-              <Text style={styles.visitButtonText}>{t('onsenDetail.markVisited')}</Text>
             </Pressable>
           </View>
         )}
@@ -483,20 +489,21 @@ const styles = StyleSheet.create({
     height: 160,
     backgroundColor: colors.backgroundSecondary,
   },
-  visitSection: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[6],
+  // Compact check-in pill tucked under the title inside the header card.
+  visitPill: {
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  visitButton: {
+    alignSelf: 'flex-start',
+    gap: spacing[1],
+    marginTop: spacing[3],
     backgroundColor: colors.actionPrimary,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing[8],
-    paddingVertical: spacing[4],
+    borderRadius: radii.full,
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[4],
   },
-  visitButtonText: {
+  visitPillText: {
     color: colors.actionPrimaryText,
-    fontSize: typography.sizes.md,
+    fontSize: typography.sizes.sm,
     fontWeight: typography.weights.semibold,
   },
   visitSummarySection: {
