@@ -44,10 +44,11 @@ const KYUSHU_REGION = {
 /** Roughly city-level zoom used when recentering the map on the user. */
 const USER_LOCATION_DELTA = 0.05;
 
-/** Idle time (ms) with no map interaction before the zoom slider fades out, and
- *  how long that fade takes. The slider reappears on any map touch. */
-const ZOOM_HIDE_DELAY = 2500;
-const ZOOM_FADE_DURATION = 250;
+/** Idle time (ms) with no map interaction before the on-map controls (filter
+ *  pill, zoom slider, recenter button) fade out together, and how long that fade
+ *  takes. They reappear on any map touch or when a control is used. */
+const CONTROLS_HIDE_DELAY = 2500;
+const CONTROLS_FADE_DURATION = 250;
 
 /** Rough Apple Maps camera altitude (metres) that frames a given latitude span,
  *  used to seed the zoom slider's knob before the map reports its real camera.
@@ -104,36 +105,40 @@ export default function MapScreen() {
   // zoom slider's knob tracks pinch as well as its own drags.
   const [altitude, setAltitude] = useState<number | undefined>(undefined);
 
-  // The zoom slider auto-hides after a spell of no interaction and reappears on
-  // any map touch. `zoomVisible` drives both its opacity and whether it accepts
-  // touches; `bumpZoom` is the single "there was activity" signal that the map's
-  // gesture callbacks and the slider itself both fire.
-  const [zoomVisible, setZoomVisible] = useState(true);
-  const zoomOpacity = useRef(new Animated.Value(1)).current;
-  const zoomHideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // The on-map controls auto-hide together after a spell of no interaction and
+  // reappear on any map touch or control use. `controlsVisible` drives both their
+  // shared opacity and whether they accept touches; `bumpControls` is the single
+  // "there was activity" signal that the map's gesture callbacks, the controls'
+  // own presses, and the zoom slider all fire.
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const controlsOpacity = useRef(new Animated.Value(1)).current;
+  const controlsHideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  const bumpZoom = useCallback(() => {
-    setZoomVisible(true);
-    if (zoomHideTimer.current) clearTimeout(zoomHideTimer.current);
-    zoomHideTimer.current = setTimeout(() => setZoomVisible(false), ZOOM_HIDE_DELAY);
+  const bumpControls = useCallback(() => {
+    setControlsVisible(true);
+    if (controlsHideTimer.current) clearTimeout(controlsHideTimer.current);
+    controlsHideTimer.current = setTimeout(
+      () => setControlsVisible(false),
+      CONTROLS_HIDE_DELAY
+    );
   }, []);
 
-  // Fade the slider whenever its visibility flips. Opacity rides the native driver.
+  // Fade the controls whenever their visibility flips. Opacity rides the native driver.
   useEffect(() => {
-    Animated.timing(zoomOpacity, {
-      toValue: zoomVisible ? 1 : 0,
-      duration: ZOOM_FADE_DURATION,
+    Animated.timing(controlsOpacity, {
+      toValue: controlsVisible ? 1 : 0,
+      duration: CONTROLS_FADE_DURATION,
       useNativeDriver: true,
     }).start();
-  }, [zoomVisible, zoomOpacity]);
+  }, [controlsVisible, controlsOpacity]);
 
   // Start the first countdown on mount; clear the pending timer on unmount.
   useEffect(() => {
-    bumpZoom();
+    bumpControls();
     return () => {
-      if (zoomHideTimer.current) clearTimeout(zoomHideTimer.current);
+      if (controlsHideTimer.current) clearTimeout(controlsHideTimer.current);
     };
-  }, [bumpZoom]);
+  }, [bumpControls]);
 
   // Dev builds always stand in a simulated spot in Kyushu (on the active route
   // when there is one) so the location UX can be checked away from Japan;
@@ -216,7 +221,7 @@ export default function MapScreen() {
   // Guarded to one read at a time; onRegionChangeComplete still does the final,
   // authoritative read.
   const handleRegionChange = useCallback(async () => {
-    bumpZoom();
+    bumpControls();
     if (streamingReadRef.current) return;
     streamingReadRef.current = true;
     try {
@@ -224,7 +229,7 @@ export default function MapScreen() {
     } finally {
       streamingReadRef.current = false;
     }
-  }, [bumpZoom, handleCameraSettle]);
+  }, [bumpControls, handleCameraSettle]);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(
@@ -343,8 +348,8 @@ export default function MapScreen() {
         showsUserLocation={!simulated && locationGranted}
         onMapReady={handleCameraSettle}
         onRegionChange={handleRegionChange}
-        onPanDrag={bumpZoom}
-        onPress={bumpZoom}
+        onPanDrag={bumpControls}
+        onPress={bumpControls}
         onRegionChangeComplete={handleCameraSettle}
       >
         {visibleOnsens.map((onsen) => (
@@ -381,54 +386,67 @@ export default function MapScreen() {
           </Marker>
         )}
       </MapView>
+      {/* All on-map controls share one fade: they hide together after inactivity
+          and reappear on any map touch or control use. box-none (when visible)
+          lets map gestures pass through the empty overlay between the controls;
+          none (when hidden) hands every touch to the map so the first tap both
+          re-reveals the controls and is consumed by the map underneath. */}
       <Animated.View
-        style={[styles.zoomControlWrap, { opacity: zoomOpacity }]}
-        pointerEvents={zoomVisible ? 'box-none' : 'none'}
+        style={[styles.controlsOverlay, { opacity: controlsOpacity }]}
+        pointerEvents={controlsVisible ? 'box-none' : 'none'}
       >
-        <MapZoomControl
-          mapRef={mapRef}
-          initialAltitude={estimateAltitude(initialRegion.latitudeDelta)}
-          altitude={altitude}
-          zoomInLabel={t('map.zoomIn')}
-          zoomOutLabel={t('map.zoomOut')}
-          onActivity={bumpZoom}
-        />
-      </Animated.View>
-      {route && (
-        <Pressable
-          style={[
-            styles.routeFilterButton,
-            nearRouteOnly && styles.routeFilterButtonActive,
-            shadows.md,
-          ]}
-          onPress={() => setNearRouteOnly((on) => !on)}
-          accessibilityRole="switch"
-          accessibilityState={{ checked: nearRouteOnly }}
-          accessibilityLabel={t('map.nearRouteToggle')}
-        >
-          <Ionicons
-            name={nearRouteOnly ? 'funnel' : 'funnel-outline'}
-            size={spacing[4]}
-            color={nearRouteOnly ? colors.actionPrimaryText : colors.actionPrimary}
-          />
-          <Text
+        {route && (
+          <Pressable
             style={[
-              styles.routeFilterLabel,
-              nearRouteOnly && styles.routeFilterLabelActive,
+              styles.routeFilterButton,
+              nearRouteOnly && styles.routeFilterButtonActive,
+              shadows.md,
             ]}
+            onPress={() => {
+              bumpControls();
+              setNearRouteOnly((on) => !on);
+            }}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: nearRouteOnly }}
+            accessibilityLabel={t('map.nearRouteToggle')}
           >
-            {t('map.nearRouteToggle')}
-          </Text>
+            <Ionicons
+              name={nearRouteOnly ? 'funnel' : 'funnel-outline'}
+              size={spacing[4]}
+              color={nearRouteOnly ? colors.actionPrimaryText : colors.actionPrimary}
+            />
+            <Text
+              style={[
+                styles.routeFilterLabel,
+                nearRouteOnly && styles.routeFilterLabelActive,
+              ]}
+            >
+              {t('map.nearRouteToggle')}
+            </Text>
+          </Pressable>
+        )}
+        <View style={styles.zoomControlWrap} pointerEvents="box-none">
+          <MapZoomControl
+            mapRef={mapRef}
+            initialAltitude={estimateAltitude(initialRegion.latitudeDelta)}
+            altitude={altitude}
+            zoomInLabel={t('map.zoomIn')}
+            zoomOutLabel={t('map.zoomOut')}
+            onActivity={bumpControls}
+          />
+        </View>
+        <Pressable
+          style={[styles.recenterButton, shadows.md]}
+          onPress={() => {
+            bumpControls();
+            handleRecenter();
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={t('map.recenter')}
+        >
+          <Ionicons name="locate" size={spacing[6]} color={colors.actionPrimary} />
         </Pressable>
-      )}
-      <Pressable
-        style={[styles.recenterButton, shadows.md]}
-        onPress={handleRecenter}
-        accessibilityRole="button"
-        accessibilityLabel={t('map.recenter')}
-      >
-        <Ionicons name="locate" size={spacing[6]} color={colors.actionPrimary} />
-      </Pressable>
+      </Animated.View>
     </View>
   );
 }
@@ -445,6 +463,11 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+  },
+  // Fills the map so the auto-hiding controls inside it keep their own absolute
+  // positions; its opacity is animated and box-none lets gestures reach the map.
+  controlsOverlay: {
+    ...StyleSheet.absoluteFillObject,
   },
   // Full-height column pinned to the right edge so the zoom slider centers
   // vertically without hardcoding its height; box-none lets map gestures through
