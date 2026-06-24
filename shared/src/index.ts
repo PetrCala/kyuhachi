@@ -16,9 +16,19 @@ export type {
   VisitDocument,
   RouteDocument,
   TransportMode,
+  PerceivedHeat,
+  CrowdLevel,
+  VisitedWith,
 } from './types/challenge';
 
-export { TRANSPORT_MODES, isFasterThan } from './types/challenge';
+export {
+  TRANSPORT_MODES,
+  isFasterThan,
+  PERCEIVED_HEAT_LEVELS,
+  CROWD_LEVELS,
+  VISITED_WITH_OPTIONS,
+  EMPTY_VISIT_STRUCTURED_DATA,
+} from './types/challenge';
 
 export type { UserDocument } from './types/user';
 

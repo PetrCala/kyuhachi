@@ -33,11 +33,17 @@ interface VisitCardProps {
 export function VisitCard({ item, onPress, hideOnsenHeader = false, onEdit }: VisitCardProps) {
   const { t, i18n } = useTranslation();
   const { visit, onsenName, areaName, prefecture } = item;
-  const { rating, transportMode, duration, waterTemp } = visit.structuredData;
+  const { rating, transportMode, duration, waterTemp, wouldReturn } = visit.structuredData;
 
+  const photoUrls = visit.photoUrls ?? [];
   const location = [areaName, prefecture].filter(Boolean).join(' · ');
   const dateLabel = formatVisitDate(visit.visitedAt.toDate(), new Date(), t, i18n.language);
-  const hasStats = rating != null || transportMode != null || duration != null || !!waterTemp;
+  const hasStats =
+    rating != null ||
+    transportMode != null ||
+    duration != null ||
+    !!waterTemp ||
+    wouldReturn === true;
 
   return (
     <Pressable style={styles.card} onPress={onPress}>
@@ -69,8 +75,16 @@ export function VisitCard({ item, onPress, hideOnsenHeader = false, onEdit }: Vi
         ) : null}
       </View>
 
-      {visit.photoUrl ? (
-        <Image source={{ uri: visit.photoUrl }} style={styles.photo} resizeMode="cover" />
+      {photoUrls.length > 0 ? (
+        <View style={styles.photoWrap}>
+          <Image source={{ uri: photoUrls[0] }} style={styles.photo} resizeMode="cover" />
+          {photoUrls.length > 1 ? (
+            <View style={styles.photoBadge}>
+              <Ionicons name="images-outline" size={typography.sizes.xs} color={colors.textInverted} />
+              <Text style={styles.photoBadgeText}>{photoUrls.length}</Text>
+            </View>
+          ) : null}
+        </View>
       ) : null}
 
       {hasStats ? (
@@ -109,6 +123,12 @@ export function VisitCard({ item, onPress, hideOnsenHeader = false, onEdit }: Vi
                 color={colors.textSecondary}
               />
               <Text style={styles.chipText}>{waterTemp}</Text>
+            </View>
+          ) : null}
+          {wouldReturn === true ? (
+            <View style={styles.chip}>
+              <Ionicons name="heart" size={typography.sizes.sm} color={colors.destructive} />
+              <Text style={styles.chipText}>{t('visits.wouldReturn')}</Text>
             </View>
           ) : null}
         </View>
@@ -174,12 +194,32 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.medium,
     color: colors.actionPrimary,
   },
+  photoWrap: {
+    position: 'relative',
+    marginTop: spacing[3],
+  },
   photo: {
     width: '100%',
     aspectRatio: 3 / 2,
     borderRadius: radii.md,
-    marginTop: spacing[3],
     backgroundColor: colors.backgroundSecondary,
+  },
+  photoBadge: {
+    position: 'absolute',
+    top: spacing[2],
+    right: spacing[2],
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: radii.full,
+    backgroundColor: colors.overlay,
+  },
+  photoBadgeText: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.medium,
+    color: colors.textInverted,
   },
   chipRow: {
     flexDirection: 'row',

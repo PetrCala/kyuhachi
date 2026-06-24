@@ -24,6 +24,7 @@ import {
   SUBCOLLECTIONS,
   CATALOG_META_DOC_ID,
   TRANSPORT_MODES,
+  EMPTY_VISIT_STRUCTURED_DATA,
 } from '@kyuhachi/shared';
 import { db } from '@/firebase';
 import type { ParsedRoute } from '@/lib/route-import';
@@ -72,11 +73,9 @@ function buildMockVisit(transport: MockTransport) {
   return {
     visitedAt: serverTimestamp(),
     notes: null,
-    photoUrl: null,
+    photoUrls: [],
     structuredData: {
-      rating: null,
-      waterTemp: null,
-      duration: null,
+      ...EMPTY_VISIT_STRUCTURED_DATA,
       transportMode: resolveTransport(transport),
     },
     createdAt: serverTimestamp(),
