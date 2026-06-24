@@ -1,0 +1,25 @@
+source "https://rubygems.org"
+
+# Pin Ruby to match .ruby-version so local `bundle exec fastlane` and the CI
+# runner resolve the same toolchain.
+ruby ">= 3.3.4"
+
+gem "fastlane", ">= 2.228.0"
+
+# CocoaPods is pinned: pod resolution is the version-sensitive part of the
+# build with static frameworks + react-native-firebase + the New Architecture.
+gem "cocoapods", "1.16.2"
+
+# Needed by fastlane's update_code_signing_settings (edits the .xcodeproj).
+gem "xcodeproj", "~> 1.27"
+
+gem "activesupport", ">= 6.1.7.5", "!= 7.1.0"
+gem "xcpretty"
+
+# Standard-library gems that Ruby 3.4 removed from the default set; harmless on
+# 3.3 and keeps fastlane working if the runner ships a newer Ruby.
+gem "bigdecimal"
+gem "logger"
+gem "benchmark"
+gem "mutex_m"
+gem "ostruct"
