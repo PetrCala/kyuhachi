@@ -16,6 +16,7 @@ import { VisitCard } from '@/components/VisitCard';
 import { TierClaimModal, type TierCelebration } from '@/components/TierClaimModal';
 import { ChallengeBadge } from '@/components/ChallengeBadge';
 import { SuggestNextCard } from '@/components/SuggestNextCard';
+import { SpaportCard } from '@/components/SpaportCard';
 import { RankUpToast, type RankToast } from '@/components/RankUpToast';
 import RecordVisitFab from '@/components/RecordVisitFab';
 import { buildVisitFeed } from '@/lib/visit-feed';
@@ -296,6 +297,15 @@ export default function Home() {
             ) : null}
           </View>
         )}
+
+        {/* Spaport: tappable stamp-book preview → opens the full passport. */}
+        <SpaportCard
+          challenge={challenge}
+          visits={visits}
+          onsenMap={onsenMap}
+          visited={eligibleVisitCount}
+          total={completionCount}
+        />
 
         <View style={styles.recentSection}>
           <View style={styles.recentHeaderRow}>
