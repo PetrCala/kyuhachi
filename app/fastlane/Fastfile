@@ -24,6 +24,9 @@ XCODEPROJ  = "ios/Kyuhachi.xcodeproj".freeze
 SCHEME     = "Kyuhachi".freeze
 INFO_PLIST = "ios/Kyuhachi/Info.plist".freeze
 IPA_NAME   = "Kyuhachi.ipa".freeze
+# Fixed name for the App Store provisioning profile we generate, so we don't
+# have to guess fastlane's generated-profile env-var key.
+PROFILE_NAME = "Kyuhachi App Store".freeze
 
 # App Store Connect's TestFlight ingestion intermittently returns a transient
 # 5xx on the final "complete upload" call *after* the binary is delivered, and
@@ -92,9 +95,9 @@ platform :ios do
       get_provisioning_profile(
         api_key_path: asc_api_key_path,
         app_identifier: APP_ID,
+        provisioning_name: PROFILE_NAME,
         force: true,
       )
-      profile_name = ENV.fetch("sigh_#{APP_ID}_appstore_profile-name")
 
       # Build number from TestFlight, scoped to the current marketing version.
       # Expo SDK 55 writes CFBundleVersion as a literal in Info.plist (not a
@@ -119,7 +122,7 @@ platform :ios do
         targets: [SCHEME],
         team_id: TEAM_ID,
         code_sign_identity: "Apple Distribution",
-        profile_name: profile_name,
+        profile_name: PROFILE_NAME,
       )
 
       build_app(
@@ -128,7 +131,7 @@ platform :ios do
         output_name: IPA_NAME,
         export_method: "app-store",
         export_options: {
-          provisioningProfiles: { APP_ID => profile_name },
+          provisioningProfiles: { APP_ID => PROFILE_NAME },
           manageAppVersionAndBuildNumber: false,
         },
         xcargs: "-allowProvisioningUpdates",
