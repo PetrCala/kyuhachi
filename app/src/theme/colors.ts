@@ -38,6 +38,17 @@ const palette = {
   // Onsen water — bath-blue used to mark visited onsens on the map
   water: '#2e8bc0',
 
+  // Categorical data-viz ramp (Stats charts). Six distinct, muted hues plus a
+  // neutral for "unreported". Ordered so transport modes read slow→fast:
+  // foot (green) · bicycle (teal) · public (amber) · car (rust).
+  chart1: '#4c9f70', // green
+  chart2: '#3aa6a8', // teal
+  chart3: '#e0a458', // amber
+  chart4: '#c2683f', // rust
+  chart5: '#7e6aa8', // muted purple
+  chart6: '#b0656f', // muted rose
+  chartNeutral: '#b8b8bd', // unreported / no-data segments
+
   // Scrim behind modal sheets (semi-transparent black)
   scrim: 'rgba(0, 0, 0, 0.4)',
 } as const;
@@ -85,6 +96,17 @@ export const colors = {
 
   // Map markers
   onsenVisited: palette.water, // bath-water blue pin for visited onsens
+
+  // Data visualization (Stats charts). Categorical series + neutrals; index a
+  // series with the `CHART_SERIES` array in components/charts.
+  chart1: palette.chart1,
+  chart2: palette.chart2,
+  chart3: palette.chart3,
+  chart4: palette.chart4,
+  chart5: palette.chart5,
+  chart6: palette.chart6,
+  chartNeutral: palette.chartNeutral, // unreported buckets
+  chartTrack: palette.gray200, // empty bar/track background
 
   // Passport stamp (collectible seal in the stamp-book screen)
   stampInk:       palette.black,   // seal frame, kanji, and inked date

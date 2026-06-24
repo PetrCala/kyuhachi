@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
+import type { Tier } from '@kyuhachi/shared';
 import { TierBadge } from './TierBadge';
 import { colors, spacing, typography, radii } from '@/theme';
 
@@ -26,6 +27,26 @@ interface ProgressBarProps {
   /** Target count (the completion goal, e.g. 88). */
   total: number;
   markers: ProgressMarker[];
+}
+
+/**
+ * Plot each tier's `minVisits` threshold as a marker on the track. Tiers gated
+ * only on transport/time (no `minVisits` condition) get no marker, since the bar
+ * measures visit count alone. Shared by the home dashboard and the Stats
+ * progress screen so both place the tier badges identically.
+ */
+export function buildTierMarkers(tiers: Tier[], eligibleVisitCount: number): ProgressMarker[] {
+  return tiers
+    .map((tier) => {
+      const minVisits = tier.conditions.find((c) => c.type === 'minVisits');
+      if (!minVisits) return null;
+      return {
+        position: minVisits.value,
+        tierId: tier.id,
+        reached: eligibleVisitCount >= minVisits.value,
+      };
+    })
+    .filter((m): m is ProgressMarker => m !== null);
 }
 
 function pct(n: number, total: number): number {
