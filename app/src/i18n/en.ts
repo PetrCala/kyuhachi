@@ -103,6 +103,13 @@ const en = {
   'stats.transport.car': 'Car',
   'stats.transport.unreported': 'Unreported',
 
+  // passport (stamp book)
+  'passport.title': 'Passport',
+  'passport.progress': '{{visited}} / {{total}} stamps',
+  'passport.hint': 'Stamps fill in the order you visit.',
+  'passport.pageIndicator': 'Page {{page}} of {{total}}',
+  'passport.empty': 'Start a challenge to begin your stamp book.',
+
   // visits (full history + feed cards)
   'visits.title': 'All visits',
   'visits.empty': 'No visits yet',
