@@ -43,3 +43,10 @@ yarn-error.*
 # Firebase credentials (never commit — add via EAS secrets or local download)
 GoogleService-Info.plist
 google-services.json
+
+# fastlane / build artifacts (the build runs in CI; these are local-run leftovers)
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/test_output
+*.ipa
+*.app.dSYM.zip
