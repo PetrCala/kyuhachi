@@ -24,6 +24,7 @@ import {
 import type { OnsenDocument, RouteDocument } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
+import { usePreferences } from '@/context/PreferencesContext';
 import { db } from '@/firebase';
 import { simulatedCoordinate } from '@/lib/dev-location';
 import { distanceToPolylineKm } from '@/lib/geo';
@@ -42,10 +43,6 @@ const KYUSHU_REGION = {
 
 /** Roughly city-level zoom used when recentering the map on the user. */
 const USER_LOCATION_DELTA = 0.05;
-
-/** Radius (km) for the "Near route" filter: with it on, only onsens within this
- *  distance of the drawn route stay on the map. */
-const NEAR_ROUTE_RADIUS_KM = 2;
 
 /** Idle time (ms) with no map interaction before the zoom slider fades out, and
  *  how long that fade takes. The slider reappears on any map touch. */
@@ -72,6 +69,7 @@ function regionForBounds(bounds: RouteDocument['bounds']): Region {
 export default function MapScreen() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { nearRouteRadiusKm } = usePreferences();
   const navigation = useNavigation();
   const { routeId: paramRouteId, focusOnsenId, focusTs } = useLocalSearchParams<{
     routeId?: string;
@@ -275,16 +273,15 @@ export default function MapScreen() {
   const initialRegion = route ? regionForBounds(route.bounds) : KYUSHU_REGION;
 
   // Onsens actually drawn as pins. With the "Near route" filter on and a route
-  // present, keep only those within NEAR_ROUTE_RADIUS_KM of the route; otherwise
+  // present, keep only those within the preferred radius of the route; otherwise
   // all of them. Recomputed only when the inputs change, not every snapshot.
   const visibleOnsens = useMemo(() => {
     if (!route || !nearRouteOnly) return onsens;
     return onsens.filter(
       (o) =>
-        distanceToPolylineKm({ lat: o.lat, lng: o.lng }, route.points) <=
-        NEAR_ROUTE_RADIUS_KM
+        distanceToPolylineKm({ lat: o.lat, lng: o.lng }, route.points) <= nearRouteRadiusKm
     );
-  }, [onsens, route, nearRouteOnly]);
+  }, [onsens, route, nearRouteOnly, nearRouteRadiusKm]);
 
   // Surface the active route's name in the tab header (the tab bar label stays
   // the static "Map"); falls back to the generic title when no route is drawn.
