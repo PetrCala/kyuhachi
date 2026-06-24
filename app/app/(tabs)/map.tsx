@@ -348,7 +348,11 @@ export default function MapScreen() {
         showsUserLocation={!simulated && locationGranted}
         onMapReady={handleCameraSettle}
         onRegionChange={handleRegionChange}
-        onPanDrag={bumpControls}
+        // No `onPanDrag`: on iOS that prop makes react-native-maps install its
+        // own pan gesture recognizer, which fights the map's built-in scroll and
+        // can leave the map un-pannable (frozen) while overlay buttons still tap.
+        // `onRegionChange` already fires throughout a drag, so the auto-hide
+        // controls still wake without it.
         onPress={bumpControls}
         onRegionChangeComplete={handleCameraSettle}
       >
@@ -386,16 +390,21 @@ export default function MapScreen() {
           </Marker>
         )}
       </MapView>
-      {/* All on-map controls share one fade: they hide together after inactivity
-          and reappear on any map touch or control use. box-none (when visible)
-          lets map gestures pass through the empty overlay between the controls;
-          none (when hidden) hands every touch to the map so the first tap both
-          re-reveals the controls and is consumed by the map underneath. */}
-      <Animated.View
-        style={[styles.controlsOverlay, { opacity: controlsOpacity }]}
-        pointerEvents={controlsVisible ? 'box-none' : 'none'}
-      >
-        {route && (
+      {/* The on-map controls each sit in their own corner and share one fade:
+          they hide together after inactivity and reappear on any map touch or
+          control use. Crucially they are NOT wrapped in a single full-screen
+          overlay — even a box-none absoluteFill sibling over the native map can
+          swallow the map's pan gesture on iOS (it froze the map while leaving
+          these buttons tappable). Keeping each control in a small, corner-pinned
+          slot means the map's pannable area is never covered. Per slot, box-none
+          (visible) lets the empty padding pass touches through; none (hidden)
+          hands the whole slot to the map so the first tap both re-reveals it and
+          pans underneath. */}
+      {route && (
+        <Animated.View
+          style={[styles.filterSlot, { opacity: controlsOpacity }]}
+          pointerEvents={controlsVisible ? 'box-none' : 'none'}
+        >
           <Pressable
             style={[
               styles.routeFilterButton,
@@ -424,17 +433,25 @@ export default function MapScreen() {
               {t('map.nearRouteToggle')}
             </Text>
           </Pressable>
-        )}
-        <View style={styles.zoomControlWrap} pointerEvents="box-none">
-          <MapZoomControl
-            mapRef={mapRef}
-            initialAltitude={estimateAltitude(initialRegion.latitudeDelta)}
-            altitude={altitude}
-            zoomInLabel={t('map.zoomIn')}
-            zoomOutLabel={t('map.zoomOut')}
-            onActivity={bumpControls}
-          />
-        </View>
+        </Animated.View>
+      )}
+      <Animated.View
+        style={[styles.zoomControlWrap, { opacity: controlsOpacity }]}
+        pointerEvents={controlsVisible ? 'box-none' : 'none'}
+      >
+        <MapZoomControl
+          mapRef={mapRef}
+          initialAltitude={estimateAltitude(initialRegion.latitudeDelta)}
+          altitude={altitude}
+          zoomInLabel={t('map.zoomIn')}
+          zoomOutLabel={t('map.zoomOut')}
+          onActivity={bumpControls}
+        />
+      </Animated.View>
+      <Animated.View
+        style={[styles.recenterSlot, { opacity: controlsOpacity }]}
+        pointerEvents={controlsVisible ? 'box-none' : 'none'}
+      >
         <Pressable
           style={[styles.recenterButton, shadows.md]}
           onPress={() => {
@@ -464,14 +481,10 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
-  // Fills the map so the auto-hiding controls inside it keep their own absolute
-  // positions; its opacity is animated and box-none lets gestures reach the map.
-  controlsOverlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
   // Full-height column pinned to the right edge so the zoom slider centers
   // vertically without hardcoding its height; box-none lets map gestures through
-  // the empty space above and below the control.
+  // the empty space above and below the control. A narrow right-edge strip, not
+  // a full-screen cover, so it never blocks the map's central pannable area.
   zoomControlWrap: {
     position: 'absolute',
     right: spacing[4],
@@ -479,12 +492,22 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
   },
-  // "Near route" filter pill, top-left, only shown while a route is drawn.
-  // White pill when off; filled with the primary color when on.
-  routeFilterButton: {
+  // Corner slot for the "Near route" filter pill, top-left, only shown while a
+  // route is drawn. Sized to the pill so it never covers the map's center.
+  filterSlot: {
     position: 'absolute',
     left: spacing[4],
     top: spacing[4],
+  },
+  // Corner slot for the recenter button, bottom-right.
+  recenterSlot: {
+    position: 'absolute',
+    right: spacing[4],
+    bottom: spacing[6],
+  },
+  // "Near route" filter pill. White pill when off; filled with the primary
+  // color when on. Positioned by its `filterSlot` wrapper.
+  routeFilterButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[1],
@@ -505,9 +528,6 @@ const styles = StyleSheet.create({
     color: colors.actionPrimaryText,
   },
   recenterButton: {
-    position: 'absolute',
-    right: spacing[4],
-    bottom: spacing[6],
     width: spacing[12],
     height: spacing[12],
     borderRadius: radii.full,
