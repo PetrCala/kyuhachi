@@ -562,7 +562,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
-    flexGrow: 1,
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[4],
     paddingBottom: spacing[10],
@@ -654,8 +653,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing[1],
   },
   spacer: {
-    flex: 1,
-    minHeight: spacing[4],
+    height: spacing[4],
   },
   saveButton: {
     backgroundColor: colors.actionPrimary,
