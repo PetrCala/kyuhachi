@@ -45,6 +45,7 @@ const en = {
     'Enable location access for Kyuhachi in Settings to see where you are on the map.',
   'map.locationError': 'Could not find your location. Please try again.',
   'map.simulatedLocation': 'Simulated location',
+  'map.nearRouteToggle': 'Near route',
 
   // onsen list
   'onsenList.title': 'Onsen List',

@@ -1,5 +1,13 @@
-import { useState, useEffect, useRef, useCallback, type ElementRef } from 'react';
-import { View, ActivityIndicator, Alert, Animated, Pressable, StyleSheet } from 'react-native';
+import { useState, useEffect, useRef, useCallback, useMemo, type ElementRef } from 'react';
+import {
+  View,
+  Text,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Pressable,
+  StyleSheet,
+} from 'react-native';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,9 +26,10 @@ import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/firebase';
 import { simulatedCoordinate } from '@/lib/dev-location';
+import { distanceToPolylineKm } from '@/lib/geo';
 import { useActiveChallengeProgress } from '@/hooks/useActiveChallengeProgress';
 import MapZoomControl from '@/components/MapZoomControl';
-import { colors, spacing, radii, shadows } from '@/theme';
+import { colors, spacing, radii, typography, shadows } from '@/theme';
 
 type OnsenRow = OnsenDocument & { id: string };
 
@@ -33,6 +42,10 @@ const KYUSHU_REGION = {
 
 /** Roughly city-level zoom used when recentering the map on the user. */
 const USER_LOCATION_DELTA = 0.05;
+
+/** Radius (km) for the "Near route" filter: with it on, only onsens within this
+ *  distance of the drawn route stay on the map. */
+const NEAR_ROUTE_RADIUS_KM = 2;
 
 /** Idle time (ms) with no map interaction before the zoom slider fades out, and
  *  how long that fade takes. The slider reappears on any map touch. */
@@ -84,6 +97,9 @@ export default function MapScreen() {
   const [paramRoute, setParamRoute] = useState<RouteDocument | null>(null);
   const [paramRouteLoaded, setParamRouteLoaded] = useState(!paramRouteId);
   const route = paramRouteId ? paramRoute : activeRoute;
+  // "Near route" filter: when on (and a route is drawn), hide onsens farther
+  // than NEAR_ROUTE_RADIUS_KM from the route. Inert when no route is drawn.
+  const [nearRouteOnly, setNearRouteOnly] = useState(false);
   // Whether foreground location permission is granted; gates the blue dot.
   const [locationGranted, setLocationGranted] = useState(false);
   // Live camera altitude (Apple Maps), read after each gesture settles so the
@@ -258,6 +274,18 @@ export default function MapScreen() {
   const title = route?.name ?? t('map.title');
   const initialRegion = route ? regionForBounds(route.bounds) : KYUSHU_REGION;
 
+  // Onsens actually drawn as pins. With the "Near route" filter on and a route
+  // present, keep only those within NEAR_ROUTE_RADIUS_KM of the route; otherwise
+  // all of them. Recomputed only when the inputs change, not every snapshot.
+  const visibleOnsens = useMemo(() => {
+    if (!route || !nearRouteOnly) return onsens;
+    return onsens.filter(
+      (o) =>
+        distanceToPolylineKm({ lat: o.lat, lng: o.lng }, route.points) <=
+        NEAR_ROUTE_RADIUS_KM
+    );
+  }, [onsens, route, nearRouteOnly]);
+
   // Surface the active route's name in the tab header (the tab bar label stays
   // the static "Map"); falls back to the generic title when no route is drawn.
   useEffect(() => {
@@ -322,7 +350,7 @@ export default function MapScreen() {
         onPress={bumpZoom}
         onRegionChangeComplete={handleCameraSettle}
       >
-        {onsens.map((onsen) => (
+        {visibleOnsens.map((onsen) => (
           <Marker
             key={onsen.id}
             ref={(r) => {
@@ -369,6 +397,33 @@ export default function MapScreen() {
           onActivity={bumpZoom}
         />
       </Animated.View>
+      {route && (
+        <Pressable
+          style={[
+            styles.routeFilterButton,
+            nearRouteOnly && styles.routeFilterButtonActive,
+            shadows.md,
+          ]}
+          onPress={() => setNearRouteOnly((on) => !on)}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: nearRouteOnly }}
+          accessibilityLabel={t('map.nearRouteToggle')}
+        >
+          <Ionicons
+            name={nearRouteOnly ? 'funnel' : 'funnel-outline'}
+            size={spacing[4]}
+            color={nearRouteOnly ? colors.actionPrimaryText : colors.actionPrimary}
+          />
+          <Text
+            style={[
+              styles.routeFilterLabel,
+              nearRouteOnly && styles.routeFilterLabelActive,
+            ]}
+          >
+            {t('map.nearRouteToggle')}
+          </Text>
+        </Pressable>
+      )}
       <Pressable
         style={[styles.recenterButton, shadows.md]}
         onPress={handleRecenter}
@@ -403,6 +458,31 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 0,
     justifyContent: 'center',
+  },
+  // "Near route" filter pill, top-left, only shown while a route is drawn.
+  // White pill when off; filled with the primary color when on.
+  routeFilterButton: {
+    position: 'absolute',
+    left: spacing[4],
+    top: spacing[4],
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[3],
+    borderRadius: radii.full,
+    backgroundColor: colors.background,
+  },
+  routeFilterButtonActive: {
+    backgroundColor: colors.actionPrimary,
+  },
+  routeFilterLabel: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    color: colors.actionPrimary,
+  },
+  routeFilterLabelActive: {
+    color: colors.actionPrimaryText,
   },
   recenterButton: {
     position: 'absolute',
