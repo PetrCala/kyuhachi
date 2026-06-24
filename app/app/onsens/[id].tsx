@@ -79,9 +79,9 @@ function InfoRow({
           onPress={action.onPress}
           accessibilityRole="button"
           accessibilityLabel={action.accessibilityLabel}
-          hitSlop={8}
+          hitSlop={12}
         >
-          <Ionicons name={action.icon} size={spacing[5]} color={colors.actionPrimary} />
+          <Ionicons name={action.icon} size={typography.sizes.lg} color={colors.actionPrimary} />
         </Pressable>
       )}
     </View>
@@ -378,14 +378,10 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
   infoAction: {
+    // Bare icon, vertically centered. No width/height/background so the button
+    // never exceeds the row's text line height — it can't alter row spacing.
     alignSelf: 'center',
     marginLeft: spacing[2],
-    width: spacing[8],
-    height: spacing[8],
-    borderRadius: radii.full,
-    backgroundColor: colors.backgroundSecondary,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   hoursToggle: {
     paddingVertical: spacing[2],
