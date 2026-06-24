@@ -447,6 +447,11 @@ const ja: Record<keyof typeof en, string> = {
   'routes.importErrorNoTrack': 'このファイルにトラックが見つかりませんでした。',
   'routes.importErrorParse': 'このファイルを読み込めませんでした。破損しているか、有効なGPSトラックではない可能性があります。',
   'routes.importErrorSave': 'ルートを保存できませんでした。接続を確認してもう一度お試しください。',
+  'routes.importingProgress': '{{total}}件中{{done}}件を取り込み中…',
+  'routes.importSummaryTitle': '取り込み完了',
+  'routes.importedCount': '{{total}}件中{{count}}件のルートを取り込みました。',
+  'routes.importSkippedCount': '{{count}}件をスキップしました（対応していない形式）。',
+  'routes.importFailedCount': '{{count}}件を読み込めませんでした。',
 
   // onsen detail (visit)
   'onsenDetail.notFound': '温泉が見つかりませんでした',
