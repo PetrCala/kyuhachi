@@ -105,7 +105,7 @@ const en = {
 
   // passport (stamp book)
   'passport.title': 'Passport',
-  'passport.progress': '{{visited}} / {{total}} stamps',
+  'passport.progress': '{{visited}} / {{total}}',
   'passport.hint': 'Stamps fill in the order you visit.',
   'passport.pageIndicator': 'Page {{page}} of {{total}}',
   'passport.empty': 'Start a challenge to begin your stamp book.',
