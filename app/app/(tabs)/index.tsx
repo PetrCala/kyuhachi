@@ -14,6 +14,7 @@ import { useActiveChallengeProgress } from '@/hooks/useActiveChallengeProgress';
 import { ProgressBar, type ProgressMarker } from '@/components/ProgressBar';
 import { VisitCard } from '@/components/VisitCard';
 import { TierClaimModal, type TierCelebration } from '@/components/TierClaimModal';
+import { ChallengeBadge } from '@/components/ChallengeBadge';
 import RecordVisitFab from '@/components/RecordVisitFab';
 import { buildVisitFeed } from '@/lib/visit-feed';
 import { colors, spacing, typography, radii } from '@/theme';
@@ -74,6 +75,13 @@ export default function Home() {
     if (eligibleIndex === -1 || eligibleIndex >= earnedIndex) return null;
     return { tier: eligibleTier, variant: earnedTier ? ('upgrade' as const) : ('claim' as const) };
   }, [eligibleTier, tiers, challenge?.earnedTier]);
+
+  // Localized name of the claimed tier (tiers are already localized; fall back to
+  // the tier-id key for an unknown id). Drives the claimed-tier resting row.
+  const earnedTierName = challenge?.earnedTier
+    ? tiers.find((tier) => tier.id === challenge.earnedTier)?.name ??
+      t(`challengeTier.${challenge.earnedTier}`, { defaultValue: challenge.earnedTier })
+    : null;
 
   const feed = useMemo(() => buildVisitFeed(visits, onsenMap), [visits, onsenMap]);
 
@@ -217,7 +225,7 @@ export default function Home() {
               )}
             </View>
             <ProgressBar value={eligibleVisitCount} total={completionCount} markers={markers} />
-            {claimable && (
+            {claimable ? (
               <Pressable
                 style={[styles.claimButton, claiming && styles.claimButtonDisabled]}
                 onPress={claimTier}
@@ -237,7 +245,17 @@ export default function Home() {
                   </Text>
                 )}
               </Pressable>
-            )}
+            ) : challenge.earnedTier ? (
+              // Once claimed (and nothing higher to claim), the button's slot
+              // becomes the badge's resting place: medal + tier name.
+              <View style={styles.tierRow}>
+                <ChallengeBadge tierId={challenge.earnedTier} size={spacing[8]} accessibilityLabel={null} />
+                <View>
+                  <Text style={styles.tierRowName}>{earnedTierName}</Text>
+                  <Text style={styles.tierRowSub}>{t('challengeProgress.tierClaimed')}</Text>
+                </View>
+              </View>
+            ) : null}
           </View>
         )}
 
@@ -418,6 +436,26 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
     color: colors.actionPrimaryText,
+  },
+  tierRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+    marginTop: spacing[4],
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: radii.md,
+  },
+  tierRowName: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
+    color: colors.textPrimary,
+  },
+  tierRowSub: {
+    fontSize: typography.sizes.sm,
+    color: colors.textMuted,
+    marginTop: spacing[1],
   },
   recentSection: {
     paddingHorizontal: spacing[4],
