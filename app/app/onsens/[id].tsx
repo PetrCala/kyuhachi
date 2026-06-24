@@ -46,17 +46,17 @@ function InfoRow({
   label,
   value,
   onPress,
-  action,
+  actions,
 }: {
   label: string;
   value: string;
   onPress?: () => void;
-  /** An inline icon (e.g. directions) shown right after the value text, tappable on its own. */
-  action?: {
+  /** Inline icons (e.g. view-on-map, directions) shown right after the value text, each tappable on its own. */
+  actions?: {
     icon: ComponentProps<typeof Ionicons>['name'];
     onPress: () => void;
     accessibilityLabel: string;
-  };
+  }[];
 }) {
   return (
     <View style={styles.infoRow}>
@@ -73,17 +73,18 @@ function InfoRow({
       ) : (
         <Text style={styles.infoValue}>
           {value}
-          {action && (
+          {actions?.map((a) => (
             <Text
-              onPress={action.onPress}
+              key={a.icon}
+              onPress={a.onPress}
               accessibilityRole="button"
-              accessibilityLabel={action.accessibilityLabel}
+              accessibilityLabel={a.accessibilityLabel}
               suppressHighlighting
             >
               {'  '}
-              <Ionicons name={action.icon} size={typography.sizes.md} color={colors.actionPrimary} />
+              <Ionicons name={a.icon} size={typography.sizes.md} color={colors.actionPrimary} />
             </Text>
-          )}
+          ))}
         </Text>
       )}
     </View>
@@ -151,6 +152,15 @@ export default function OnsenDetail() {
     router.push({ pathname: '/onsens/edit-visit', params: { id } });
   }
 
+  // Jump to the Map tab and center on this onsen's pin. `focusTs` makes each tap
+  // a fresh request so the map re-focuses even on a repeat visit to the same id.
+  function showOnMap() {
+    router.push({
+      pathname: '/map',
+      params: { focusOnsenId: id, focusTs: String(Date.now()) },
+    });
+  }
+
   if (loading) {
     return (
       <>
@@ -206,12 +216,19 @@ export default function OnsenDetail() {
           <InfoRow
             label={t('onsenDetail.labelAddress')}
             value={onsen.address}
-            action={{
-              icon: 'navigate',
-              onPress: () =>
-                Linking.openURL(`https://maps.apple.com/?daddr=${onsen.lat},${onsen.lng}`),
-              accessibilityLabel: t('onsenDetail.getDirections'),
-            }}
+            actions={[
+              {
+                icon: 'map-outline',
+                onPress: showOnMap,
+                accessibilityLabel: t('onsenDetail.showOnMap'),
+              },
+              {
+                icon: 'navigate',
+                onPress: () =>
+                  Linking.openURL(`https://maps.apple.com/?daddr=${onsen.lat},${onsen.lng}`),
+                accessibilityLabel: t('onsenDetail.getDirections'),
+              },
+            ]}
           />
           {onsen.phone && (
             <InfoRow
