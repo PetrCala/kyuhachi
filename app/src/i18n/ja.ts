@@ -104,12 +104,12 @@ const ja: Record<keyof typeof en, string> = {
   'stats.transport.car': '車',
   'stats.transport.unreported': '未記録',
 
-  // passport (stamp book)
-  'passport.title': 'スタンプ帳',
+  // passport (御湯印帳 — official stamp book)
+  'passport.title': '御湯印帳',
   'passport.progress': '{{visited}} / {{total}}',
-  'passport.hint': 'スタンプは訪問した順に押されます。',
+  'passport.hint': '湯印は訪問した順に押されます。',
   'passport.pageIndicator': '{{total}}ページ中{{page}}ページ',
-  'passport.empty': 'チャレンジを始めると、スタンプ帳を集め始められます。',
+  'passport.empty': 'チャレンジを始めると、御湯印帳を押し始められます。',
 
   // visits (full history + feed cards)
   'visits.title': '訪問履歴',

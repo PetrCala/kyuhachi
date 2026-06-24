@@ -103,7 +103,7 @@ const en = {
   'stats.transport.car': 'Car',
   'stats.transport.unreported': 'Unreported',
 
-  // passport (stamp book)
+  // passport (御湯印帳 — official stamp book)
   'passport.title': 'Passport',
   'passport.progress': '{{visited}} / {{total}}',
   'passport.hint': 'Stamps fill in the order you visit.',
