@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useStats } from '@/hooks/useStats';
 import { formatYen } from '@/lib/budget';
-import { formatDuration, formatPercent, round1 } from '@/lib/stats-format';
+import { formatMonthYear, formatPercent, round1 } from '@/lib/stats-format';
+import { rankLabel } from '@/lib/challenge-i18n';
 import { StatScreenFrame, Section, StatCard, MetricRow } from '@/components/stats/StatPrimitives';
 import { colors, spacing, typography, radii } from '@/theme';
 
@@ -50,9 +51,10 @@ function HubCard({ icon, title, subtitle, teaser, route, last }: HubCardProps) {
  * disagree. With a challenge but no visits, cards still render zeroed teasers.
  */
 export default function StatsHub() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const stats = useStats();
-  const { loading, hasData, progress, geography, timeline, transport, budget, experience } = stats;
+  const { loading, hasData, progress, geography, timeline, transport, budget, experience, ranks, currentRank } =
+    stats;
 
   // Dominant reported transport mode (for the transport card teaser).
   const dominantMode = transport
@@ -60,6 +62,21 @@ export default function StatsHub() {
         .filter((b) => b.key !== 'unreported' && b.count > 0)
         .sort((a, b) => b.count - a.count)[0]
     : undefined;
+
+  // Projected-finish highlight: a month/year once there's enough history to
+  // ground the pace (≥2 visits avoids a wild one-visit extrapolation); a
+  // completed challenge shows "Done"; otherwise nothing to project yet.
+  const projectedFinish =
+    progress?.projectedCompletionMs != null && progress.visitsDone >= 2
+      ? formatMonthYear(progress.projectedCompletionMs, i18n.language)
+      : progress?.isComplete
+        ? t('stats.highlight.complete')
+        : '—';
+
+  // Rank highlight: the derived ladder standing. "—" when the challenge type
+  // publishes no ranks; "Unranked" when ranks exist but none reached yet.
+  const rankValue =
+    ranks.length === 0 ? '—' : currentRank ? rankLabel(currentRank, t) : t('challengeRank.unranked');
 
   return (
     <StatScreenFrame
@@ -71,10 +88,7 @@ export default function StatsHub() {
       <Section title={t('stats.hub.highlightsTitle')} card={false}>
         <View style={styles.highlightGrid}>
           <MetricRow>
-            <StatCard
-              label={t('stats.highlight.soakTime')}
-              value={formatDuration(experience?.time.totalMinutes ?? 0, t)}
-            />
+            <StatCard label={t('stats.highlight.projectedFinish')} value={projectedFinish} />
             <StatCard
               label={t('stats.highlight.prefectures')}
               value={t('stats.coverageFraction', {
@@ -84,14 +98,7 @@ export default function StatsHub() {
             />
           </MetricRow>
           <MetricRow>
-            <StatCard
-              label={t('stats.highlight.selfPowered')}
-              value={
-                transport?.selfPoweredPercent != null
-                  ? formatPercent(transport.selfPoweredPercent, t)
-                  : '—'
-              }
-            />
+            <StatCard label={t('stats.highlight.rank')} value={rankValue} />
             <StatCard label={t('stats.highlight.topRated')} value={experience?.best?.name ?? '—'} />
           </MetricRow>
         </View>

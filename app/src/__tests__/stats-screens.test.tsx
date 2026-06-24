@@ -137,6 +137,11 @@ describe('Stats hub', () => {
     mock(populated());
     render(<StatsHub />);
     expect(screen.getByText('stats.hub.highlightsTitle')).toBeTruthy();
+    // The four highlight labels: projected finish, prefectures, rank, top-rated.
+    expect(screen.getByText('stats.highlight.projectedFinish')).toBeTruthy();
+    expect(screen.getByText('stats.highlight.prefectures')).toBeTruthy();
+    expect(screen.getByText('stats.highlight.rank')).toBeTruthy();
+    expect(screen.getByText('stats.highlight.topRated')).toBeTruthy();
     expect(screen.getByText('stats.progress.title')).toBeTruthy();
     expect(screen.getByText('stats.geography.title')).toBeTruthy();
     expect(screen.getByText('stats.timeline.title')).toBeTruthy();
