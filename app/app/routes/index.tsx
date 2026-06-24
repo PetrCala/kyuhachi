@@ -20,8 +20,10 @@ import {
   deleteDoc,
   onSnapshot,
   serverTimestamp,
+  writeBatch,
   type FirebaseFirestoreTypes,
 } from '@react-native-firebase/firestore';
+import { Ionicons } from '@expo/vector-icons';
 import type { RouteDocument } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
@@ -32,10 +34,12 @@ import {
   nameWithoutExtension,
   RouteImportError,
 } from '@/lib/route-import';
+import { compareRoutes, routeOrderUpdates } from '@/lib/route-order';
 import { firebaseErrorKey } from '@/lib/firebase-errors';
 import RowActionsButton from '@/components/RowActionsButton';
 import RouteDrawLoader from '@/components/RouteDrawLoader';
-import { colors, spacing, typography, radii } from '@/theme';
+import DraggableList, { type DragRowState } from '@/components/DraggableList';
+import { colors, spacing, typography, radii, shadows } from '@/theme';
 
 interface RouteRow {
   id: string;
@@ -57,6 +61,14 @@ const METERS_PER_KM = 1000;
 // finishes before we navigate (the Firestore write is usually faster).
 const ROUTE_DRAW_DWELL_MS = 1250;
 
+// Card geometry (fixed, not part of the spacing scale): a uniform row height is
+// what lets the drag-reorder math map a finger offset to a slot index. The card
+// fills the top of each slot; the leftover (ROW_HEIGHT − CARD_HEIGHT) is the gap
+// below it, sized to match the select-mode list's marginBottom (spacing[3]).
+const CARD_HEIGHT = 76;
+const ROW_HEIGHT = CARD_HEIGHT + spacing[3];
+const HANDLE_ICON_SIZE = 24;
+
 export default function RoutesList() {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -75,6 +87,9 @@ export default function RoutesList() {
     total: number;
   } | null>(null);
   const [selecting, setSelecting] = useState(false);
+  // Locks the surrounding ScrollView while a route is being dragged so the page
+  // doesn't scroll out from under the gesture.
+  const [dragging, setDragging] = useState(false);
   const [drawing, setDrawing] = useState<{
     name: string;
     points: { lat: number; lng: number }[];
@@ -96,14 +111,16 @@ export default function RoutesList() {
     return unsubscribe;
   }, [user]);
 
-  // Newest first. A just-imported route has a null serverTimestamp until it syncs;
-  // treat null as newest so it surfaces at the top immediately.
+  // Manual order first (set by drag-reorder), then any unordered routes newest
+  // first — a just-imported route has no sortOrder and a null serverTimestamp,
+  // so it surfaces at the top until the user places it. See compareRoutes.
   const sorted = useMemo(() => {
-    return [...routes].sort((a, b) => {
-      const am = a.data.createdAt ? a.data.createdAt.toMillis() : Infinity;
-      const bm = b.data.createdAt ? b.data.createdAt.toMillis() : Infinity;
-      return bm - am;
-    });
+    return [...routes].sort((a, b) =>
+      compareRoutes(
+        { sortOrder: a.data.sortOrder, createdAtMillis: a.data.createdAt?.toMillis() ?? null },
+        { sortOrder: b.data.sortOrder, createdAtMillis: b.data.createdAt?.toMillis() ?? null }
+      )
+    );
   }, [routes]);
 
   // Attach the active route on the challenge this picker was opened for, then
@@ -303,12 +320,94 @@ export default function RoutesList() {
     ]);
   }
 
+  // Persist a drag-reorder. Writes sortOrder = new index to only the routes
+  // whose position actually changed, in one batch. Firestore's offline cache
+  // applies it immediately, so the live query re-sorts to the same order the
+  // user just dropped — no visible jump.
+  async function persistOrder(orderedIds: string[]) {
+    if (!user) return;
+    const currentById = new Map(routes.map((r) => [r.id, r.data.sortOrder]));
+    const updates = routeOrderUpdates(orderedIds, currentById);
+    if (updates.length === 0) return;
+    try {
+      const batch = writeBatch(db);
+      for (const { id, sortOrder } of updates) {
+        batch.update(
+          doc(db, COLLECTIONS.USERS, user.uid, SUBCOLLECTIONS.ROUTES, id),
+          { sortOrder, updatedAt: serverTimestamp() }
+        );
+      }
+      await batch.commit();
+    } catch (error) {
+      Alert.alert(t('routes.errorReorder'), t(firebaseErrorKey(error)));
+    }
+  }
+
   function metaLine(data: RouteDocument): string {
     if (data.distanceMeters != null) {
       const km = (data.distanceMeters / METERS_PER_KM).toFixed(1);
       return t('routes.metaWithDistance', { points: data.pointCount, km });
     }
     return t('routes.metaPointsOnly', { points: data.pointCount });
+  }
+
+  // One card surface, used in both modes. `drag` is present only in manage mode:
+  // it carries the grab handle's gesture props and whether this row is in hand.
+  function renderCard({ id, data }: RouteRow, drag?: DragRowState) {
+    return (
+      <View
+        key={id}
+        style={[
+          styles.card,
+          !drag && styles.cardSpaced,
+          drag?.isActive && styles.cardActive,
+          drag?.isActive && shadows.md,
+        ]}
+      >
+        {drag && (
+          <View
+            style={styles.dragHandle}
+            accessibilityRole="button"
+            accessibilityLabel={t('routes.dragHandle')}
+            {...drag.dragHandleProps}
+          >
+            <Ionicons name="reorder-three" size={HANDLE_ICON_SIZE} color={colors.textTertiary} />
+          </View>
+        )}
+        <Pressable
+          style={styles.cardMain}
+          disabled={selecting}
+          onPress={() =>
+            selectMode
+              ? setChallengeRoute(id, { name: data.name, points: data.points })
+              : router.push({ pathname: '/map', params: { routeId: id } })
+          }
+        >
+          <Text style={styles.cardName} numberOfLines={1}>
+            {data.name}
+          </Text>
+          <Text style={styles.cardMeta} numberOfLines={1}>
+            {metaLine(data)}
+          </Text>
+        </Pressable>
+        {/* Rename/delete are available in both modes: the ⋯ trigger is a separate
+            hit target from the row's select/open Pressable, so it never competes
+            with the primary tap. */}
+        <RowActionsButton
+          accessibilityLabel={t('routes.moreActions')}
+          title={data.name}
+          cancelLabel={t('routes.cancel')}
+          actions={[
+            { label: t('routes.rename'), onPress: () => promptRename(id, data.name) },
+            {
+              label: t('routes.delete'),
+              destructive: true,
+              onPress: () => confirmDelete(id, data.name),
+            },
+          ]}
+        />
+      </View>
+    );
   }
 
   const title = selectMode ? t('routes.selectTitle') : t('routes.title');
@@ -327,44 +426,32 @@ export default function RoutesList() {
   return (
     <>
       <Stack.Screen options={{ title, headerShown: true }} />
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        {selectMode && <Text style={styles.selectHint}>{t('routes.selectHint')}</Text>}
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        scrollEnabled={!dragging}
+      >
+        {selectMode ? (
+          <Text style={styles.selectHint}>{t('routes.selectHint')}</Text>
+        ) : (
+          sorted.length > 1 && <Text style={styles.reorderHint}>{t('routes.reorderHint')}</Text>
+        )}
 
         {sorted.length === 0 ? (
           <Text style={styles.empty}>{t('routes.empty')}</Text>
+        ) : selectMode ? (
+          // Picker: tap-to-select, no reordering (the picker is transient and a
+          // challenge takes exactly one route).
+          sorted.map((row) => renderCard(row))
         ) : (
-          sorted.map(({ id, data }) => (
-            <View key={id} style={styles.card}>
-              <Pressable
-                style={styles.cardMain}
-                disabled={selecting}
-                onPress={() =>
-                  selectMode
-                    ? setChallengeRoute(id, { name: data.name, points: data.points })
-                    : router.push({ pathname: '/map', params: { routeId: id } })
-                }
-              >
-                <Text style={styles.cardName}>{data.name}</Text>
-                <Text style={styles.cardMeta}>{metaLine(data)}</Text>
-              </Pressable>
-              {/* Rename/delete are available in both modes: the ⋯ trigger is a
-                  separate hit target from the row's select/open Pressable, so it
-                  never competes with the primary tap. */}
-              <RowActionsButton
-                accessibilityLabel={t('routes.moreActions')}
-                title={data.name}
-                cancelLabel={t('routes.cancel')}
-                actions={[
-                  { label: t('routes.rename'), onPress: () => promptRename(id, data.name) },
-                  {
-                    label: t('routes.delete'),
-                    destructive: true,
-                    onPress: () => confirmDelete(id, data.name),
-                  },
-                ]}
-              />
-            </View>
-          ))
+          <DraggableList
+            items={sorted}
+            keyExtractor={(row) => row.id}
+            rowHeight={ROW_HEIGHT}
+            onOrderChange={persistOrder}
+            onDraggingChange={setDragging}
+            renderItem={renderCard}
+          />
         )}
 
         <Pressable
@@ -410,6 +497,11 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginBottom: spacing[4],
   },
+  reorderHint: {
+    fontSize: typography.sizes.sm,
+    color: colors.textMuted,
+    marginBottom: spacing[4],
+  },
   importButton: {
     backgroundColor: colors.actionPrimary,
     borderRadius: radii.md,
@@ -437,8 +529,24 @@ const styles = StyleSheet.create({
     backgroundColor: colors.backgroundSecondary,
     borderRadius: radii.lg,
     paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
+    // Fixed height (not vertical padding) so every drag slot is uniform; the
+    // single-line name + meta sit comfortably within it.
+    height: CARD_HEIGHT,
+  },
+  // Gap between cards in the select-mode flow list. In manage mode the spacing
+  // is built into ROW_HEIGHT instead (the empty strip below each card).
+  cardSpaced: {
     marginBottom: spacing[3],
+  },
+  // The row currently under the finger: lift it off the page.
+  cardActive: {
+    backgroundColor: colors.backgroundElevated,
+    transform: [{ scale: 1.02 }],
+  },
+  dragHandle: {
+    alignSelf: 'stretch',
+    justifyContent: 'center',
+    paddingRight: spacing[3],
   },
   cardMain: {
     flex: 1,

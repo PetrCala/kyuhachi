@@ -300,6 +300,12 @@ export interface RouteDocument {
   pointCount: number
   bounds: { minLat: number; minLng: number; maxLat: number; maxLng: number }
   distanceMeters: number | null
+  /**
+   * Manual position in the routes list, ascending (0 = top). Set when the user
+   * drag-reorders the list; absent on a freshly imported route, which then sorts
+   * to the top by `createdAt` until the user reorders again.
+   */
+  sortOrder?: number
   createdAt: Timestamp
   updatedAt: Timestamp
 }
