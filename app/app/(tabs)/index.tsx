@@ -243,6 +243,9 @@ export default function Home() {
             <Pressable style={styles.pillButton} onPress={() => router.push('/challenge/list')}>
               <Text style={styles.pillButtonText}>{t('challengeList.title')}</Text>
             </Pressable>
+            <Pressable style={styles.pillButton} onPress={() => router.push('/passport')}>
+              <Text style={styles.pillButtonText}>{t('passport.title')}</Text>
+            </Pressable>
           </View>
         </View>
 
@@ -442,6 +445,8 @@ const styles = StyleSheet.create({
   },
   headerActions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
     gap: spacing[2],
     marginTop: spacing[3],
   },

@@ -85,6 +85,11 @@ export const colors = {
 
   // Map markers
   onsenVisited: palette.water, // bath-water blue pin for visited onsens
+
+  // Passport stamp (collectible seal in the stamp-book screen)
+  stampInk:       palette.black,   // seal frame, kanji, and inked date
+  stampFrame:     palette.gray300, // outline of an unstamped slot
+  stampWatermark: palette.gray200, // faint ♨ inside an unstamped slot
 } as const;
 
 export type Color = keyof typeof colors;
