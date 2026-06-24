@@ -459,6 +459,7 @@ const ja: Record<keyof typeof en, string> = {
   'onsenDetail.getDirections': '経路を表示',
   'onsenDetail.showOnMap': '地図で見る',
   'onsenDetail.markVisited': '訪問済みにする',
+  'onsenDetail.markVisitedShort': '訪問済みに',
   'onsenDetail.visited': '訪問済み ✓',
   'onsenDetail.labelNotes': 'メモ',
   'onsenDetail.labelRating': '評価',

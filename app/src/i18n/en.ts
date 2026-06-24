@@ -470,6 +470,7 @@ const en = {
   'onsenDetail.getDirections': 'Get directions',
   'onsenDetail.showOnMap': 'Show on map',
   'onsenDetail.markVisited': 'Mark as Visited',
+  'onsenDetail.markVisitedShort': 'Visit',
   'onsenDetail.visited': 'Visited ✓',
   'onsenDetail.labelNotes': 'Notes',
   'onsenDetail.labelRating': 'Rating',

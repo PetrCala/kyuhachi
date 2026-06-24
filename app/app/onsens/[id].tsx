@@ -196,30 +196,50 @@ export default function OnsenDetail() {
       }
     : null;
 
+  const showVisitButton = !!challengeId && !visit && !visitLoading;
+
   return (
     <>
       <Stack.Screen
         options={{
           title: onsen.name,
           headerShown: true,
-          // When the in-body preview is off, surface the map action as a compact
-          // header icon instead.
-          headerRight: showOnsenMapPreview
-            ? undefined
-            : () => (
-                <Pressable
-                  onPress={showOnMap}
-                  hitSlop={spacing[2]}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('onsenDetail.showOnMap')}
-                >
-                  <Ionicons
-                    name="map-outline"
-                    size={typography.sizes.xl}
-                    color={colors.actionPrimary}
-                  />
-                </Pressable>
-              ),
+          // Surface the primary actions in the header so they stay reachable at
+          // the top of the screen: a "Visit" check-in button while the onsen is
+          // unvisited, plus the compact map icon when the in-body preview is off.
+          headerRight:
+            !showVisitButton && showOnsenMapPreview
+              ? undefined
+              : () => (
+                  <View style={styles.headerActions}>
+                    {showVisitButton && (
+                      <Pressable
+                        onPress={handleMarkVisited}
+                        hitSlop={spacing[2]}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('onsenDetail.markVisited')}
+                      >
+                        <Text style={styles.headerVisitText}>
+                          {t('onsenDetail.markVisitedShort')}
+                        </Text>
+                      </Pressable>
+                    )}
+                    {!showOnsenMapPreview && (
+                      <Pressable
+                        onPress={showOnMap}
+                        hitSlop={spacing[2]}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('onsenDetail.showOnMap')}
+                      >
+                        <Ionicons
+                          name="map-outline"
+                          size={typography.sizes.xl}
+                          color={colors.actionPrimary}
+                        />
+                      </Pressable>
+                    )}
+                  </View>
+                ),
         }}
       />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -330,14 +350,6 @@ export default function OnsenDetail() {
               hitSlop={4}
             >
               <Text style={styles.websiteLink}>{onsen.websiteUrl}</Text>
-            </Pressable>
-          </View>
-        )}
-
-        {challengeId && !visit && !visitLoading && (
-          <View style={styles.visitSection}>
-            <Pressable style={styles.visitButton} onPress={handleMarkVisited}>
-              <Text style={styles.visitButtonText}>{t('onsenDetail.markVisited')}</Text>
             </Pressable>
           </View>
         )}
@@ -483,19 +495,14 @@ const styles = StyleSheet.create({
     height: 160,
     backgroundColor: colors.backgroundSecondary,
   },
-  visitSection: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[6],
+  // Row of header-right actions (visit check-in + optional map icon).
+  headerActions: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing[4],
   },
-  visitButton: {
-    backgroundColor: colors.actionPrimary,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing[8],
-    paddingVertical: spacing[4],
-  },
-  visitButtonText: {
-    color: colors.actionPrimaryText,
+  headerVisitText: {
+    color: colors.actionPrimary,
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
   },
