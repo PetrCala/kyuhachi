@@ -81,6 +81,7 @@ const ja: Record<keyof typeof en, string> = {
   'home.suggestNext.heading': '最寄りの未訪問温泉',
   'home.suggestNext.locationPrompt': '位置情報をオンにすると、まだ訪れていない最寄りの温泉が表示されます。',
   'home.suggestNext.enableLocation': '位置情報をオンにする',
+  'home.suggestNext.browseOnsens': '温泉を見る',
 
   // stats (cost/budget)
   'stats.title': '統計',

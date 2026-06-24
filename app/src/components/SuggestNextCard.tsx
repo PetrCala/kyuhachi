@@ -99,10 +99,33 @@ export function SuggestNextCard({ candidates, activeRoute }: SuggestNextCardProp
     [origin, candidates]
   );
 
-  // Nothing eligible left to suggest (challenge complete, or all visited).
-  if (candidates.length === 0) return null;
+  // Shared fallback CTA. Used when there's nothing to rank by location — either
+  // the challenge is complete (no candidates) or the user declined location —
+  // so the card never collapses to nothing as the home screen's lead block.
+  const browseFallback = (
+    <Pressable
+      style={styles.browseButton}
+      onPress={() => router.push('/(tabs)/onsens')}
+      accessibilityRole="button"
+    >
+      <Text style={styles.browseButtonText}>{t('home.suggestNext.browseOnsens')}</Text>
+      <Text style={styles.chevron}>›</Text>
+    </Pressable>
+  );
 
-  // Permission denied and no location yet: invite the user to turn it on.
+  // Nothing eligible left to suggest (challenge complete, or all visited). Offer
+  // a way into the full onsen list rather than vanishing from the top of home.
+  if (candidates.length === 0) {
+    return (
+      <View style={styles.card}>
+        <Text style={styles.heading}>{t('home.suggestNext.heading')}</Text>
+        {browseFallback}
+      </View>
+    );
+  }
+
+  // Permission denied and no location yet: invite the user to turn it on, but
+  // still offer the browse path so a refusal doesn't dead-end the lead block.
   if (denied && !deviceCoords) {
     return (
       <View style={styles.card}>
@@ -111,6 +134,7 @@ export function SuggestNextCard({ candidates, activeRoute }: SuggestNextCardProp
         <Pressable style={styles.enableButton} onPress={onEnablePress} accessibilityRole="button">
           <Text style={styles.enableButtonText}>{t('home.suggestNext.enableLocation')}</Text>
         </Pressable>
+        {browseFallback}
       </View>
     );
   }
@@ -175,6 +199,18 @@ const styles = StyleSheet.create({
   enableButtonText: {
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.semibold,
+    color: colors.actionPrimary,
+  },
+  browseButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: spacing[1],
+    marginTop: spacing[2],
+  },
+  browseButtonText: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
     color: colors.actionPrimary,
   },
   row: {
