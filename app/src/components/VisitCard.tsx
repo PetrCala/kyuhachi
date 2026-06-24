@@ -6,7 +6,7 @@ import type { TransportMode } from '@kyuhachi/shared';
 import OnsenIcon from '@/components/OnsenIcon';
 import { formatVisitDate } from '@/lib/format-visit-date';
 import type { VisitFeedItem } from '@/lib/visit-feed';
-import { colors, spacing, typography, radii } from '@/theme';
+import { colors, spacing, typography, radii, shadows } from '@/theme';
 
 type IoniconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -25,12 +25,21 @@ interface VisitCardProps {
   hideOnsenHeader?: boolean;
   /** When set, render an "Edit details" affordance in the header. */
   onEdit?: () => void;
+  /** Present this as the onsen's own completion card: a tinted, elevated card
+   *  led by a celebratory "you've soaked here" header instead of a bare date. */
+  completed?: boolean;
 }
 
 /** One visit rendered as a social-feed card. Each row of detail appears only
  *  when its underlying field is present, so a quick check-in collapses to a
  *  tight header while a richly-logged visit reads like a Strava post. */
-export function VisitCard({ item, onPress, hideOnsenHeader = false, onEdit }: VisitCardProps) {
+export function VisitCard({
+  item,
+  onPress,
+  hideOnsenHeader = false,
+  onEdit,
+  completed = false,
+}: VisitCardProps) {
   const { t, i18n } = useTranslation();
   const { visit, onsenName, areaName, prefecture } = item;
   const { rating, transportMode, duration, waterTemp, wouldReturn } = visit.structuredData;
@@ -38,6 +47,7 @@ export function VisitCard({ item, onPress, hideOnsenHeader = false, onEdit }: Vi
   const photoUrls = visit.photoUrls ?? [];
   const location = [areaName, prefecture].filter(Boolean).join(' · ');
   const dateLabel = formatVisitDate(visit.visitedAt.toDate(), new Date(), t, i18n.language);
+  const visitedOn = visit.visitedAt.toDate().toLocaleDateString(i18n.language);
   const hasStats =
     rating != null ||
     transportMode != null ||
@@ -46,9 +56,24 @@ export function VisitCard({ item, onPress, hideOnsenHeader = false, onEdit }: Vi
     wouldReturn === true;
 
   return (
-    <Pressable style={styles.card} onPress={onPress}>
-      <View style={styles.header}>
-        {hideOnsenHeader ? (
+    <Pressable
+      style={completed ? [styles.card, styles.cardCompleted, shadows.sm] : styles.card}
+      onPress={onPress}
+    >
+      <View style={completed ? styles.completedHeader : styles.header}>
+        {completed ? (
+          <>
+            <View style={styles.completedSeal}>
+              <Ionicons name="checkmark-sharp" size={spacing[5]} color={colors.textInverted} />
+            </View>
+            <View style={styles.headerText}>
+              <Text style={styles.completedTitle}>{t('onsenDetail.visitedCardTitle')}</Text>
+              <Text style={styles.completedDate}>
+                {t('onsenDetail.visitedCardDate', { date: visitedOn })}
+              </Text>
+            </View>
+          </>
+        ) : hideOnsenHeader ? (
           <Text style={styles.compactDate}>{dateLabel}</Text>
         ) : (
           <>
@@ -153,9 +178,37 @@ const styles = StyleSheet.create({
     marginBottom: spacing[3],
     overflow: 'hidden',
   },
+  // Completion variant: a tinted, elevated card whose header celebrates the visit.
+  cardCompleted: {
+    borderColor: colors.onsenVisited,
+    backgroundColor: colors.backgroundSecondary,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  completedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+  },
+  completedSeal: {
+    width: spacing[8],
+    height: spacing[8],
+    borderRadius: radii.full,
+    backgroundColor: colors.onsenVisited,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  completedTitle: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.bold,
+    color: colors.textPrimary,
+  },
+  completedDate: {
+    fontSize: typography.sizes.sm,
+    color: colors.textTertiary,
+    marginTop: spacing[1],
   },
   avatar: {
     width: spacing[8],

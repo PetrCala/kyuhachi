@@ -344,10 +344,10 @@ export default function OnsenDetail() {
 
         {feedItem && (
           <View style={styles.visitSummarySection}>
-            <Text style={styles.visitedHeader}>{t('onsenDetail.visited')}</Text>
             <VisitCard
               item={feedItem}
               hideOnsenHeader
+              completed
               onEdit={() =>
                 router.push({ pathname: '/onsens/edit-visit', params: { id: onsen.id } })
               }
@@ -507,11 +507,5 @@ const styles = StyleSheet.create({
   visitSummarySection: {
     paddingHorizontal: spacing[4],
     paddingTop: spacing[4],
-  },
-  visitedHeader: {
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.bold,
-    color: colors.textPrimary,
-    marginBottom: spacing[3],
   },
 });

@@ -466,6 +466,8 @@ const ja: Record<keyof typeof en, string> = {
   'onsenDetail.showOnMap': '地図で見る',
   'onsenDetail.markVisited': '訪問済みにする',
   'onsenDetail.visited': '訪問済み ✓',
+  'onsenDetail.visitedCardTitle': 'この温泉に入浴しました',
+  'onsenDetail.visitedCardDate': '{{date}} に訪問',
   'onsenDetail.labelNotes': 'メモ',
   'onsenDetail.labelRating': '評価',
   'onsenDetail.labelWaterTemp': '湯温',
