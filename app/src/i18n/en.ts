@@ -331,6 +331,7 @@ const en = {
   'onsenDetail.labelSpringQuality': 'Spring Quality',
   'onsenDetail.labelHours': 'Business Hours',
   'onsenDetail.getDirections': 'Get directions',
+  'onsenDetail.showOnMap': 'Show on map',
   'onsenDetail.markVisited': 'Mark as Visited',
   'onsenDetail.visited': 'Visited ✓',
   'onsenDetail.labelNotes': 'Notes',

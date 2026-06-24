@@ -151,6 +151,15 @@ export default function OnsenDetail() {
     router.push({ pathname: '/onsens/edit-visit', params: { id } });
   }
 
+  // Jump to the Map tab and center on this onsen's pin. `focusTs` makes each tap
+  // a fresh request so the map re-focuses even on a repeat visit to the same id.
+  function showOnMap() {
+    router.push({
+      pathname: '/map',
+      params: { focusOnsenId: id, focusTs: String(Date.now()) },
+    });
+  }
+
   if (loading) {
     return (
       <>
@@ -254,6 +263,12 @@ export default function OnsenDetail() {
                 })}
             </>
           )}
+        </View>
+
+        <View style={styles.mapSection}>
+          <Pressable style={styles.mapButton} onPress={showOnMap} accessibilityRole="button">
+            <Text style={styles.mapButtonText}>{t('onsenDetail.showOnMap')}</Text>
+          </Pressable>
         </View>
 
         {onsen.websiteUrl && (
@@ -402,6 +417,21 @@ const styles = StyleSheet.create({
     color: colors.actionPrimary,
     textDecorationLine: 'underline',
     paddingVertical: spacing[2],
+  },
+  mapSection: {
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[4],
+  },
+  mapButton: {
+    backgroundColor: colors.actionPrimary,
+    borderRadius: radii.md,
+    paddingVertical: spacing[4],
+    alignItems: 'center',
+  },
+  mapButtonText: {
+    color: colors.actionPrimaryText,
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
   },
   visitSection: {
     paddingHorizontal: spacing[4],

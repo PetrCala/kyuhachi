@@ -60,7 +60,11 @@ export default function MapScreen() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const navigation = useNavigation();
-  const { routeId: paramRouteId } = useLocalSearchParams<{ routeId?: string }>();
+  const { routeId: paramRouteId, focusOnsenId, focusTs } = useLocalSearchParams<{
+    routeId?: string;
+    focusOnsenId?: string;
+    focusTs?: string;
+  }>();
   // kyuhachiIds visited in the active challenge (drives the visited pin color),
   // plus the active challenge's route — both kept live by the progress hook.
   const { visitedIds, activeRoute, loading: progressLoading } =
@@ -271,6 +275,25 @@ export default function MapScreen() {
     framedBoundsRef.current = key;
     mapRef.current?.animateToRegion(regionForBounds(route.bounds));
   }, [route]);
+
+  // Arriving from an onsen's "Show on map": center the camera on that pin.
+  // `focusTs` is a per-tap nonce so tapping again re-focuses the same onsen (an
+  // unchanging id alone wouldn't re-fire the effect); the guard stops a re-run
+  // on unrelated re-renders or when returning to this tab. Runs after the
+  // route-framing effect above so a focused onsen wins the camera.
+  const focusedTokenRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!focusOnsenId || !focusTs || focusedTokenRef.current === focusTs) return;
+    const target = onsens.find((o) => o.id === focusOnsenId);
+    if (!target) return; // onsen list not loaded yet; re-runs when it arrives
+    focusedTokenRef.current = focusTs;
+    mapRef.current?.animateToRegion({
+      latitude: target.lat,
+      longitude: target.lng,
+      latitudeDelta: USER_LOCATION_DELTA,
+      longitudeDelta: USER_LOCATION_DELTA,
+    });
+  }, [focusOnsenId, focusTs, onsens]);
 
   if (loading) {
     return (
