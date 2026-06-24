@@ -26,6 +26,7 @@ import type { OnsenDocument, WeeklySchedule } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS, EMPTY_VISIT_STRUCTURED_DATA } from '@kyuhachi/shared';
 import type { VisitFeedItem } from '@/lib/visit-feed';
 import { VisitCard } from '@/components/VisitCard';
+import { VisitedBanner } from '@/components/VisitedBanner';
 import RecordVisitFab from '@/components/RecordVisitFab';
 import { useVisit } from '@/hooks/useVisit';
 import { useAuth } from '@/context/AuthContext';
@@ -344,14 +345,13 @@ export default function OnsenDetail() {
 
         {feedItem && (
           <View style={styles.visitSummarySection}>
-            <Text style={styles.visitedHeader}>{t('onsenDetail.visited')}</Text>
-            <VisitCard
-              item={feedItem}
-              hideOnsenHeader
+            <VisitedBanner
+              visit={visit!}
               onEdit={() =>
                 router.push({ pathname: '/onsens/edit-visit', params: { id: onsen.id } })
               }
             />
+            <VisitCard item={feedItem} hideOnsenHeader />
           </View>
         )}
       </ScrollView>
@@ -507,11 +507,5 @@ const styles = StyleSheet.create({
   visitSummarySection: {
     paddingHorizontal: spacing[4],
     paddingTop: spacing[4],
-  },
-  visitedHeader: {
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.bold,
-    color: colors.textPrimary,
-    marginBottom: spacing[3],
   },
 });
