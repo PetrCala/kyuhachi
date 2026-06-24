@@ -47,6 +47,7 @@ const ja: Record<keyof typeof en, string> = {
     '地図上に現在地を表示するには、設定でKyuhachiの位置情報アクセスを許可してください。',
   'map.locationError': '現在地を取得できませんでした。もう一度お試しください。',
   'map.simulatedLocation': 'シミュレートされた位置',
+  'map.nearRouteToggle': 'ルート付近',
 
   // onsen list
   'onsenList.title': '温泉一覧',
