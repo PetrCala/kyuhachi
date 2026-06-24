@@ -14,6 +14,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   doc,
   setDoc,
@@ -25,6 +26,7 @@ import type { OnsenDocument, WeeklySchedule } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS, EMPTY_VISIT_STRUCTURED_DATA } from '@kyuhachi/shared';
 import type { VisitFeedItem } from '@/lib/visit-feed';
 import { VisitCard } from '@/components/VisitCard';
+import RecordVisitFab from '@/components/RecordVisitFab';
 import { useVisit } from '@/hooks/useVisit';
 import { useAuth } from '@/context/AuthContext';
 import { usePreferences } from '@/context/PreferencesContext';
@@ -99,6 +101,7 @@ export default function OnsenDetail() {
   // Whether onsen pages embed a tappable map preview (default) or instead show a
   // compact map icon in the header. Both routes focus this onsen on the Map tab.
   const { showOnsenMapPreview } = usePreferences();
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [onsen, setOnsen] = useState<OnsenWithId | null>(null);
   const [loading, setLoading] = useState(true);
@@ -196,8 +199,10 @@ export default function OnsenDetail() {
       }
     : null;
 
+  const showVisitButton = !!challengeId && !visit && !visitLoading;
+
   return (
-    <>
+    <View style={styles.flex}>
       <Stack.Screen
         options={{
           title: onsen.name,
@@ -222,7 +227,10 @@ export default function OnsenDetail() {
               ),
         }}
       />
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[styles.content, showVisitButton && styles.contentWithFab]}
+      >
         {onsen.imageUrl && (
           <Image source={{ uri: onsen.imageUrl }} style={styles.image} resizeMode="cover" />
         )}
@@ -334,14 +342,6 @@ export default function OnsenDetail() {
           </View>
         )}
 
-        {challengeId && !visit && !visitLoading && (
-          <View style={styles.visitSection}>
-            <Pressable style={styles.visitButton} onPress={handleMarkVisited}>
-              <Text style={styles.visitButtonText}>{t('onsenDetail.markVisited')}</Text>
-            </Pressable>
-          </View>
-        )}
-
         {feedItem && (
           <View style={styles.visitSummarySection}>
             <Text style={styles.visitedHeader}>{t('onsenDetail.visited')}</Text>
@@ -355,7 +355,15 @@ export default function OnsenDetail() {
           </View>
         )}
       </ScrollView>
-    </>
+
+      {showVisitButton && (
+        <RecordVisitFab
+          style={[styles.fab, { bottom: spacing[6] + insets.bottom }]}
+          accessibilityLabel={t('onsenDetail.markVisited')}
+          onPress={handleMarkVisited}
+        />
+      )}
+    </View>
   );
 }
 
@@ -483,21 +491,18 @@ const styles = StyleSheet.create({
     height: 160,
     backgroundColor: colors.backgroundSecondary,
   },
-  visitSection: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[6],
-    alignItems: 'center',
+  flex: {
+    flex: 1,
+    backgroundColor: colors.background,
   },
-  visitButton: {
-    backgroundColor: colors.actionPrimary,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing[8],
-    paddingVertical: spacing[4],
+  // Floating action button, anchored bottom-right above the home indicator.
+  fab: {
+    position: 'absolute',
+    right: spacing[4],
   },
-  visitButtonText: {
-    color: colors.actionPrimaryText,
-    fontSize: typography.sizes.md,
-    fontWeight: typography.weights.semibold,
+  // Extra scroll clearance so the last content never hides behind the FAB.
+  contentWithFab: {
+    paddingBottom: spacing[12] + spacing[8],
   },
   visitSummarySection: {
     paddingHorizontal: spacing[4],
