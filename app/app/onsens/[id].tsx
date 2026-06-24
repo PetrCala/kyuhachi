@@ -239,6 +239,14 @@ export default function OnsenDetail() {
           )}
         </View>
 
+        {challengeId && !visit && !visitLoading && (
+          <View style={styles.visitSection}>
+            <Pressable style={styles.visitButton} onPress={handleMarkVisited}>
+              <Text style={styles.visitButtonText}>{t('onsenDetail.markVisited')}</Text>
+            </Pressable>
+          </View>
+        )}
+
         <View style={styles.section}>
           <InfoRow
             label={t('onsenDetail.labelAddress')}
@@ -330,14 +338,6 @@ export default function OnsenDetail() {
               hitSlop={4}
             >
               <Text style={styles.websiteLink}>{onsen.websiteUrl}</Text>
-            </Pressable>
-          </View>
-        )}
-
-        {challengeId && !visit && !visitLoading && (
-          <View style={styles.visitSection}>
-            <Pressable style={styles.visitButton} onPress={handleMarkVisited}>
-              <Text style={styles.visitButtonText}>{t('onsenDetail.markVisited')}</Text>
             </Pressable>
           </View>
         )}
@@ -483,16 +483,17 @@ const styles = StyleSheet.create({
     height: 160,
     backgroundColor: colors.backgroundSecondary,
   },
+  // Prominent full-width call-to-action placed right under the title so it is
+  // visible the moment the page opens.
   visitSection: {
     paddingHorizontal: spacing[4],
-    paddingVertical: spacing[6],
-    alignItems: 'center',
+    paddingTop: spacing[4],
   },
   visitButton: {
     backgroundColor: colors.actionPrimary,
     borderRadius: radii.md,
-    paddingHorizontal: spacing[8],
     paddingVertical: spacing[4],
+    alignItems: 'center',
   },
   visitButtonText: {
     color: colors.actionPrimaryText,
