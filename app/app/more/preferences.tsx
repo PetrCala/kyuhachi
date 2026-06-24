@@ -1,7 +1,11 @@
 import { ScrollView, View, Text, Pressable, Switch, StyleSheet } from 'react-native';
 import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { usePreferences, NEAR_RADIUS_OPTIONS_KM } from '@/context/PreferencesContext';
+import {
+  usePreferences,
+  NEAR_RADIUS_OPTIONS_KM,
+  NEAR_ROUTE_RADIUS_OPTIONS_KM,
+} from '@/context/PreferencesContext';
 import { colors, spacing, typography, radii, shadows } from '@/theme';
 
 /**
@@ -14,9 +18,11 @@ export default function Preferences() {
     showNearby,
     nearRadiusKm,
     showOnsenMapPreview,
+    nearRouteRadiusKm,
     setShowNearby,
     setNearRadiusKm,
     setShowOnsenMapPreview,
+    setNearRouteRadiusKm,
   } = usePreferences();
 
   return (
@@ -76,6 +82,31 @@ export default function Preferences() {
         </View>
       </View>
       <Text style={styles.hint}>{t('preferences.onsenMapPreviewHint')}</Text>
+
+      <Text style={styles.sectionHeader}>{t('preferences.nearRouteRadiusTitle')}</Text>
+      <View style={styles.group}>
+        <View style={styles.segmentedRow}>
+          <View style={styles.segmented}>
+            {NEAR_ROUTE_RADIUS_OPTIONS_KM.map((km) => {
+              const active = km === nearRouteRadiusKm;
+              return (
+                <Pressable
+                  key={km}
+                  onPress={() => setNearRouteRadiusKm(km)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  style={[styles.segment, active && styles.segmentActive, active && shadows.sm]}
+                >
+                  <Text style={[styles.segmentLabel, active && styles.segmentLabelActive]}>
+                    {km}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      </View>
+      <Text style={styles.hint}>{t('preferences.nearRouteRadiusHint', { km: nearRouteRadiusKm })}</Text>
     </ScrollView>
   );
 }
