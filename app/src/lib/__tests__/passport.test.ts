@@ -1,6 +1,7 @@
 import {
   pageCount,
   pageCells,
+  pageOfSlot,
   formatStampDate,
   STAMPS_PER_PAGE,
   GRID_COLS,
@@ -15,6 +16,19 @@ describe('pageCount', () => {
   it('rounds up partial pages', () => {
     expect(pageCount(13)).toBe(2);
     expect(pageCount(88)).toBe(8); // 7 full pages + a partial 8th
+  });
+});
+
+describe('pageOfSlot', () => {
+  it('clamps an empty book (slot < 1) to page 0', () => {
+    expect(pageOfSlot(-1)).toBe(0); // stamped.length - 1 when empty
+    expect(pageOfSlot(0)).toBe(0);
+  });
+
+  it('keeps a full page of stamps on that page, rolling over at the boundary', () => {
+    expect(pageOfSlot(11)).toBe(0); // 12th stamp still on page 0
+    expect(pageOfSlot(12)).toBe(1); // 13th stamp opens page 1
+    expect(pageOfSlot(87)).toBe(7); // 88th stamp sits on the final page
   });
 });
 

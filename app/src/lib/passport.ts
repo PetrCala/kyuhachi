@@ -29,6 +29,15 @@ export function pageCount(totalSlots: number): number {
 }
 
 /**
+ * The 0-based page index that holds the stamp at global slot `slot`. Used to
+ * open the book on the page with the most recent stamp. Negative slots (an
+ * empty book) clamp to page 0.
+ */
+export function pageOfSlot(slot: number): number {
+  return slot <= 0 ? 0 : Math.floor(slot / STAMPS_PER_PAGE);
+}
+
+/**
  * The cells on `pageIndex`, positioned in fill order. Returns only cells whose
  * global slot index is < totalSlots, so the final page may hold fewer than 12.
  */
