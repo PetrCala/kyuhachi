@@ -26,6 +26,9 @@ const HOME_WORDMARK = '九八';
 // How many of the most recent visits the home screen previews before "See all".
 const RECENT_VISITS_PREVIEW = 3;
 
+// The claimed-tier medal beside the challenge name is sized to match the name's text.
+const NAME_BADGE_SIZE = typography.sizes.md;
+
 export default function Home() {
   const { t } = useTranslation();
   const {
@@ -152,15 +155,17 @@ export default function Home() {
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         <View style={styles.headerSection}>
           <Text style={styles.wordmark}>{HOME_WORDMARK}</Text>
-          {/* The name stays screen-centered; a tiny claimed-tier medal hangs off
-              its right edge (absolutely positioned) so it never shifts the text. */}
+          {/* Keep the name centered on screen: a spacer the width of the medal
+              mirrors it on the left so the badge (right) never shifts the text.
+              Both render only once a tier is claimed. */}
           <View style={styles.nameRow}>
+            {challenge.earnedTier ? <View style={styles.nameBadgeSpacer} /> : null}
             <Text style={styles.challengeName}>{challenge.name}</Text>
             {challenge.earnedTier ? (
               <View style={styles.nameBadge} pointerEvents="none">
                 <ChallengeBadge
                   tierId={challenge.earnedTier}
-                  size={typography.sizes.md}
+                  size={NAME_BADGE_SIZE}
                   accessibilityLabel={t('home.tierBadgeLabel', {
                     tier: t(`challengeTier.${challenge.earnedTier}`, {
                       defaultValue: challenge.earnedTier,
@@ -328,9 +333,8 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.separator,
   },
   nameRow: {
-    // Shrinks to the name's width and centers in the header, so the name stays
-    // screen-centered; the badge is absolute and doesn't count toward the width.
-    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: spacing[2],
   },
   challengeName: {
@@ -339,12 +343,12 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   nameBadge: {
-    position: 'absolute',
-    left: '100%',
     marginLeft: spacing[2],
-    top: 0,
-    bottom: 0,
-    justifyContent: 'center',
+  },
+  nameBadgeSpacer: {
+    // Mirrors the badge's footprint (medal width + its left gap) on the name's
+    // left, so the name stays centered on screen with the medal to its right.
+    width: NAME_BADGE_SIZE + spacing[2],
   },
   progress: {
     fontSize: typography.sizes.xxxl,
