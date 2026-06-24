@@ -240,6 +240,15 @@ export default function Home() {
           </View>
         </View>
 
+        {/* Spaport: tappable stamp-book preview → opens the full passport. */}
+        <SpaportCard
+          challenge={challenge}
+          visits={visits}
+          onsenMap={onsenMap}
+          visited={eligibleVisitCount}
+          total={completionCount}
+        />
+
         {/* Lead block: "where do I go next?" Surfaces the nearest unvisited
             onsens, with a Browse-onsens fallback so the top is never dead. */}
         <SuggestNextCard candidates={nextCandidates} activeRoute={activeRoute} />
@@ -297,15 +306,6 @@ export default function Home() {
             ) : null}
           </View>
         )}
-
-        {/* Spaport: tappable stamp-book preview → opens the full passport. */}
-        <SpaportCard
-          challenge={challenge}
-          visits={visits}
-          onsenMap={onsenMap}
-          visited={eligibleVisitCount}
-          total={completionCount}
-        />
 
         <View style={styles.recentSection}>
           <View style={styles.recentHeaderRow}>
