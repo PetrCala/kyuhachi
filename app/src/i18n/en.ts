@@ -80,6 +80,7 @@ const en = {
   'home.suggestNext.locationPrompt':
     'Turn on location to see the closest onsen you haven’t visited yet.',
   'home.suggestNext.enableLocation': 'Enable location',
+  'home.suggestNext.browseOnsens': 'Browse onsens',
 
   // stats (cost/budget)
   'stats.title': 'Stats',
