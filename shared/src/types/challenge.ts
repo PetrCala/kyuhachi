@@ -118,19 +118,116 @@ export function isFasterThan(mode: TransportMode | null, base: TransportMode): b
   return TRANSPORT_MODES.indexOf(mode) > TRANSPORT_MODES.indexOf(base)
 }
 
+/** Perceived water heat, self-reported. Ordered cool → hot. */
+export const PERCEIVED_HEAT_LEVELS = ["tooCool", "pleasant", "hot", "veryHot"] as const
+
+export type PerceivedHeat = (typeof PERCEIVED_HEAT_LEVELS)[number]
+
+/** How busy the onsen felt, self-reported. Ordered empty → crowded. */
+export const CROWD_LEVELS = ["empty", "quiet", "moderate", "busy", "crowded"] as const
+
+export type CrowdLevel = (typeof CROWD_LEVELS)[number]
+
+/** Who the user visited with, self-reported. */
+export const VISITED_WITH_OPTIONS = [
+  "alone",
+  "friend",
+  "group",
+  "family",
+  "partner",
+  "other",
+] as const
+
+export type VisitedWith = (typeof VISITED_WITH_OPTIONS)[number]
+
+/**
+ * Structured, self-reported details for a single visit. Every field is optional
+ * (null = not reported). The recording UI splits these into a small "base" set
+ * (always shown) and a larger "detailed" set (behind a Show-details toggle), but
+ * they are stored flat here. All ratings are on a 1–10 scale.
+ */
 export interface VisitStructuredData {
-  /** 1–5 star rating */
+  // — Base —
+  /** Overall satisfaction, 1–10 */
   rating: number | null
-  /** User-entered string e.g. "42°C" */
-  waterTemp: string | null
-  /** Minutes spent at the onsen */
-  duration: number | null
   /**
    * How the user reached this onsen. Self-reported; null = not reported.
    * Used for tier eligibility display and (future) transport-restricted
    * challenge types.
    */
   transportMode: TransportMode | null
+  /** Whether the user would return — doubles as a "favorite" flag */
+  wouldReturn: boolean | null
+
+  // — Detailed: ratings & impressions (all 1–10) —
+  /** Overall cleanliness (bath + changing room, merged) */
+  cleanlinessRating: number | null
+  /** Atmosphere / ambience, including the view */
+  atmosphereRating: number | null
+  /** How distinctive / unique the onsen felt */
+  uniquenessRating: number | null
+  /** How easy it was to cool down between baths/saunas */
+  coolDownRating: number | null
+  /** Strength of the water's smell (e.g. sulfur, iron) */
+  smellIntensityRating: number | null
+  /** Value for money */
+  valueRating: number | null
+
+  // — Detailed: bath & facilities —
+  /** Perceived water heat */
+  perceivedHeat: PerceivedHeat | null
+  /** User-entered string e.g. "42°C" */
+  waterTemp: string | null
+  saunaUsed: boolean | null
+  saunaRating: number | null
+  restAreaUsed: boolean | null
+  restAreaRating: number | null
+  foodUsed: boolean | null
+  foodRating: number | null
+  hadSoap: boolean | null
+  massageChairAvailable: boolean | null
+
+  // — Detailed: visit & company —
+  /** Minutes spent at the onsen */
+  duration: number | null
+  crowdLevel: CrowdLevel | null
+  visitedWith: VisitedWith | null
+  interactedWithLocals: boolean | null
+  /** How pleasant the local interaction was, 1–10 */
+  localInteractionRating: number | null
+}
+
+/**
+ * An all-unreported structured-data record. The single source of truth for a
+ * freshly-recorded visit and the seed for edit forms, so the field set lives in
+ * exactly one place. Spread it (`{ ...EMPTY_VISIT_STRUCTURED_DATA }`) rather than
+ * sharing the reference.
+ */
+export const EMPTY_VISIT_STRUCTURED_DATA: VisitStructuredData = {
+  rating: null,
+  transportMode: null,
+  wouldReturn: null,
+  cleanlinessRating: null,
+  atmosphereRating: null,
+  uniquenessRating: null,
+  coolDownRating: null,
+  smellIntensityRating: null,
+  valueRating: null,
+  perceivedHeat: null,
+  waterTemp: null,
+  saunaUsed: null,
+  saunaRating: null,
+  restAreaUsed: null,
+  restAreaRating: null,
+  foodUsed: null,
+  foodRating: null,
+  hadSoap: null,
+  massageChairAvailable: null,
+  duration: null,
+  crowdLevel: null,
+  visitedWith: null,
+  interactedWithLocals: null,
+  localInteractionRating: null,
 }
 
 /**
@@ -143,8 +240,8 @@ export interface VisitStructuredData {
 export interface VisitDocument {
   visitedAt: Timestamp
   notes: string | null
-  /** Firebase Storage URL */
-  photoUrl: string | null
+  /** Firebase Storage download URLs, in upload order. Capped at 6 in the UI. */
+  photoUrls: string[]
   structuredData: VisitStructuredData
   createdAt: Timestamp
   updatedAt: Timestamp

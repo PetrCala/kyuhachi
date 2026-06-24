@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import {
   View,
   Text,
@@ -15,16 +15,59 @@ import {
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { doc, updateDoc, deleteDoc, serverTimestamp } from '@react-native-firebase/firestore';
-import { ref, putFile, getDownloadURL } from '@react-native-firebase/storage';
+import { Ionicons } from '@expo/vector-icons';
+import {
+  doc,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp,
+  arrayUnion,
+  arrayRemove,
+} from '@react-native-firebase/firestore';
+import {
+  ref,
+  putFile,
+  getDownloadURL,
+  deleteObject,
+  refFromURL,
+} from '@react-native-firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
-import type { TransportMode } from '@kyuhachi/shared';
-import { COLLECTIONS, SUBCOLLECTIONS, TRANSPORT_MODES } from '@kyuhachi/shared';
+import type {
+  VisitStructuredData,
+  TransportMode,
+  PerceivedHeat,
+  CrowdLevel,
+  VisitedWith,
+} from '@kyuhachi/shared';
+import {
+  COLLECTIONS,
+  SUBCOLLECTIONS,
+  TRANSPORT_MODES,
+  PERCEIVED_HEAT_LEVELS,
+  CROWD_LEVELS,
+  VISITED_WITH_OPTIONS,
+  EMPTY_VISIT_STRUCTURED_DATA,
+} from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
 import { useVisit } from '@/hooks/useVisit';
 import { db, storage } from '@/firebase';
 import { firebaseErrorKey } from '@/lib/firebase-errors';
+import { RatingStars } from '@/components/visit/RatingStars';
+import { OptionChips, type ChipOption } from '@/components/visit/OptionChips';
+import { BoolChips } from '@/components/visit/BoolChips';
 import { colors, spacing, typography, radii } from '@/theme';
+
+const MAX_PHOTOS = 6;
+
+/** A labelled form row. */
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <View style={styles.field}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      {children}
+    </View>
+  );
+}
 
 export default function EditVisit() {
   const { t } = useTranslation();
@@ -34,10 +77,9 @@ export default function EditVisit() {
   const { challengeId, visit, loading } = useVisit(id);
 
   const [notes, setNotes] = useState('');
-  const [rating, setRating] = useState<number | null>(null);
-  const [waterTemp, setWaterTemp] = useState('');
-  const [duration, setDuration] = useState('');
-  const [transportMode, setTransportMode] = useState<TransportMode | null>(null);
+  const [details, setDetails] = useState<VisitStructuredData>({ ...EMPTY_VISIT_STRUCTURED_DATA });
+  const [durationText, setDurationText] = useState('');
+  const [showDetails, setShowDetails] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState(false);
@@ -45,16 +87,15 @@ export default function EditVisit() {
 
   // Seed the form from the visit once it first loads. The ref guard means later
   // live snapshots (e.g. a photo URL landing) don't clobber in-progress edits.
+  // Spreading over the empty record fills any field a pre-existing doc lacks.
   useEffect(() => {
     if (!visit || seeded.current) return;
     seeded.current = true;
     setNotes(visit.notes ?? '');
-    setRating(visit.structuredData.rating);
-    setWaterTemp(visit.structuredData.waterTemp ?? '');
-    setDuration(
-      visit.structuredData.duration != null ? String(visit.structuredData.duration) : ''
+    setDetails({ ...EMPTY_VISIT_STRUCTURED_DATA, ...visit.structuredData });
+    setDurationText(
+      visit.structuredData?.duration != null ? String(visit.structuredData.duration) : ''
     );
-    setTransportMode(visit.structuredData.transportMode ?? null);
   }, [visit]);
 
   // Dismiss when there's nothing to edit: the visit was deleted elsewhere while
@@ -68,31 +109,40 @@ export default function EditVisit() {
     else router.replace('/');
   }, [loading, visit, router]);
 
+  function visitRef() {
+    if (!user || !challengeId || !id) return null;
+    return doc(
+      db,
+      COLLECTIONS.USERS,
+      user.uid,
+      SUBCOLLECTIONS.CHALLENGES,
+      challengeId,
+      SUBCOLLECTIONS.VISITS,
+      id
+    );
+  }
+
+  function setField<K extends keyof VisitStructuredData>(
+    key: K,
+    value: VisitStructuredData[K]
+  ) {
+    setDetails((d) => ({ ...d, [key]: value }));
+  }
+
   async function handleSaveVisit() {
-    if (!user || !challengeId || !id || !visit) return;
+    const docRef = visitRef();
+    if (!docRef) return;
     setSaving(true);
     try {
-      await updateDoc(
-        doc(
-          db,
-          COLLECTIONS.USERS,
-          user.uid,
-          SUBCOLLECTIONS.CHALLENGES,
-          challengeId,
-          SUBCOLLECTIONS.VISITS,
-          id
-        ),
-        {
-          notes: notes || null,
-          structuredData: {
-            rating,
-            waterTemp: waterTemp || null,
-            duration: duration ? Number(duration) : null,
-            transportMode,
-          },
-          updatedAt: serverTimestamp(),
-        }
-      );
+      await updateDoc(docRef, {
+        notes: notes.trim() || null,
+        structuredData: {
+          ...details,
+          waterTemp: details.waterTemp?.trim() ? details.waterTemp : null,
+          duration: durationText ? Number(durationText) : null,
+        },
+        updatedAt: serverTimestamp(),
+      });
       router.back();
     } catch (error) {
       Alert.alert(t('common.errorTitle'), t(firebaseErrorKey(error)));
@@ -102,22 +152,13 @@ export default function EditVisit() {
   }
 
   async function handleRemoveVisit() {
-    if (!user || !challengeId || !id) return;
+    const docRef = visitRef();
+    if (!docRef) return;
     setRemoving(true);
     try {
-      await deleteDoc(
-        doc(
-          db,
-          COLLECTIONS.USERS,
-          user.uid,
-          SUBCOLLECTIONS.CHALLENGES,
-          challengeId,
-          SUBCOLLECTIONS.VISITS,
-          id
-        )
-      );
+      await deleteDoc(docRef);
       // The visit subscription drops to null, which dismisses the modal via the
-      // effect above. The onVisitDeleted Function cleans up any photo. Only
+      // effect above. The onVisitDeleted Function cleans up any photos. Only
       // re-enable the button on failure, since success unmounts this screen.
     } catch (error) {
       setRemoving(false);
@@ -137,31 +178,40 @@ export default function EditVisit() {
   }
 
   async function uploadPhoto(uri: string) {
-    if (!user || !challengeId || !id) return;
+    const docRef = visitRef();
+    if (!docRef || !user || !challengeId || !id) return;
     setUploading(true);
     try {
-      const photoRef = ref(storage, `visits/${user.uid}/${challengeId}_${id}/photo.jpg`);
+      // A per-upload timestamped name keeps every photo under the visit's folder
+      // distinct; onVisitDeleted clears the whole folder by prefix on delete.
+      const name = `photo_${Date.now()}.jpg`;
+      const photoRef = ref(storage, `visits/${user.uid}/${challengeId}_${id}/${name}`);
       await putFile(photoRef, uri);
       const downloadUrl = await getDownloadURL(photoRef);
-      await updateDoc(
-        doc(
-          db,
-          COLLECTIONS.USERS,
-          user.uid,
-          SUBCOLLECTIONS.CHALLENGES,
-          challengeId,
-          SUBCOLLECTIONS.VISITS,
-          id
-        ),
-        {
-          photoUrl: downloadUrl,
-          updatedAt: serverTimestamp(),
-        }
-      );
+      await updateDoc(docRef, {
+        photoUrls: arrayUnion(downloadUrl),
+        updatedAt: serverTimestamp(),
+      });
     } catch (error) {
       Alert.alert(t('common.errorTitle'), t(firebaseErrorKey(error)));
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function removePhoto(url: string) {
+    const docRef = visitRef();
+    if (!docRef) return;
+    try {
+      await updateDoc(docRef, {
+        photoUrls: arrayRemove(url),
+        updatedAt: serverTimestamp(),
+      });
+      // Best-effort delete of the Storage object. If it fails the orphan is
+      // swept up when the visit itself is deleted (onVisitDeleted, by prefix).
+      await deleteObject(refFromURL(storage, url)).catch(() => {});
+    } catch (error) {
+      Alert.alert(t('common.errorTitle'), t(firebaseErrorKey(error)));
     }
   }
 
@@ -201,6 +251,24 @@ export default function EditVisit() {
     );
   }
 
+  const photoUrls = visit.photoUrls ?? [];
+  const transportOptions: ChipOption[] = TRANSPORT_MODES.map((mode) => ({
+    value: mode,
+    label: t(`onsenDetail.transport.${mode}`),
+  }));
+  const heatOptions: ChipOption[] = PERCEIVED_HEAT_LEVELS.map((level) => ({
+    value: level,
+    label: t(`onsenDetail.perceivedHeat.${level}`),
+  }));
+  const crowdOptions: ChipOption[] = CROWD_LEVELS.map((level) => ({
+    value: level,
+    label: t(`onsenDetail.crowdLevel.${level}`),
+  }));
+  const companyOptions: ChipOption[] = VISITED_WITH_OPTIONS.map((who) => ({
+    value: who,
+    label: t(`onsenDetail.visitedWith.${who}`),
+  }));
+
   return (
     <>
       <Stack.Screen options={{ title: t('onsenDetail.editTitle') }} />
@@ -214,84 +282,242 @@ export default function EditVisit() {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
         >
-          {visit.photoUrl && (
-            <Image source={{ uri: visit.photoUrl }} style={styles.visitPhoto} resizeMode="cover" />
-          )}
-          {uploading ? (
-            <View style={styles.uploadingRow}>
-              <ActivityIndicator size="small" color={colors.actionPrimary} />
-              <Text style={styles.uploadingText}>{t('onsenDetail.uploading')}</Text>
-            </View>
-          ) : (
-            <Pressable style={styles.addPhotoButton} onPress={handleAddPhoto}>
-              <Text style={styles.addPhotoText}>{t('onsenDetail.addPhoto')}</Text>
-            </Pressable>
-          )}
-
-          <Text style={styles.fieldLabel}>{t('onsenDetail.labelRating')}</Text>
-          <View style={styles.starRow}>
-            {[1, 2, 3, 4, 5].map((star) => (
-              <Pressable
-                key={star}
-                onPress={() => setRating(rating === star ? null : star)}
-                hitSlop={4}
-              >
-                <Text style={[styles.star, star <= (rating ?? 0) && styles.starFilled]}>★</Text>
-              </Pressable>
-            ))}
-          </View>
-
-          <Text style={styles.fieldLabel}>{t('onsenDetail.labelNotes')}</Text>
-          <TextInput
-            style={styles.notesInput}
-            value={notes}
-            onChangeText={setNotes}
-            placeholder={t('onsenDetail.notesPlaceholder')}
-            placeholderTextColor={colors.textTertiary}
-            multiline
-          />
-
-          <Text style={styles.fieldLabel}>{t('onsenDetail.labelWaterTemp')}</Text>
-          <TextInput
-            style={styles.fieldInput}
-            value={waterTemp}
-            onChangeText={setWaterTemp}
-            placeholder={t('onsenDetail.waterTempPlaceholder')}
-            placeholderTextColor={colors.textTertiary}
-          />
-
-          <Text style={styles.fieldLabel}>{t('onsenDetail.labelDuration')}</Text>
-          <TextInput
-            style={styles.fieldInput}
-            value={duration}
-            onChangeText={setDuration}
-            placeholder={t('onsenDetail.durationPlaceholder')}
-            placeholderTextColor={colors.textTertiary}
-            keyboardType="numeric"
-          />
-
-          <Text style={styles.fieldLabel}>{t('onsenDetail.labelTransport')}</Text>
-          <View style={styles.transportRow}>
-            {TRANSPORT_MODES.map((mode) => {
-              const selected = transportMode === mode;
-              return (
+          {/* — Photos — */}
+          <View style={styles.photoGrid}>
+            {photoUrls.map((url) => (
+              <View key={url} style={styles.photoThumbWrap}>
+                <Image source={{ uri: url }} style={styles.photoThumb} resizeMode="cover" />
                 <Pressable
-                  key={mode}
-                  style={[styles.transportChip, selected && styles.transportChipSelected]}
-                  onPress={() => setTransportMode(selected ? null : mode)}
+                  style={styles.photoRemove}
+                  onPress={() => removePhoto(url)}
+                  hitSlop={6}
+                  accessibilityLabel={t('onsenDetail.removePhoto')}
                 >
-                  <Text
-                    style={[
-                      styles.transportChipText,
-                      selected && styles.transportChipTextSelected,
-                    ]}
-                  >
-                    {t(`onsenDetail.transport.${mode}`)}
-                  </Text>
+                  <Ionicons name="close" size={typography.sizes.sm} color={colors.actionPrimaryText} />
                 </Pressable>
-              );
-            })}
+              </View>
+            ))}
+            {photoUrls.length < MAX_PHOTOS &&
+              (uploading ? (
+                <View style={[styles.photoThumb, styles.photoAdd]}>
+                  <ActivityIndicator size="small" color={colors.actionPrimary} />
+                </View>
+              ) : (
+                <Pressable style={[styles.photoThumb, styles.photoAdd]} onPress={handleAddPhoto}>
+                  <Ionicons name="add" size={typography.sizes.xxl} color={colors.actionPrimary} />
+                </Pressable>
+              ))}
           </View>
+
+          {/* — Base — */}
+          <Field label={t('onsenDetail.labelRating')}>
+            <RatingStars value={details.rating} onChange={(v) => setField('rating', v)} />
+          </Field>
+
+          <Field label={t('onsenDetail.labelNotes')}>
+            <TextInput
+              style={styles.notesInput}
+              value={notes}
+              onChangeText={setNotes}
+              placeholder={t('onsenDetail.notesPlaceholder')}
+              placeholderTextColor={colors.textTertiary}
+              multiline
+            />
+          </Field>
+
+          <Field label={t('onsenDetail.labelTransport')}>
+            <OptionChips
+              options={transportOptions}
+              value={details.transportMode}
+              onChange={(v) => setField('transportMode', v as TransportMode | null)}
+            />
+          </Field>
+
+          <Field label={t('onsenDetail.labelWouldReturn')}>
+            <BoolChips value={details.wouldReturn} onChange={(v) => setField('wouldReturn', v)} />
+          </Field>
+
+          {/* — Show / hide detailed fields — */}
+          <Pressable
+            style={styles.detailsToggle}
+            onPress={() => setShowDetails((v) => !v)}
+            hitSlop={6}
+          >
+            <Text style={styles.detailsToggleText}>
+              {showDetails ? t('onsenDetail.hideDetails') : t('onsenDetail.showDetails')}
+            </Text>
+            <Ionicons
+              name={showDetails ? 'chevron-up' : 'chevron-down'}
+              size={typography.sizes.sm}
+              color={colors.actionPrimary}
+            />
+          </Pressable>
+
+          {showDetails && (
+            <>
+              {/* Ratings & impressions */}
+              <Text style={styles.sectionHeader}>{t('onsenDetail.sectionRatings')}</Text>
+              <Field label={t('onsenDetail.labelCleanliness')}>
+                <RatingStars
+                  value={details.cleanlinessRating}
+                  onChange={(v) => setField('cleanlinessRating', v)}
+                />
+              </Field>
+              <Field label={t('onsenDetail.labelAtmosphere')}>
+                <RatingStars
+                  value={details.atmosphereRating}
+                  onChange={(v) => setField('atmosphereRating', v)}
+                />
+              </Field>
+              <Field label={t('onsenDetail.labelUniqueness')}>
+                <RatingStars
+                  value={details.uniquenessRating}
+                  onChange={(v) => setField('uniquenessRating', v)}
+                />
+              </Field>
+              <Field label={t('onsenDetail.labelCoolDown')}>
+                <RatingStars
+                  value={details.coolDownRating}
+                  onChange={(v) => setField('coolDownRating', v)}
+                />
+              </Field>
+              <Field label={t('onsenDetail.labelSmell')}>
+                <RatingStars
+                  value={details.smellIntensityRating}
+                  onChange={(v) => setField('smellIntensityRating', v)}
+                />
+              </Field>
+              <Field label={t('onsenDetail.labelValue')}>
+                <RatingStars
+                  value={details.valueRating}
+                  onChange={(v) => setField('valueRating', v)}
+                />
+              </Field>
+
+              {/* Bath & facilities */}
+              <Text style={styles.sectionHeader}>{t('onsenDetail.sectionFacilities')}</Text>
+              <Field label={t('onsenDetail.labelPerceivedHeat')}>
+                <OptionChips
+                  options={heatOptions}
+                  value={details.perceivedHeat}
+                  onChange={(v) => setField('perceivedHeat', v as PerceivedHeat | null)}
+                />
+              </Field>
+              <Field label={t('onsenDetail.labelWaterTemp')}>
+                <TextInput
+                  style={styles.fieldInput}
+                  value={details.waterTemp ?? ''}
+                  onChangeText={(text) => setField('waterTemp', text)}
+                  placeholder={t('onsenDetail.waterTempPlaceholder')}
+                  placeholderTextColor={colors.textTertiary}
+                />
+              </Field>
+              <Field label={t('onsenDetail.labelSauna')}>
+                <BoolChips
+                  value={details.saunaUsed}
+                  onChange={(v) => {
+                    setField('saunaUsed', v);
+                    if (v !== true) setField('saunaRating', null);
+                  }}
+                />
+              </Field>
+              {details.saunaUsed && (
+                <Field label={t('onsenDetail.labelSaunaRating')}>
+                  <RatingStars
+                    value={details.saunaRating}
+                    onChange={(v) => setField('saunaRating', v)}
+                  />
+                </Field>
+              )}
+              <Field label={t('onsenDetail.labelRestArea')}>
+                <BoolChips
+                  value={details.restAreaUsed}
+                  onChange={(v) => {
+                    setField('restAreaUsed', v);
+                    if (v !== true) setField('restAreaRating', null);
+                  }}
+                />
+              </Field>
+              {details.restAreaUsed && (
+                <Field label={t('onsenDetail.labelRestAreaRating')}>
+                  <RatingStars
+                    value={details.restAreaRating}
+                    onChange={(v) => setField('restAreaRating', v)}
+                  />
+                </Field>
+              )}
+              <Field label={t('onsenDetail.labelFood')}>
+                <BoolChips
+                  value={details.foodUsed}
+                  onChange={(v) => {
+                    setField('foodUsed', v);
+                    if (v !== true) setField('foodRating', null);
+                  }}
+                />
+              </Field>
+              {details.foodUsed && (
+                <Field label={t('onsenDetail.labelFoodRating')}>
+                  <RatingStars
+                    value={details.foodRating}
+                    onChange={(v) => setField('foodRating', v)}
+                  />
+                </Field>
+              )}
+              <Field label={t('onsenDetail.labelHadSoap')}>
+                <BoolChips value={details.hadSoap} onChange={(v) => setField('hadSoap', v)} />
+              </Field>
+              <Field label={t('onsenDetail.labelMassageChair')}>
+                <BoolChips
+                  value={details.massageChairAvailable}
+                  onChange={(v) => setField('massageChairAvailable', v)}
+                />
+              </Field>
+
+              {/* Visit & company */}
+              <Text style={styles.sectionHeader}>{t('onsenDetail.sectionCompany')}</Text>
+              <Field label={t('onsenDetail.labelDuration')}>
+                <TextInput
+                  style={styles.fieldInput}
+                  value={durationText}
+                  onChangeText={setDurationText}
+                  placeholder={t('onsenDetail.durationPlaceholder')}
+                  placeholderTextColor={colors.textTertiary}
+                  keyboardType="numeric"
+                />
+              </Field>
+              <Field label={t('onsenDetail.labelCrowd')}>
+                <OptionChips
+                  options={crowdOptions}
+                  value={details.crowdLevel}
+                  onChange={(v) => setField('crowdLevel', v as CrowdLevel | null)}
+                />
+              </Field>
+              <Field label={t('onsenDetail.labelVisitedWith')}>
+                <OptionChips
+                  options={companyOptions}
+                  value={details.visitedWith}
+                  onChange={(v) => setField('visitedWith', v as VisitedWith | null)}
+                />
+              </Field>
+              <Field label={t('onsenDetail.labelInteracted')}>
+                <BoolChips
+                  value={details.interactedWithLocals}
+                  onChange={(v) => {
+                    setField('interactedWithLocals', v);
+                    if (v !== true) setField('localInteractionRating', null);
+                  }}
+                />
+              </Field>
+              {details.interactedWithLocals && (
+                <Field label={t('onsenDetail.labelInteractionRating')}>
+                  <RatingStars
+                    value={details.localInteractionRating}
+                    onChange={(v) => setField('localInteractionRating', v)}
+                  />
+                </Field>
+              )}
+            </>
+          )}
 
           <View style={styles.spacer} />
 
@@ -347,57 +573,47 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.background,
   },
-  visitPhoto: {
-    width: '100%',
-    height: 200,
+  photoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing[2],
+    marginBottom: spacing[2],
+  },
+  photoThumbWrap: {
+    position: 'relative',
+  },
+  photoThumb: {
+    width: 96,
+    height: 96,
     borderRadius: radii.md,
-    marginBottom: spacing[3],
     backgroundColor: colors.backgroundSecondary,
   },
-  addPhotoButton: {
-    borderWidth: 1,
-    borderColor: colors.separator,
-    borderRadius: radii.md,
-    borderStyle: 'dashed',
-    paddingVertical: spacing[3],
-    alignItems: 'center',
-    marginBottom: spacing[3],
-  },
-  addPhotoText: {
-    fontSize: typography.sizes.sm,
-    color: colors.actionPrimary,
-    fontWeight: typography.weights.medium,
-  },
-  uploadingRow: {
-    flexDirection: 'row',
+  photoRemove: {
+    position: 'absolute',
+    top: spacing[1],
+    right: spacing[1],
+    width: spacing[5],
+    height: spacing[5],
+    borderRadius: radii.full,
+    backgroundColor: colors.overlay,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing[2],
-    paddingVertical: spacing[3],
-    marginBottom: spacing[3],
   },
-  uploadingText: {
-    fontSize: typography.sizes.sm,
-    color: colors.textMuted,
+  photoAdd: {
+    borderWidth: 1,
+    borderColor: colors.separator,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  field: {
+    marginTop: spacing[3],
   },
   fieldLabel: {
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.medium,
     color: colors.textMuted,
     marginBottom: spacing[1],
-    marginTop: spacing[3],
-  },
-  starRow: {
-    flexDirection: 'row',
-    gap: spacing[2],
-    marginBottom: spacing[2],
-  },
-  star: {
-    fontSize: typography.sizes.xxl,
-    color: colors.backgroundSecondary,
-  },
-  starFilled: {
-    color: colors.actionPrimary,
   },
   notesInput: {
     borderWidth: 1,
@@ -417,35 +633,29 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     color: colors.textPrimary,
   },
-  transportRow: {
+  detailsToggle: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[2],
-    marginTop: spacing[1],
-    marginBottom: spacing[4],
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[1],
+    paddingVertical: spacing[4],
+    marginTop: spacing[2],
   },
-  transportChip: {
-    paddingHorizontal: spacing[3],
-    paddingVertical: spacing[2],
-    borderRadius: radii.full,
-    borderWidth: 1,
-    borderColor: colors.separator,
-    backgroundColor: colors.background,
-  },
-  transportChipSelected: {
-    backgroundColor: colors.actionPrimary,
-    borderColor: colors.actionPrimary,
-  },
-  transportChipText: {
+  detailsToggleText: {
     fontSize: typography.sizes.sm,
-    color: colors.textPrimary,
-  },
-  transportChipTextSelected: {
-    color: colors.actionPrimaryText,
     fontWeight: typography.weights.medium,
+    color: colors.actionPrimary,
+  },
+  sectionHeader: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
+    color: colors.textPrimary,
+    marginTop: spacing[5],
+    marginBottom: spacing[1],
   },
   spacer: {
     flex: 1,
+    minHeight: spacing[4],
   },
   saveButton: {
     backgroundColor: colors.actionPrimary,

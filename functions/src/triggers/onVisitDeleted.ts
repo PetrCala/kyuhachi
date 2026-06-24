@@ -7,12 +7,12 @@ import { updateChallengeProgress } from '../util/tier';
  * On visit deletion: clean up the visit's Storage photo(s) and recompute the
  * parent challenge's earnedTier (removing a visit can lower the tier).
  *
- * Photos live at visits/{userId}/{challengeId}_{onsenId}/photo.jpg (see the
- * upload path in app/app/onsens/edit-visit.tsx). Deleting the visit doc —
- * whether a single-visit delete or as part of deleting a whole challenge —
- * would otherwise leak the photo in Storage forever. Deletes by prefix rather
- * than assuming photo.jpg, so any object under the visit's folder is removed;
- * a visit with no photo is normal (an empty prefix is a no-op and must not
+ * Photos live at visits/{userId}/{challengeId}_{onsenId}/photo_{ts}.jpg, one
+ * object per photo (see the upload path in app/app/onsens/edit-visit.tsx).
+ * Deleting the visit doc — whether a single-visit delete or as part of deleting
+ * a whole challenge — would otherwise leak those photos in Storage forever.
+ * Deletes by prefix, so every object under the visit's folder is removed; a
+ * visit with no photos is normal (an empty prefix is a no-op and must not
  * throw).
  *
  * When the whole challenge was deleted, its doc is already gone, so the tier

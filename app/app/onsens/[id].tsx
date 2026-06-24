@@ -21,7 +21,7 @@ import {
   type FirebaseFirestoreTypes,
 } from '@react-native-firebase/firestore';
 import type { OnsenDocument, WeeklySchedule } from '@kyuhachi/shared';
-import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
+import { COLLECTIONS, SUBCOLLECTIONS, EMPTY_VISIT_STRUCTURED_DATA } from '@kyuhachi/shared';
 import type { VisitFeedItem } from '@/lib/visit-feed';
 import { VisitCard } from '@/components/VisitCard';
 import { useVisit } from '@/hooks/useVisit';
@@ -140,13 +140,8 @@ export default function OnsenDetail() {
       {
         visitedAt: serverTimestamp(),
         notes: null,
-        photoUrl: null,
-        structuredData: {
-          rating: null,
-          waterTemp: null,
-          duration: null,
-          transportMode: null,
-        },
+        photoUrls: [],
+        structuredData: { ...EMPTY_VISIT_STRUCTURED_DATA },
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       }
