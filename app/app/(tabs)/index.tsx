@@ -155,12 +155,10 @@ export default function Home() {
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         <View style={styles.headerSection}>
           <Text style={styles.wordmark}>{HOME_WORDMARK}</Text>
-          {/* Keep the name centered on screen: a spacer the width of the medal
-              mirrors it on the left so the badge (right) never shifts the text.
-              Both render only once a tier is claimed. */}
+          {/* Medal sits to the left of the name (matching the Challenges list).
+              A spacer of equal width on the right keeps the name centered on
+              screen. Both render only once a tier is claimed. */}
           <View style={styles.nameRow}>
-            {challenge.earnedTier ? <View style={styles.nameBadgeSpacer} /> : null}
-            <Text style={styles.challengeName}>{challenge.name}</Text>
             {challenge.earnedTier ? (
               <View style={styles.nameBadge} pointerEvents="none">
                 <ChallengeBadge
@@ -174,6 +172,8 @@ export default function Home() {
                 />
               </View>
             ) : null}
+            <Text style={styles.challengeName}>{challenge.name}</Text>
+            {challenge.earnedTier ? <View style={styles.nameBadgeSpacer} /> : null}
           </View>
           {completionCount !== null && (
             <Text style={styles.progress}>
@@ -343,11 +343,11 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   nameBadge: {
-    marginLeft: spacing[2],
+    marginRight: spacing[2],
   },
   nameBadgeSpacer: {
-    // Mirrors the badge's footprint (medal width + its left gap) on the name's
-    // left, so the name stays centered on screen with the medal to its right.
+    // Mirrors the badge's footprint (medal width + its right gap) on the name's
+    // right, so the name stays centered on screen with the medal to its left.
     width: NAME_BADGE_SIZE + spacing[2],
   },
   progress: {
