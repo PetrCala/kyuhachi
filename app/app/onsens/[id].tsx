@@ -51,7 +51,7 @@ function InfoRow({
   label: string;
   value: string;
   onPress?: () => void;
-  /** A trailing icon button (e.g. directions on the address row). */
+  /** An inline icon (e.g. directions) shown right after the value text, tappable on its own. */
   action?: {
     icon: ComponentProps<typeof Ionicons>['name'];
     onPress: () => void;
@@ -71,18 +71,20 @@ function InfoRow({
           <Text style={[styles.infoValue, styles.infoValueLink]}>{value}</Text>
         </Pressable>
       ) : (
-        <Text style={styles.infoValue}>{value}</Text>
-      )}
-      {action && (
-        <Pressable
-          style={styles.infoAction}
-          onPress={action.onPress}
-          accessibilityRole="button"
-          accessibilityLabel={action.accessibilityLabel}
-          hitSlop={12}
-        >
-          <Ionicons name={action.icon} size={typography.sizes.lg} color={colors.actionPrimary} />
-        </Pressable>
+        <Text style={styles.infoValue}>
+          {value}
+          {action && (
+            <Text
+              onPress={action.onPress}
+              accessibilityRole="button"
+              accessibilityLabel={action.accessibilityLabel}
+              suppressHighlighting
+            >
+              {'  '}
+              <Ionicons name={action.icon} size={typography.sizes.md} color={colors.actionPrimary} />
+            </Text>
+          )}
+        </Text>
       )}
     </View>
   );
@@ -376,12 +378,6 @@ const styles = StyleSheet.create({
   infoValueLink: {
     color: colors.actionPrimary,
     textDecorationLine: 'underline',
-  },
-  infoAction: {
-    // Bare icon, vertically centered. No width/height/background so the button
-    // never exceeds the row's text line height — it can't alter row spacing.
-    alignSelf: 'center',
-    marginLeft: spacing[2],
   },
   hoursToggle: {
     paddingVertical: spacing[2],
