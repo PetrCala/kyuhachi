@@ -92,6 +92,11 @@ export default function More() {
           onPress={() => router.push('/challenge/list')}
         />
         <Row
+          icon="book-outline"
+          label={t('passport.title')}
+          onPress={() => router.push('/passport')}
+        />
+        <Row
           icon="navigate-outline"
           label={t('more.routes')}
           onPress={() => router.push('/routes')}

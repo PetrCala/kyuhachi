@@ -237,17 +237,6 @@ export default function Home() {
               </Pressable>
             )}
           </View>
-          <View style={styles.brandActions}>
-            <Pressable style={styles.pillButton} onPress={openRules}>
-              <Text style={styles.pillButtonText}>{t('challengeRules.title')}</Text>
-            </Pressable>
-            <Pressable style={styles.pillButton} onPress={() => router.push('/challenge/list')}>
-              <Text style={styles.pillButtonText}>{t('challengeList.title')}</Text>
-            </Pressable>
-            <Pressable style={styles.pillButton} onPress={() => router.push('/passport')}>
-              <Text style={styles.pillButtonText}>{t('passport.title')}</Text>
-            </Pressable>
-          </View>
         </View>
 
         {/* Lead block: "where do I go next?" Surfaces the nearest unvisited
@@ -456,23 +445,6 @@ const styles = StyleSheet.create({
   rankBadgeChevron: {
     fontSize: typography.sizes.md,
     color: colors.textMuted,
-  },
-  brandActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[2],
-    marginTop: spacing[3],
-  },
-  pillButton: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
-    backgroundColor: colors.backgroundSecondary,
-    borderRadius: radii.full,
-  },
-  pillButtonText: {
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.semibold,
-    color: colors.textSecondary,
   },
   routeSection: {
     paddingHorizontal: spacing[4],
