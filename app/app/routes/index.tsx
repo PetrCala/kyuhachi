@@ -283,21 +283,22 @@ export default function RoutesList() {
                 <Text style={styles.cardName}>{data.name}</Text>
                 <Text style={styles.cardMeta}>{metaLine(data)}</Text>
               </Pressable>
-              {!selectMode && (
-                <RowActionsButton
-                  accessibilityLabel={t('routes.moreActions')}
-                  title={data.name}
-                  cancelLabel={t('routes.cancel')}
-                  actions={[
-                    { label: t('routes.rename'), onPress: () => promptRename(id, data.name) },
-                    {
-                      label: t('routes.delete'),
-                      destructive: true,
-                      onPress: () => confirmDelete(id, data.name),
-                    },
-                  ]}
-                />
-              )}
+              {/* Rename/delete are available in both modes: the ⋯ trigger is a
+                  separate hit target from the row's select/open Pressable, so it
+                  never competes with the primary tap. */}
+              <RowActionsButton
+                accessibilityLabel={t('routes.moreActions')}
+                title={data.name}
+                cancelLabel={t('routes.cancel')}
+                actions={[
+                  { label: t('routes.rename'), onPress: () => promptRename(id, data.name) },
+                  {
+                    label: t('routes.delete'),
+                    destructive: true,
+                    onPress: () => confirmDelete(id, data.name),
+                  },
+                ]}
+              />
             </View>
           ))
         )}
