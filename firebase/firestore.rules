@@ -34,8 +34,15 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, write: if isOwner(userId);
 
+      // earnedTier is the claimed tier: server-only, written exclusively by the
+      // claimTier callable (admin credentials bypass rules). The client may
+      // create it as null and may never change it, so a tier can't be forged.
       match /challenges/{challengeId} {
-        allow read, write: if isOwner(userId);
+        allow read, delete: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && (!('earnedTier' in request.resource.data) || request.resource.data.earnedTier == null);
+        allow update: if isOwner(userId)
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['earnedTier']);
 
         match /visits/{onsenId} {
           allow read, write: if isOwner(userId);

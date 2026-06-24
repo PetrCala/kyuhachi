@@ -34,6 +34,9 @@ export default function Home() {
     tiers,
     completionCount,
     eligibleVisitCount,
+    eligibleTier,
+    claiming,
+    claimTier,
     activeRoute,
     visits,
     onsenMap,
@@ -58,14 +61,29 @@ export default function Home() {
       .filter((m): m is ProgressMarker => m !== null);
   }, [tiers, eligibleVisitCount]);
 
+  // Show the Claim/Upgrade button only when the eligible tier strictly outranks
+  // the one already claimed. Tiers are ordered best → worst, so a lower index is
+  // better; a null earnedTier ranks below the worst (the first claim outranks it).
+  const claimable = useMemo(() => {
+    if (!eligibleTier || tiers.length === 0) return null;
+    const eligibleIndex = tiers.findIndex((tier) => tier.id === eligibleTier.id);
+    const earnedTier = challenge?.earnedTier ?? null;
+    const earnedIndex = earnedTier
+      ? tiers.findIndex((tier) => tier.id === earnedTier)
+      : tiers.length;
+    if (eligibleIndex === -1 || eligibleIndex >= earnedIndex) return null;
+    return { tier: eligibleTier, variant: earnedTier ? ('upgrade' as const) : ('claim' as const) };
+  }, [eligibleTier, tiers, challenge?.earnedTier]);
+
   const feed = useMemo(() => buildVisitFeed(visits, onsenMap), [visits, onsenMap]);
 
   const [celebration, setCelebration] = useState<TierCelebration | null>(null);
 
-  // Celebrate when the active challenge steps up a tier. earnedTier is
-  // maintained server-side, so it arrives via the snapshot; we track the
-  // last-seen tier per challenge to fire only on a genuine increase during the
-  // session — switching challenges or the first load syncs silently.
+  // Celebrate when the active challenge's claimed tier steps up. earnedTier is
+  // written server-side by the claimTier callable, so it arrives via the
+  // snapshot after a successful claim; we track the last-seen tier per challenge
+  // to fire only on a genuine increase during the session — switching challenges
+  // or the first load syncs silently.
   const seenTierRef = useRef<{ challengeId: string | null; tierId: string | null }>({
     challengeId: null,
     tierId: null,
@@ -199,6 +217,27 @@ export default function Home() {
               )}
             </View>
             <ProgressBar value={eligibleVisitCount} total={completionCount} markers={markers} />
+            {claimable && (
+              <Pressable
+                style={[styles.claimButton, claiming && styles.claimButtonDisabled]}
+                onPress={claimTier}
+                disabled={claiming}
+                accessibilityRole="button"
+              >
+                {claiming ? (
+                  <ActivityIndicator color={colors.actionPrimaryText} />
+                ) : (
+                  <Text style={styles.claimButtonText}>
+                    {t(
+                      claimable.variant === 'upgrade'
+                        ? 'challengeProgress.upgradeTier'
+                        : 'challengeProgress.claimTier',
+                      { tier: claimable.tier.name }
+                    )}
+                  </Text>
+                )}
+              </Pressable>
+            )}
           </View>
         )}
 
@@ -363,6 +402,22 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.medium,
     color: colors.actionPrimary,
+  },
+  claimButton: {
+    marginTop: spacing[4],
+    backgroundColor: colors.actionPrimary,
+    borderRadius: radii.md,
+    paddingVertical: spacing[3],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  claimButtonDisabled: {
+    opacity: 0.6,
+  },
+  claimButtonText: {
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.semibold,
+    color: colors.actionPrimaryText,
   },
   recentSection: {
     paddingHorizontal: spacing[4],

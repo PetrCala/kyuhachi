@@ -77,10 +77,12 @@ export interface ChallengeDocument {
    */
   activeRouteId: string | null
   /**
-   * Highest tier the challenge currently qualifies for ("gold" | "silver" |
-   * "bronze"), or null. Maintained by the onVisitCreated / onVisitDeleted
-   * Functions so it rides the initial snapshot — the app reads it, never writes
-   * it. Created as null; the trigger fills it on the first qualifying visit.
+   * The tier the user has **claimed** ("gold" | "silver" | "bronze"), or null.
+   * A tier is never auto-earned: it becomes earned only when the user explicitly
+   * claims it via the `claimTier` callable, which re-verifies eligibility and is
+   * the sole writer (the client may never write this field — Firestore rules
+   * enforce it). Created as null; once claimed it is a permanent trophy and the
+   * visit triggers never change it.
    */
   earnedTier: string | null
   /** Set by onVisitCreated Function when unique eligible visits >= completionCount */
