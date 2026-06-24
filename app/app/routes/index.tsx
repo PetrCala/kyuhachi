@@ -92,8 +92,8 @@ export default function RoutesList() {
   }, [routes]);
 
   // Attach the active route on the challenge this picker was opened for, then
-  // return to it. Cosmetic only — never touches completion logic. Clearing a
-  // route lives on the challenge's route section, not here.
+  // open it on the map. Cosmetic only — never touches completion logic.
+  // Clearing a route lives on the challenge's route section, not here.
   async function setChallengeRoute(
     routeId: string,
     route?: { name: string; points: { lat: number; lng: number }[] }
@@ -116,15 +116,11 @@ export default function RoutesList() {
         { activeRouteId: routeId, updatedAt: serverTimestamp() }
       );
       await minDwell;
-      // By the time the write resolves the user may have already left this
-      // screen — a second tap, or the edge-swipe back gesture. Pop only if we're
-      // still here (otherwise return home, where this picker is always opened
-      // from) so React Navigation never logs "GO_BACK was not handled".
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace('/');
-      }
+      // Land on the map showing the route the user just attached — the natural
+      // payoff (and, for a fresh import, confirmation it parsed into a sensible
+      // track). `replace` (not `back`) so this picker doesn't linger in the
+      // stack behind the map tab; the routeId param renders it immediately.
+      router.replace({ pathname: '/map', params: { routeId } });
     } catch (error) {
       setDrawing(null);
       Alert.alert(t('routes.errorAttach'), t(firebaseErrorKey(error)));
