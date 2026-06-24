@@ -477,6 +477,8 @@ const en = {
   'onsenDetail.showOnMap': 'Show on map',
   'onsenDetail.markVisited': 'Mark as Visited',
   'onsenDetail.visited': 'Visited ✓',
+  'onsenDetail.visitedPill': 'Visited',
+  'onsenDetail.editVisit': 'Edit your visit',
   'onsenDetail.labelNotes': 'Notes',
   'onsenDetail.labelRating': 'Rating',
   'onsenDetail.labelWaterTemp': 'Water Temp',

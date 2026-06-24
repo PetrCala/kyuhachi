@@ -27,6 +27,7 @@ import { COLLECTIONS, SUBCOLLECTIONS, EMPTY_VISIT_STRUCTURED_DATA } from '@kyuha
 import type { VisitFeedItem } from '@/lib/visit-feed';
 import { VisitCard } from '@/components/VisitCard';
 import RecordVisitFab from '@/components/RecordVisitFab';
+import VisitedFab from '@/components/VisitedFab';
 import { useVisit } from '@/hooks/useVisit';
 import { useAuth } from '@/context/AuthContext';
 import { usePreferences } from '@/context/PreferencesContext';
@@ -159,6 +160,10 @@ export default function OnsenDetail() {
     router.push({ pathname: '/onsens/edit-visit', params: { id } });
   }
 
+  function editVisit() {
+    router.push({ pathname: '/onsens/edit-visit', params: { id } });
+  }
+
   // Jump to the Map tab and center on this onsen's pin. `focusTs` makes each tap
   // a fresh request so the map re-focuses even on a repeat visit to the same id.
   function showOnMap() {
@@ -200,6 +205,8 @@ export default function OnsenDetail() {
     : null;
 
   const showVisitButton = !!challengeId && !visit && !visitLoading;
+  const showVisitedFab = !!challengeId && !!visit;
+  const showFab = showVisitButton || showVisitedFab;
 
   return (
     <View style={styles.flex}>
@@ -229,7 +236,7 @@ export default function OnsenDetail() {
       />
       <ScrollView
         style={styles.container}
-        contentContainerStyle={[styles.content, showVisitButton && styles.contentWithFab]}
+        contentContainerStyle={[styles.content, showFab && styles.contentWithFab]}
       >
         {onsen.imageUrl && (
           <Image source={{ uri: onsen.imageUrl }} style={styles.image} resizeMode="cover" />
@@ -240,6 +247,16 @@ export default function OnsenDetail() {
           <Text style={styles.area}>
             {onsen.areaName}　{onsen.prefecture}
           </Text>
+          {visit && (
+            <View style={styles.visitedPill}>
+              <Ionicons
+                name="checkmark-circle"
+                size={typography.sizes.md}
+                color={colors.onsenVisited}
+              />
+              <Text style={styles.visitedPillText}>{t('onsenDetail.visitedPill')}</Text>
+            </View>
+          )}
           {!onsen.isActive && (
             <View style={styles.archivedBadge}>
               <Text style={styles.archivedText}>{t('onsenDetail.archived')}</Text>
@@ -344,14 +361,7 @@ export default function OnsenDetail() {
 
         {feedItem && (
           <View style={styles.visitSummarySection}>
-            <Text style={styles.visitedHeader}>{t('onsenDetail.visited')}</Text>
-            <VisitCard
-              item={feedItem}
-              hideOnsenHeader
-              onEdit={() =>
-                router.push({ pathname: '/onsens/edit-visit', params: { id: onsen.id } })
-              }
-            />
+            <VisitCard item={feedItem} hideOnsenHeader />
           </View>
         )}
       </ScrollView>
@@ -361,6 +371,14 @@ export default function OnsenDetail() {
           style={[styles.fab, { bottom: spacing[6] + insets.bottom }]}
           accessibilityLabel={t('onsenDetail.markVisited')}
           onPress={handleMarkVisited}
+        />
+      )}
+
+      {showVisitedFab && (
+        <VisitedFab
+          style={[styles.fab, { bottom: spacing[6] + insets.bottom }]}
+          accessibilityLabel={t('onsenDetail.editVisit')}
+          onPress={editVisit}
         />
       )}
     </View>
@@ -508,10 +526,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[4],
     paddingTop: spacing[4],
   },
-  visitedHeader: {
-    fontSize: typography.sizes.lg,
-    fontWeight: typography.weights.bold,
-    color: colors.textPrimary,
-    marginBottom: spacing[3],
+  visitedPill: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+    marginTop: spacing[2],
+    paddingVertical: spacing[1],
+    paddingHorizontal: spacing[2],
+    borderRadius: radii.full,
+    backgroundColor: colors.backgroundSecondary,
+  },
+  visitedPillText: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    color: colors.onsenVisited,
   },
 });
