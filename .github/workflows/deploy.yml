@@ -99,6 +99,22 @@ jobs:
         working-directory: app
         run: bash scripts/pod-install.sh
 
+      # The macos-26 image's Xcode ships without the iOS platform SDK, but the
+      # archive's "Any iOS Device" destination needs it. Download it, retrying
+      # since it intermittently fails on a cold runner.
+      - name: Install iOS platform SDK
+        run: |
+          n=0
+          until xcodebuild -downloadPlatform iOS; do
+            n=$((n + 1))
+            if [ "$n" -ge 3 ]; then
+              echo "::error::xcodebuild -downloadPlatform iOS failed after 3 attempts" >&2
+              exit 1
+            fi
+            echo "downloadPlatform attempt $n failed; retrying in 30s..."
+            sleep 30
+          done
+
       - name: Build and upload to TestFlight
         working-directory: app
         timeout-minutes: 60
