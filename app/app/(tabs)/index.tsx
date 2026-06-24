@@ -16,9 +16,11 @@ import { VisitCard } from '@/components/VisitCard';
 import { TierClaimModal, type TierCelebration } from '@/components/TierClaimModal';
 import { ChallengeBadge } from '@/components/ChallengeBadge';
 import { SuggestNextCard } from '@/components/SuggestNextCard';
+import { RankUpToast, type RankToast } from '@/components/RankUpToast';
 import RecordVisitFab from '@/components/RecordVisitFab';
 import { buildVisitFeed } from '@/lib/visit-feed';
 import { buildNextCandidates } from '@/lib/next-onsen';
+import { rankLabel } from '@/lib/challenge-i18n';
 import { colors, spacing, typography, radii } from '@/theme';
 
 // Brand wordmark: 九八 (kyuhachi) set in Klee One. Not a translatable string —
@@ -35,8 +37,10 @@ export default function Home() {
     challengeId,
     challenge,
     tiers,
+    ranks,
     completionCount,
     eligibleVisitCount,
+    currentRank,
     eligibleTier,
     claiming,
     claimTier,
@@ -146,9 +150,45 @@ export default function Home() {
     seenTierRef.current = { challengeId, tierId: current };
   }, [challenge?.earnedTier, challengeId, tiers]);
 
+  // Toast when the derived rank steps up. Ranks are ordered worst → best, so a
+  // higher index is a promotion; a null previous rank ranks below the lowest
+  // (reaching the first rank counts). Switching challenges syncs silently.
+  //
+  // The rank is derived from data that hydrates in stages (visits, then the
+  // per-onsen prefecture map), so we only arm once it has SETTLED — `!loading`
+  // and `onsenMap` populated. Establishing the baseline before then would make
+  // ordinary load-in look like a rank-up on every launch. After settling, the
+  // only thing that moves the rank is the user recording a qualifying visit.
+  const [rankToast, setRankToast] = useState<RankToast | null>(null);
+  const seenRankRef = useRef<{ challengeId: string | null; rankId: string | null }>({
+    challengeId: null,
+    rankId: null,
+  });
+  useEffect(() => {
+    if (loading || ranks.length === 0 || onsenMap.size === 0) return;
+    const current = currentRank?.id ?? null;
+    const prev = seenRankRef.current;
+    if (prev.challengeId !== challengeId) {
+      seenRankRef.current = { challengeId, rankId: current };
+      return;
+    }
+    if (current && current !== prev.rankId) {
+      const newIndex = ranks.findIndex((rank) => rank.id === current);
+      const prevIndex = prev.rankId ? ranks.findIndex((rank) => rank.id === prev.rankId) : -1;
+      if (newIndex !== -1 && newIndex > prevIndex && currentRank) {
+        setRankToast({ rankName: rankLabel(currentRank, t) });
+      }
+    }
+    seenRankRef.current = { challengeId, rankId: current };
+  }, [currentRank, challengeId, ranks, loading, onsenMap, t]);
+
   function openRules() {
     if (!challenge) return;
     router.push({ pathname: '/challenge/rules', params: { typeId: challenge.typeId } });
+  }
+
+  function openRank() {
+    router.push('/challenge/rank');
   }
 
   if (loading) {
@@ -185,6 +225,16 @@ export default function Home() {
             <Text style={styles.progress}>
               {t('home.progress', { visited: eligibleVisitCount, total: completionCount })}
             </Text>
+          )}
+          {ranks.length > 0 && (
+            <Pressable style={styles.rankBadge} onPress={openRank} accessibilityRole="button">
+              <Text style={styles.rankBadgeText}>
+                {t('challengeRank.homeBadge', {
+                  name: currentRank ? rankLabel(currentRank, t) : t('challengeRank.unranked'),
+                })}
+              </Text>
+              <Text style={styles.rankBadgeChevron}>›</Text>
+            </Pressable>
           )}
           <View style={styles.headerActions}>
             <Pressable style={styles.pillButton} onPress={openRules}>
@@ -314,6 +364,11 @@ export default function Home() {
         onPress={() => router.push('/challenge/onsens')}
       />
       <TierClaimModal celebration={celebration} onDismiss={() => setCelebration(null)} />
+      <RankUpToast
+        toast={rankToast}
+        onDismiss={() => setRankToast(null)}
+        onPress={openRank}
+      />
     </SafeAreaView>
   );
 }
@@ -364,6 +419,26 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.xxxl,
     fontWeight: typography.weights.bold,
     color: colors.textPrimary,
+  },
+  rankBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+    marginTop: spacing[3],
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    borderRadius: radii.full,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  rankBadgeText: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    color: colors.textPrimary,
+  },
+  rankBadgeChevron: {
+    fontSize: typography.sizes.md,
+    color: colors.textMuted,
   },
   headerActions: {
     flexDirection: 'row',

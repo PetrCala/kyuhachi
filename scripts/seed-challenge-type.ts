@@ -43,6 +43,13 @@ interface Tier {
   conditions: TierCondition[];
 }
 
+interface Rank {
+  id: string;
+  name: string;
+  minVisits: number;
+  minPrefectures: number;
+}
+
 interface ChallengeTypeSeed {
   id: string;
   name: string;
@@ -87,6 +94,25 @@ const COMMON_RULES = [
   '対象温泉リスト（約155湯）の中から温泉を訪問します。',
   '同じ温泉は何度訪れても1湯としてカウントされます。',
   '達成までの期限はありません。',
+];
+
+// Official 九州八十八湯 progression ranks (見習い → 泉人), ordered worst → best with
+// non-decreasing thresholds, shared by every type. A rank is reached by visiting
+// enough eligible onsens across enough distinct prefectures; the app derives the
+// held rank from progress and never claims or stores it. Display labels are
+// localized in the app (challengeRank.<id>); `name` is the fallback kanji title.
+const RANKS: Rank[] = [
+  { id: 'minarai', name: '見習い', minVisits: 8, minPrefectures: 0 },
+  { id: 'nyumon', name: '入門', minVisits: 16, minPrefectures: 2 },
+  { id: 'shokyu', name: '初級', minVisits: 24, minPrefectures: 3 },
+  { id: 'chukyu', name: '中級', minVisits: 32, minPrefectures: 4 },
+  { id: 'shodan', name: '初段', minVisits: 40, minPrefectures: 5 },
+  { id: 'nidan', name: '二段', minVisits: 48, minPrefectures: 5 },
+  { id: 'sandan', name: '三段', minVisits: 56, minPrefectures: 6 },
+  { id: 'yondan', name: '四段', minVisits: 64, minPrefectures: 6 },
+  { id: 'puro', name: '風呂', minVisits: 72, minPrefectures: 7 },
+  { id: 'sensei', name: '泉生', minVisits: 80, minPrefectures: 7 },
+  { id: 'senin', name: '泉人', minVisits: 88, minPrefectures: 7 },
 ];
 
 const TYPES: ChallengeTypeSeed[] = [
@@ -176,6 +202,7 @@ async function main(): Promise<void> {
       completionCount: COUNTS.gold,
       baseMode: type.baseMode,
       tiers: type.tiers,
+      ranks: RANKS,
       rules: type.rules,
       isActive: true,
     });

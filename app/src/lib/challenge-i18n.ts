@@ -17,7 +17,7 @@
  * challenge type there requires adding its strings here.
  */
 import type { TFunction } from 'i18next';
-import type { ChallengeTypeDocument, Tier } from '@kyuhachi/shared';
+import type { ChallengeTypeDocument, Rank, Tier } from '@kyuhachi/shared';
 
 /** The shared rules every challenge type opens with (seeded as the first entries of `rules`). */
 const COMMON_RULE_KEYS = [
@@ -40,6 +40,16 @@ export function localizeTier(typeId: string, tier: Tier, t: TFunction): Tier {
       defaultValue: tier.conditionSummary,
     }),
   };
+}
+
+/**
+ * Localized display label for a rank, keyed by rank id, falling back to the
+ * canonical Japanese name. Unlike {@link localizeTier} this returns just the
+ * string (and leaves the rank's `name` — the kanji — untouched) so a non-JP
+ * locale can still surface the kanji alongside its romaji label.
+ */
+export function rankLabel(rank: Rank, t: TFunction): string {
+  return t(`challengeRank.${rank.id}`, { defaultValue: rank.name });
 }
 
 /** Overlay catalog text onto a challenge-type document, keyed by `typeId`. */
