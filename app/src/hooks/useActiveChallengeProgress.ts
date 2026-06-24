@@ -69,6 +69,12 @@ export interface ActiveChallengeProgress {
    */
   ranks: Rank[];
   completionCount: number | null;
+  /**
+   * The challenge's transport ceiling (from the challenge type). A visit by a
+   * faster mode is a "shortcut". Null until the challenge type resolves. Exposed
+   * for the Stats transport breakdown; tier eligibility uses it internally too.
+   */
+  baseMode: TransportMode | null;
   eligibleVisitCount: number;
   /** Distinct prefectures represented among the eligible visits. */
   distinctPrefectures: number;
@@ -423,6 +429,7 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
     tiers,
     ranks,
     completionCount,
+    baseMode,
     eligibleVisitCount,
     distinctPrefectures,
     currentRank,

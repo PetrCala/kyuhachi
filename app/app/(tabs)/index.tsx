@@ -11,7 +11,7 @@ import {
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useActiveChallengeProgress } from '@/hooks/useActiveChallengeProgress';
-import { ProgressBar, type ProgressMarker } from '@/components/ProgressBar';
+import { ProgressBar, buildTierMarkers } from '@/components/ProgressBar';
 import { VisitCard } from '@/components/VisitCard';
 import { TierClaimModal, type TierCelebration } from '@/components/TierClaimModal';
 import { ChallengeBadge } from '@/components/ChallengeBadge';
@@ -53,21 +53,11 @@ export default function Home() {
   } = useActiveChallengeProgress();
 
   // Tier thresholds plotted on the bar come from each tier's minVisits
-  // condition — never hardcoded. Tiers gated only on transport/time get no
-  // marker (the bar measures visit count alone).
-  const markers = useMemo<ProgressMarker[]>(() => {
-    return tiers
-      .map((tier) => {
-        const minVisits = tier.conditions.find((c) => c.type === 'minVisits');
-        if (!minVisits) return null;
-        return {
-          position: minVisits.value,
-          tierId: tier.id,
-          reached: eligibleVisitCount >= minVisits.value,
-        };
-      })
-      .filter((m): m is ProgressMarker => m !== null);
-  }, [tiers, eligibleVisitCount]);
+  // condition — never hardcoded (see buildTierMarkers).
+  const markers = useMemo(
+    () => buildTierMarkers(tiers, eligibleVisitCount),
+    [tiers, eligibleVisitCount]
+  );
 
   // Show the Claim/Upgrade button only when the eligible tier strictly outranks
   // the one already claimed. Tiers are ordered best → worst, so a lower index is
