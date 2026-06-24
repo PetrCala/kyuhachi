@@ -145,6 +145,7 @@ const en = {
   'challengeProgress.claimTier': 'Claim {{tier}}',
   'challengeProgress.upgradeTier': 'Upgrade to {{tier}}',
   'challengeProgress.errorClaim': 'Failed to claim tier',
+  'challengeProgress.tierClaimed': 'Claimed',
   'challengeRules.title': 'Rules',
   'challengeRules.rulesHeading': 'Challenge Rules',
   'challengeRules.tiersHeading': 'Tier Conditions',
