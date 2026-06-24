@@ -14,6 +14,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   doc,
   setDoc,
@@ -99,6 +100,7 @@ export default function OnsenDetail() {
   // Whether onsen pages embed a tappable map preview (default) or instead show a
   // compact map icon in the header. Both routes focus this onsen on the Map tab.
   const { showOnsenMapPreview } = usePreferences();
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [onsen, setOnsen] = useState<OnsenWithId | null>(null);
   const [loading, setLoading] = useState(true);
@@ -196,8 +198,10 @@ export default function OnsenDetail() {
       }
     : null;
 
+  const showVisitButton = !!challengeId && !visit && !visitLoading;
+
   return (
-    <>
+    <View style={styles.flex}>
       <Stack.Screen
         options={{
           title: onsen.name,
@@ -222,7 +226,13 @@ export default function OnsenDetail() {
               ),
         }}
       />
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[
+          styles.content,
+          showVisitButton && { paddingBottom: spacing[12] + spacing[10] + insets.bottom },
+        ]}
+      >
         {onsen.imageUrl && (
           <Image source={{ uri: onsen.imageUrl }} style={styles.image} resizeMode="cover" />
         )}
@@ -334,14 +344,6 @@ export default function OnsenDetail() {
           </View>
         )}
 
-        {challengeId && !visit && !visitLoading && (
-          <View style={styles.visitSection}>
-            <Pressable style={styles.visitButton} onPress={handleMarkVisited}>
-              <Text style={styles.visitButtonText}>{t('onsenDetail.markVisited')}</Text>
-            </Pressable>
-          </View>
-        )}
-
         {feedItem && (
           <View style={styles.visitSummarySection}>
             <Text style={styles.visitedHeader}>{t('onsenDetail.visited')}</Text>
@@ -355,7 +357,20 @@ export default function OnsenDetail() {
           </View>
         )}
       </ScrollView>
-    </>
+
+      {showVisitButton && (
+        <View style={[styles.footer, { paddingBottom: spacing[3] + insets.bottom }]}>
+          <Pressable style={styles.footerButton} onPress={handleMarkVisited}>
+            <Ionicons
+              name="checkmark-circle"
+              size={typography.sizes.xl}
+              color={colors.actionPrimaryText}
+            />
+            <Text style={styles.footerButtonText}>{t('onsenDetail.markVisited')}</Text>
+          </Pressable>
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -483,18 +498,29 @@ const styles = StyleSheet.create({
     height: 160,
     backgroundColor: colors.backgroundSecondary,
   },
-  visitSection: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[6],
-    alignItems: 'center',
+  flex: {
+    flex: 1,
+    backgroundColor: colors.background,
   },
-  visitButton: {
+  // Pinned action bar at the bottom of the screen — always reachable regardless
+  // of how far the page has been scrolled.
+  footer: {
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[3],
+    backgroundColor: colors.background,
+    borderTopWidth: 1,
+    borderTopColor: colors.separator,
+  },
+  footerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[2],
     backgroundColor: colors.actionPrimary,
     borderRadius: radii.md,
-    paddingHorizontal: spacing[8],
     paddingVertical: spacing[4],
   },
-  visitButtonText: {
+  footerButtonText: {
     color: colors.actionPrimaryText,
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
