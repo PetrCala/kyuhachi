@@ -99,10 +99,11 @@ const ja: Record<keyof typeof en, string> = {
   // stats hub
   'stats.hub.highlightsTitle': 'ハイライト',
   'stats.hub.exploreTitle': '詳しく見る',
-  'stats.highlight.soakTime': '入浴時間',
+  'stats.highlight.projectedFinish': '達成予測',
   'stats.highlight.prefectures': '県',
-  'stats.highlight.selfPowered': '自力移動',
+  'stats.highlight.rank': '段位',
   'stats.highlight.topRated': '最高評価',
+  'stats.highlight.complete': '達成',
 
   // stats section cards
   'stats.progress.title': '進捗',

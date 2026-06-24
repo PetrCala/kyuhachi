@@ -98,10 +98,11 @@ const en = {
   // stats hub
   'stats.hub.highlightsTitle': 'Highlights',
   'stats.hub.exploreTitle': 'Explore',
-  'stats.highlight.soakTime': 'Time soaked',
+  'stats.highlight.projectedFinish': 'Projected finish',
   'stats.highlight.prefectures': 'Prefectures',
-  'stats.highlight.selfPowered': 'Self-powered',
+  'stats.highlight.rank': 'Rank',
   'stats.highlight.topRated': 'Top-rated',
+  'stats.highlight.complete': 'Done',
 
   // stats section cards (titles + hub subtitles)
   'stats.progress.title': 'Progress',
