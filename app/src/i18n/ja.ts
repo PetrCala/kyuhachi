@@ -73,6 +73,7 @@ const ja: Record<keyof typeof en, string> = {
   'home.noChallenge': 'チャレンジ未開始',
   'home.startChallenge': 'チャレンジ開始',
   'home.recordVisit': '訪問を記録',
+  'home.tierBadgeLabel': '獲得した称号: {{tier}}',
   'home.recentVisits.title': '最近の訪問',
   'home.recentVisits.seeAll': 'すべて見る',
   'home.recentVisits.empty': 'まだ訪問記録がありません',

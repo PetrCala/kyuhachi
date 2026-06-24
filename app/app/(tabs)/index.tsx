@@ -14,6 +14,7 @@ import { useActiveChallengeProgress } from '@/hooks/useActiveChallengeProgress';
 import { ProgressBar, type ProgressMarker } from '@/components/ProgressBar';
 import { VisitCard } from '@/components/VisitCard';
 import { TierClaimModal, type TierCelebration } from '@/components/TierClaimModal';
+import { ChallengeBadge } from '@/components/ChallengeBadge';
 import RecordVisitFab from '@/components/RecordVisitFab';
 import { buildVisitFeed } from '@/lib/visit-feed';
 import { colors, spacing, typography, radii } from '@/theme';
@@ -151,7 +152,24 @@ export default function Home() {
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         <View style={styles.headerSection}>
           <Text style={styles.wordmark}>{HOME_WORDMARK}</Text>
-          <Text style={styles.challengeName}>{challenge.name}</Text>
+          {/* The name stays screen-centered; a tiny claimed-tier medal hangs off
+              its right edge (absolutely positioned) so it never shifts the text. */}
+          <View style={styles.nameRow}>
+            <Text style={styles.challengeName}>{challenge.name}</Text>
+            {challenge.earnedTier ? (
+              <View style={styles.nameBadge} pointerEvents="none">
+                <ChallengeBadge
+                  tierId={challenge.earnedTier}
+                  size={typography.sizes.md}
+                  accessibilityLabel={t('home.tierBadgeLabel', {
+                    tier: t(`challengeTier.${challenge.earnedTier}`, {
+                      defaultValue: challenge.earnedTier,
+                    }),
+                  })}
+                />
+              </View>
+            ) : null}
+          </View>
           {completionCount !== null && (
             <Text style={styles.progress}>
               {t('home.progress', { visited: eligibleVisitCount, total: completionCount })}
@@ -309,11 +327,24 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.separator,
   },
+  nameRow: {
+    // Shrinks to the name's width and centers in the header, so the name stays
+    // screen-centered; the badge is absolute and doesn't count toward the width.
+    alignSelf: 'center',
+    marginBottom: spacing[2],
+  },
   challengeName: {
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.medium,
     color: colors.textSecondary,
-    marginBottom: spacing[2],
+  },
+  nameBadge: {
+    position: 'absolute',
+    left: '100%',
+    marginLeft: spacing[2],
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
   },
   progress: {
     fontSize: typography.sizes.xxxl,
