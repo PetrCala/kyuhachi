@@ -10,7 +10,14 @@ import { colors, spacing, typography, radii, shadows } from '@/theme';
  */
 export default function Preferences() {
   const { t } = useTranslation();
-  const { showNearby, nearRadiusKm, setShowNearby, setNearRadiusKm } = usePreferences();
+  const {
+    showNearby,
+    nearRadiusKm,
+    showOnsenMapPreview,
+    setShowNearby,
+    setNearRadiusKm,
+    setShowOnsenMapPreview,
+  } = usePreferences();
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -56,6 +63,19 @@ export default function Preferences() {
           <Text style={styles.hint}>{t('preferences.radiusHint', { km: nearRadiusKm })}</Text>
         </>
       ) : null}
+
+      <Text style={styles.sectionHeader}>{t('preferences.onsenPageHeader')}</Text>
+      <View style={styles.group}>
+        <View style={styles.row}>
+          <Text style={styles.rowLabel}>{t('preferences.onsenMapPreview')}</Text>
+          <Switch
+            value={showOnsenMapPreview}
+            onValueChange={setShowOnsenMapPreview}
+            trackColor={{ false: colors.separator, true: colors.actionPrimary }}
+          />
+        </View>
+      </View>
+      <Text style={styles.hint}>{t('preferences.onsenMapPreviewHint')}</Text>
     </ScrollView>
   );
 }

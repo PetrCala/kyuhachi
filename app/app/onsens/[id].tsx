@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import { useTranslation } from 'react-i18next';
 import {
   doc,
@@ -26,6 +27,7 @@ import type { VisitFeedItem } from '@/lib/visit-feed';
 import { VisitCard } from '@/components/VisitCard';
 import { useVisit } from '@/hooks/useVisit';
 import { useAuth } from '@/context/AuthContext';
+import { usePreferences } from '@/context/PreferencesContext';
 import { db } from '@/firebase';
 import { firebaseErrorKey } from '@/lib/firebase-errors';
 import { colors, spacing, typography, radii } from '@/theme';
@@ -94,6 +96,9 @@ export default function OnsenDetail() {
   const { t } = useTranslation();
   const router = useRouter();
   const { user } = useAuth();
+  // Whether onsen pages embed a tappable map preview (default) or instead show a
+  // compact map icon in the header. Both routes focus this onsen on the Map tab.
+  const { showOnsenMapPreview } = usePreferences();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [onsen, setOnsen] = useState<OnsenWithId | null>(null);
   const [loading, setLoading] = useState(true);
@@ -151,6 +156,15 @@ export default function OnsenDetail() {
     router.push({ pathname: '/onsens/edit-visit', params: { id } });
   }
 
+  // Jump to the Map tab and center on this onsen's pin. `focusTs` makes each tap
+  // a fresh request so the map re-focuses even on a repeat visit to the same id.
+  function showOnMap() {
+    router.push({
+      pathname: '/map',
+      params: { focusOnsenId: id, focusTs: String(Date.now()) },
+    });
+  }
+
   if (loading) {
     return (
       <>
@@ -184,7 +198,30 @@ export default function OnsenDetail() {
 
   return (
     <>
-      <Stack.Screen options={{ title: onsen.name, headerShown: true }} />
+      <Stack.Screen
+        options={{
+          title: onsen.name,
+          headerShown: true,
+          // When the in-body preview is off, surface the map action as a compact
+          // header icon instead.
+          headerRight: showOnsenMapPreview
+            ? undefined
+            : () => (
+                <Pressable
+                  onPress={showOnMap}
+                  hitSlop={spacing[2]}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('onsenDetail.showOnMap')}
+                >
+                  <Ionicons
+                    name="map-outline"
+                    size={typography.sizes.xl}
+                    color={colors.actionPrimary}
+                  />
+                </Pressable>
+              ),
+        }}
+      />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         {onsen.imageUrl && (
           <Image source={{ uri: onsen.imageUrl }} style={styles.image} resizeMode="cover" />
@@ -255,6 +292,35 @@ export default function OnsenDetail() {
             </>
           )}
         </View>
+
+        {showOnsenMapPreview && (
+          <View style={styles.mapPreviewSection}>
+            <Pressable
+              style={styles.mapPreviewCard}
+              onPress={showOnMap}
+              accessibilityRole="button"
+              accessibilityLabel={t('onsenDetail.showOnMap')}
+            >
+              <MapView
+                style={styles.miniMap}
+                provider={PROVIDER_DEFAULT}
+                pointerEvents="none"
+                scrollEnabled={false}
+                zoomEnabled={false}
+                rotateEnabled={false}
+                pitchEnabled={false}
+                initialRegion={{
+                  latitude: onsen.lat,
+                  longitude: onsen.lng,
+                  latitudeDelta: 0.02,
+                  longitudeDelta: 0.02,
+                }}
+              >
+                <Marker coordinate={{ latitude: onsen.lat, longitude: onsen.lng }} />
+              </MapView>
+            </Pressable>
+          </View>
+        )}
 
         {onsen.websiteUrl && (
           <View style={styles.section}>
@@ -402,6 +468,20 @@ const styles = StyleSheet.create({
     color: colors.actionPrimary,
     textDecorationLine: 'underline',
     paddingVertical: spacing[2],
+  },
+  mapPreviewSection: {
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[4],
+  },
+  // Rounded card that clips the preview map's corners.
+  mapPreviewCard: {
+    borderRadius: radii.md,
+    overflow: 'hidden',
+  },
+  miniMap: {
+    width: '100%',
+    height: 160,
+    backgroundColor: colors.backgroundSecondary,
   },
   visitSection: {
     paddingHorizontal: spacing[4],

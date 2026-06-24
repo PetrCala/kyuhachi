@@ -137,6 +137,10 @@ const ja: Record<keyof typeof en, string> = {
   'preferences.showNearbyHint': '温泉一覧の上部に、現在地の近くにある温泉のセクションを表示します。',
   'preferences.radiusTitle': '距離（km）',
   'preferences.radiusHint': '現在地から{{km}}km以内の温泉が「近くの温泉」に表示されます。',
+  'preferences.onsenPageHeader': '温泉ページ',
+  'preferences.onsenMapPreview': '地図プレビューを表示',
+  'preferences.onsenMapPreviewHint':
+    '温泉ページにタップできる地図プレビューを表示します。オフにすると、代わりに右上にコンパクトな地図ボタンを表示します。',
 
   // challenge progress
   'challengeProgress.title': 'チャレンジ進捗',
@@ -320,6 +324,7 @@ const ja: Record<keyof typeof en, string> = {
   'onsenDetail.labelSpringQuality': '泉質',
   'onsenDetail.labelHours': '営業時間',
   'onsenDetail.getDirections': '経路を表示',
+  'onsenDetail.showOnMap': '地図で見る',
   'onsenDetail.markVisited': '訪問済みにする',
   'onsenDetail.visited': '訪問済み ✓',
   'onsenDetail.labelNotes': 'メモ',

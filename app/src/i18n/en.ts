@@ -137,6 +137,10 @@ const en = {
     'Shows a section at the top of the onsen list with springs near your current location.',
   'preferences.radiusTitle': 'Distance (km)',
   'preferences.radiusHint': 'Onsens within {{km}} km of you appear in the “Near you” section.',
+  'preferences.onsenPageHeader': 'Onsen pages',
+  'preferences.onsenMapPreview': 'Show map preview',
+  'preferences.onsenMapPreviewHint':
+    'Each onsen page shows a tappable map preview. Turn this off to use a compact map button in the top-right corner instead.',
 
   // challenge progress
   'challengeProgress.title': 'Challenge Progress',
@@ -331,6 +335,7 @@ const en = {
   'onsenDetail.labelSpringQuality': 'Spring Quality',
   'onsenDetail.labelHours': 'Business Hours',
   'onsenDetail.getDirections': 'Get directions',
+  'onsenDetail.showOnMap': 'Show on map',
   'onsenDetail.markVisited': 'Mark as Visited',
   'onsenDetail.visited': 'Visited ✓',
   'onsenDetail.labelNotes': 'Notes',

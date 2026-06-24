@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, type ElementRef } from 'react';
 import { View, ActivityIndicator, Alert, Animated, Pressable, StyleSheet } from 'react-native';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -60,12 +60,19 @@ export default function MapScreen() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const navigation = useNavigation();
-  const { routeId: paramRouteId } = useLocalSearchParams<{ routeId?: string }>();
+  const { routeId: paramRouteId, focusOnsenId, focusTs } = useLocalSearchParams<{
+    routeId?: string;
+    focusOnsenId?: string;
+    focusTs?: string;
+  }>();
   // kyuhachiIds visited in the active challenge (drives the visited pin color),
   // plus the active challenge's route — both kept live by the progress hook.
   const { visitedIds, activeRoute, loading: progressLoading } =
     useActiveChallengeProgress();
   const mapRef = useRef<MapView>(null);
+  // Per-onsen Marker handles so an arriving "Show on map" focus can pop the
+  // matching callout once the camera has settled on its pin.
+  const markerRefs = useRef<Record<string, ElementRef<typeof Marker> | null>>({});
   const [onsens, setOnsens] = useState<OnsenRow[]>([]);
   const [onsensLoading, setOnsensLoading] = useState(true);
   // An explicit `routeId` param (a just-imported route, or "View route on map")
@@ -272,6 +279,27 @@ export default function MapScreen() {
     mapRef.current?.animateToRegion(regionForBounds(route.bounds));
   }, [route]);
 
+  // Arriving from an onsen's "Show on map": center on that pin and pop its
+  // callout. `focusTs` is a per-tap nonce so tapping again re-focuses the same
+  // onsen (an unchanging id alone wouldn't re-fire the effect); the guard stops
+  // a re-run on unrelated re-renders or when returning to this tab. Runs after
+  // the route-framing effect above so a focused onsen wins the camera.
+  const focusedTokenRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!focusOnsenId || !focusTs || focusedTokenRef.current === focusTs) return;
+    const target = onsens.find((o) => o.id === focusOnsenId);
+    if (!target) return; // onsen list not loaded yet; re-runs when it arrives
+    focusedTokenRef.current = focusTs;
+    mapRef.current?.animateToRegion({
+      latitude: target.lat,
+      longitude: target.lng,
+      latitudeDelta: USER_LOCATION_DELTA,
+      longitudeDelta: USER_LOCATION_DELTA,
+    });
+    const timer = setTimeout(() => markerRefs.current[focusOnsenId]?.showCallout(), 650);
+    return () => clearTimeout(timer);
+  }, [focusOnsenId, focusTs, onsens]);
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -297,6 +325,9 @@ export default function MapScreen() {
         {onsens.map((onsen) => (
           <Marker
             key={onsen.id}
+            ref={(r) => {
+              markerRefs.current[onsen.id] = r;
+            }}
             coordinate={{ latitude: onsen.lat, longitude: onsen.lng }}
             title={onsen.name}
             description={onsen.areaName}
