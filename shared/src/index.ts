@@ -10,6 +10,7 @@ export type {
   TierConditionType,
   TierCondition,
   Tier,
+  Rank,
   ChallengeTypeDocument,
   ChallengeDocument,
   VisitStructuredData,

@@ -25,6 +25,29 @@ export interface Tier {
 }
 
 /**
+ * A rung on the official 九州八十八湯 progression ladder (見習い → 泉人).
+ *
+ * Unlike a {@link Tier} — a difficulty trophy that is *claimed* once at the end —
+ * a rank is a milestone *derived* from current progress: the highest rank whose
+ * thresholds are met. Both thresholds must be satisfied, so prefecture diversity
+ * gates progression independently of raw visit count.
+ *
+ * `name` is the canonical Japanese title (e.g. "見習い"); the app overlays a
+ * localized label keyed by `id` (see `app/src/lib/challenge-i18n.ts`), so this
+ * value is the fallback for any id the app has no strings for.
+ */
+export interface Rank {
+  /** Romaji slug: "minarai" | "nyumon" | … | "senin" */
+  id: string
+  /** Canonical Japanese rank name, e.g. "見習い" */
+  name: string
+  /** Unique eligible-onsen visits required to reach this rank */
+  minVisits: number
+  /** Distinct prefectures that must be represented among those visits (0 = no minimum) */
+  minPrefectures: number
+}
+
+/**
  * /challenge_types/{typeId}
  *
  * Admin-managed. Never written by users.
@@ -46,6 +69,13 @@ export interface ChallengeTypeDocument {
   baseMode: TransportMode
   /** Ordered best → worst */
   tiers: Tier[]
+  /**
+   * The official progression ranks, ordered worst → best (見習い → 泉人) with
+   * non-decreasing thresholds. Published by the data repo; the app derives the
+   * user's current rank from their progress and never writes this. May be empty
+   * for types that predate ranks — the app hides the rank UI in that case.
+   */
+  ranks: Rank[]
   /** Prose rules for display on the challenge rules screen */
   rules: string[]
   isActive: boolean

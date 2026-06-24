@@ -20,6 +20,7 @@ import type {
   ChallengeDocument,
   ChallengeTypeDocument,
   OnsenDocument,
+  Rank,
   RouteDocument,
   Tier,
   TransportMode,
@@ -31,6 +32,7 @@ import { db, functions } from '@/firebase';
 import { firebaseErrorKey } from '@/lib/firebase-errors';
 import { localizeTier } from '@/lib/challenge-i18n';
 import { countShortcuts, highestEligibleTier, type TierProgress } from '@/lib/tier-eligibility';
+import { highestAchievedRank, nextRankToEarn, type RankProgress } from '@/lib/rank';
 
 export interface OnsenRow {
   id: string;
@@ -60,8 +62,20 @@ export interface ActiveChallengeProgress {
   challengeId: string | null;
   challenge: ChallengeDocument | null;
   tiers: Tier[];
+  /**
+   * The official progression ranks for the active challenge type, ordered
+   * worst → best (raw — `name` is the canonical Japanese title; localize the
+   * display label with `rankLabel`). Empty when the type publishes none.
+   */
+  ranks: Rank[];
   completionCount: number | null;
   eligibleVisitCount: number;
+  /** Distinct prefectures represented among the eligible visits. */
+  distinctPrefectures: number;
+  /** The highest rank currently achieved (derived from progress), or null. */
+  currentRank: Rank | null;
+  /** The next rank to aim for, or null once the apex rank is reached. */
+  nextRank: Rank | null;
   /**
    * The highest tier the challenge currently *qualifies* for (claimed or not),
    * or null. Drives the Claim/Upgrade button; the claim itself is verified
@@ -102,6 +116,7 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
   const [visitedIds, setVisitedIds] = useState<Set<string>>(new Set());
   const [visits, setVisits] = useState<Map<string, VisitDocument>>(new Map());
   const [tiers, setTiers] = useState<Tier[]>([]);
+  const [ranks, setRanks] = useState<Rank[]>([]);
   const [completionCount, setCompletionCount] = useState<number | null>(null);
   const [baseMode, setBaseMode] = useState<TransportMode | null>(null);
   const [onsenMap, setOnsenMap] = useState<Map<string, OnsenDisplayInfo>>(new Map());
@@ -204,10 +219,11 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
     };
   }, [user]);
 
-  // Listen to challenge type for tiers
+  // Listen to challenge type for tiers and ranks
   useEffect(() => {
     if (!challenge) {
       setTiers([]);
+      setRanks([]);
       setCompletionCount(null);
       setBaseMode(null);
       return;
@@ -217,12 +233,15 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
       (snapshot: FirebaseFirestoreTypes.DocumentSnapshot) => {
         if (!snapshot.exists()) {
           setTiers([]);
+          setRanks([]);
           setCompletionCount(null);
           setBaseMode(null);
           return;
         }
         const data = snapshot.data() as ChallengeTypeDocument;
         setTiers((data.tiers ?? []).map((tier) => localizeTier(challenge.typeId, tier, t)));
+        // Ranks stay raw (kanji names) — the UI localizes the label per locale.
+        setRanks(data.ranks ?? []);
         setCompletionCount(data.completionCount);
         setBaseMode(data.baseMode ?? null);
       }
@@ -314,6 +333,35 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
     return [...visitedIds].filter((id) => eligible.has(id)).length;
   }, [challenge, visitedIds]);
 
+  // Distinct prefectures among eligible visits — the second axis ranks gate on.
+  // A missing prefecture ('' until the onsen's display data loads) isn't counted.
+  const distinctPrefectures = useMemo(() => {
+    if (!challenge) return 0;
+    const eligible = new Set(challenge.snapshotEligibleOnsenIds);
+    const prefectures = new Set<string>();
+    for (const id of visitedIds) {
+      if (!eligible.has(id)) continue;
+      const prefecture = onsenMap.get(id)?.prefecture;
+      if (prefecture) prefectures.add(prefecture);
+    }
+    return prefectures.size;
+  }, [challenge, visitedIds, onsenMap]);
+
+  // The official progression rank, derived purely from progress (no claim). The
+  // current rank is the highest rung met on both axes; the next is the one to
+  // aim for. Both null until the type publishes ranks.
+  const currentRank = useMemo<Rank | null>(() => {
+    if (ranks.length === 0) return null;
+    const progress: RankProgress = { eligibleVisits: eligibleVisitCount, distinctPrefectures };
+    return highestAchievedRank(ranks, progress);
+  }, [ranks, eligibleVisitCount, distinctPrefectures]);
+
+  const nextRank = useMemo<Rank | null>(() => {
+    if (ranks.length === 0) return null;
+    const progress: RankProgress = { eligibleVisits: eligibleVisitCount, distinctPrefectures };
+    return nextRankToEarn(ranks, progress);
+  }, [ranks, eligibleVisitCount, distinctPrefectures]);
+
   // The tier the challenge currently qualifies for — gates the Claim/Upgrade
   // button. Mirrors the server's check (the callable re-verifies before writing).
   const eligibleTier = useMemo<Tier | null>(() => {
@@ -373,8 +421,12 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
     challengeId,
     challenge,
     tiers,
+    ranks,
     completionCount,
     eligibleVisitCount,
+    distinctPrefectures,
+    currentRank,
+    nextRank,
     eligibleTier,
     claiming,
     claimTier,
