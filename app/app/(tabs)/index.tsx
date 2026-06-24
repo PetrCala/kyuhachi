@@ -16,6 +16,7 @@ import { VisitCard } from '@/components/VisitCard';
 import { TierClaimModal, type TierCelebration } from '@/components/TierClaimModal';
 import { ChallengeBadge } from '@/components/ChallengeBadge';
 import { SuggestNextCard } from '@/components/SuggestNextCard';
+import { SpaportHeroButton } from '@/components/SpaportHeroButton';
 import { RankUpToast, type RankToast } from '@/components/RankUpToast';
 import RecordVisitFab from '@/components/RecordVisitFab';
 import { buildVisitFeed } from '@/lib/visit-feed';
@@ -247,9 +248,12 @@ export default function Home() {
             and the claim/upgrade action (or the earned-tier resting row). */}
         {completionCount !== null && (
           <View style={styles.heroSection}>
-            <Text style={styles.heroNumber}>
-              {t('home.progress', { visited: eligibleVisitCount, total: completionCount })}
-            </Text>
+            <View style={styles.heroTopRow}>
+              <Text style={styles.heroNumber}>
+                {t('home.progress', { visited: eligibleVisitCount, total: completionCount })}
+              </Text>
+              <SpaportHeroButton challenge={challenge} visits={visits} onsenMap={onsenMap} />
+            </View>
             <View style={styles.progressHeaderRow}>
               <Text style={styles.sectionHeading}>{t('challengeProgress.progressHeading')}</Text>
               {tiers.length > 0 && (
@@ -497,11 +501,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.separator,
   },
+  heroTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing[4],
+  },
   heroNumber: {
     fontSize: typography.sizes.xxxl,
     fontWeight: typography.weights.bold,
     color: colors.textPrimary,
-    marginBottom: spacing[4],
   },
   progressHeaderRow: {
     flexDirection: 'row',
