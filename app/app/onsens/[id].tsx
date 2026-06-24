@@ -41,11 +41,30 @@ const WEEKDAYS: (keyof WeeklySchedule)[] = [
   'sunday',
 ];
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function InfoRow({
+  label,
+  value,
+  onPress,
+}: {
+  label: string;
+  value: string;
+  onPress?: () => void;
+}) {
   return (
     <View style={styles.infoRow}>
       <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
+      {onPress ? (
+        <Pressable
+          style={styles.infoValuePressable}
+          onPress={onPress}
+          accessibilityRole="button"
+          hitSlop={4}
+        >
+          <Text style={[styles.infoValue, styles.infoValueLink]}>{value}</Text>
+        </Pressable>
+      ) : (
+        <Text style={styles.infoValue}>{value}</Text>
+      )}
     </View>
   );
 }
@@ -169,7 +188,13 @@ export default function OnsenDetail() {
 
         <View style={styles.section}>
           <InfoRow label={t('onsenDetail.labelAddress')} value={onsen.address} />
-          {onsen.phone && <InfoRow label={t('onsenDetail.labelPhone')} value={onsen.phone} />}
+          {onsen.phone && (
+            <InfoRow
+              label={t('onsenDetail.labelPhone')}
+              value={onsen.phone}
+              onPress={() => Linking.openURL(`tel:${onsen.phone!.replace(/[^\d+]/g, '')}`)}
+            />
+          )}
           {onsen.admissionFee && (
             <InfoRow label={t('onsenDetail.labelFee')} value={onsen.admissionFee} />
           )}
@@ -206,13 +231,26 @@ export default function OnsenDetail() {
           )}
         </View>
 
-        {onsen.websiteUrl && (
-          <View style={styles.section}>
-            <Pressable onPress={() => Linking.openURL(onsen.websiteUrl!)}>
+        <View style={styles.section}>
+          <Pressable
+            onPress={() =>
+              Linking.openURL(`https://maps.apple.com/?daddr=${onsen.lat},${onsen.lng}`)
+            }
+            accessibilityRole="button"
+            hitSlop={4}
+          >
+            <Text style={styles.linkAction}>{t('onsenDetail.getDirections')} ›</Text>
+          </Pressable>
+          {onsen.websiteUrl && (
+            <Pressable
+              onPress={() => Linking.openURL(onsen.websiteUrl!)}
+              accessibilityRole="link"
+              hitSlop={4}
+            >
               <Text style={styles.websiteLink}>{onsen.websiteUrl}</Text>
             </Pressable>
-          </View>
-        )}
+          )}
+        </View>
 
         {challengeId && !visit && !visitLoading && (
           <View style={styles.visitSection}>
@@ -312,6 +350,19 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     color: colors.textPrimary,
     lineHeight: 20,
+  },
+  infoValuePressable: {
+    flex: 1,
+  },
+  infoValueLink: {
+    color: colors.actionPrimary,
+    textDecorationLine: 'underline',
+  },
+  linkAction: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    color: colors.actionPrimary,
+    paddingVertical: spacing[2],
   },
   hoursToggle: {
     paddingVertical: spacing[2],

@@ -15,8 +15,10 @@ import { ProgressBar, type ProgressMarker } from '@/components/ProgressBar';
 import { VisitCard } from '@/components/VisitCard';
 import { TierClaimModal, type TierCelebration } from '@/components/TierClaimModal';
 import { ChallengeBadge } from '@/components/ChallengeBadge';
+import { SuggestNextCard } from '@/components/SuggestNextCard';
 import RecordVisitFab from '@/components/RecordVisitFab';
 import { buildVisitFeed } from '@/lib/visit-feed';
+import { buildNextCandidates } from '@/lib/next-onsen';
 import { colors, spacing, typography, radii } from '@/theme';
 
 // Brand wordmark: 九八 (kyuhachi) set in Klee One. Not a translatable string —
@@ -40,6 +42,7 @@ export default function Home() {
     claimTier,
     activeRoute,
     visits,
+    visitedIds,
     onsenMap,
     clearRoute,
     selectRoute,
@@ -94,6 +97,14 @@ export default function Home() {
     : null;
 
   const feed = useMemo(() => buildVisitFeed(visits, onsenMap), [visits, onsenMap]);
+
+  // Eligible onsens the user hasn't visited yet, fed to the "nearest unvisited"
+  // card. The card hides itself when this is empty (challenge complete).
+  const nextCandidates = useMemo(
+    () =>
+      challenge ? buildNextCandidates(challenge.snapshotEligibleOnsenIds, visitedIds, onsenMap) : [],
+    [challenge, visitedIds, onsenMap]
+  );
 
   const [celebration, setCelebration] = useState<TierCelebration | null>(null);
 
@@ -272,6 +283,8 @@ export default function Home() {
             ) : null}
           </View>
         )}
+
+        <SuggestNextCard candidates={nextCandidates} activeRoute={activeRoute} />
 
         <View style={styles.recentSection}>
           <View style={styles.recentHeaderRow}>
