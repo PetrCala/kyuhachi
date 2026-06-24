@@ -218,14 +218,9 @@ export default function Home() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.headerSection}>
+        <View style={styles.brandStrip}>
           <Text style={styles.wordmark}>{HOME_WORDMARK}</Text>
           <Text style={styles.challengeName}>{challenge.name}</Text>
-          {completionCount !== null && (
-            <Text style={styles.progress}>
-              {t('home.progress', { visited: eligibleVisitCount, total: completionCount })}
-            </Text>
-          )}
           {ranks.length > 0 && (
             <Pressable style={styles.rankBadge} onPress={openRank} accessibilityRole="button">
               <Text style={styles.rankBadgeText}>
@@ -249,47 +244,11 @@ export default function Home() {
           </View>
         </View>
 
-        <View style={styles.routeSection}>
-          <Text style={styles.routeHeading}>{t('challengeProgress.routeHeading')}</Text>
-          {activeRoute ? (
-            <>
-              <Text style={styles.routeName}>{activeRoute.name}</Text>
-              <View style={styles.routeActions}>
-                <Pressable
-                  style={styles.routeButton}
-                  onPress={() => {
-                    if (challenge.activeRouteId) {
-                      router.push({
-                        pathname: '/map',
-                        params: { routeId: challenge.activeRouteId },
-                      });
-                    }
-                  }}
-                >
-                  <Text style={styles.routeButtonText}>
-                    {t('challengeProgress.viewRouteOnMap')}
-                  </Text>
-                </Pressable>
-                <Pressable style={styles.routeButton} onPress={selectRoute}>
-                  <Text style={styles.routeButtonText}>{t('challengeProgress.changeRoute')}</Text>
-                </Pressable>
-                <Pressable style={styles.routeButton} onPress={clearRoute}>
-                  <Text style={styles.routeButtonText}>{t('challengeProgress.clearRoute')}</Text>
-                </Pressable>
-              </View>
-            </>
-          ) : (
-            <View style={styles.routeEmptyRow}>
-              <Text style={styles.routeEmptyText}>{t('challengeProgress.noRoute')}</Text>
-              <Pressable style={styles.routeButton} onPress={selectRoute}>
-                <Text style={styles.routeButtonText}>{t('challengeProgress.selectRoute')}</Text>
-              </Pressable>
-            </View>
-          )}
-        </View>
-
         {completionCount !== null && (
-          <View style={styles.progressSection}>
+          <View style={styles.progressHero}>
+            <Text style={styles.progress}>
+              {t('home.progress', { visited: eligibleVisitCount, total: completionCount })}
+            </Text>
             <View style={styles.progressHeaderRow}>
               <Text style={styles.sectionHeading}>{t('challengeProgress.progressHeading')}</Text>
               {tiers.length > 0 && (
@@ -360,6 +319,45 @@ export default function Home() {
             ))
           )}
         </View>
+
+        <View style={styles.routeCard}>
+          <Text style={styles.routeHeading}>{t('challengeProgress.routeHeading')}</Text>
+          {activeRoute ? (
+            <>
+              <Text style={styles.routeName}>{activeRoute.name}</Text>
+              <View style={styles.routeActions}>
+                <Pressable
+                  style={styles.routeButton}
+                  onPress={() => {
+                    if (challenge.activeRouteId) {
+                      router.push({
+                        pathname: '/map',
+                        params: { routeId: challenge.activeRouteId },
+                      });
+                    }
+                  }}
+                >
+                  <Text style={styles.routeButtonText}>
+                    {t('challengeProgress.viewRouteOnMap')}
+                  </Text>
+                </Pressable>
+                <Pressable style={styles.routeButton} onPress={selectRoute}>
+                  <Text style={styles.routeButtonText}>{t('challengeProgress.changeRoute')}</Text>
+                </Pressable>
+                <Pressable style={styles.routeButton} onPress={clearRoute}>
+                  <Text style={styles.routeButtonText}>{t('challengeProgress.clearRoute')}</Text>
+                </Pressable>
+              </View>
+            </>
+          ) : (
+            <View style={styles.routeEmptyRow}>
+              <Text style={styles.routeEmptyText}>{t('challengeProgress.noRoute')}</Text>
+              <Pressable style={styles.routeButton} onPress={selectRoute}>
+                <Text style={styles.routeButtonText}>{t('challengeProgress.selectRoute')}</Text>
+              </Pressable>
+            </View>
+          )}
+        </View>
       </ScrollView>
       <RecordVisitFab
         style={styles.fab}
@@ -405,10 +403,12 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginBottom: spacing[6],
   },
-  headerSection: {
+  // Slim identity/nav strip at the very top. The big progress number lives in
+  // the progress hero below, so this strip stays lightweight.
+  brandStrip: {
     alignItems: 'center',
     paddingTop: spacing[4],
-    paddingBottom: spacing[6],
+    paddingBottom: spacing[4],
     borderBottomWidth: 1,
     borderBottomColor: colors.separator,
   },
@@ -418,10 +418,21 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: spacing[2],
   },
+  // The unified progress block: the hero number, the "Progress" heading row, the
+  // bar, and the claim/earned-tier slot — the single home for progress on screen.
+  progressHero: {
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[6],
+    paddingBottom: spacing[5],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.separator,
+  },
   progress: {
     fontSize: typography.sizes.xxxl,
     fontWeight: typography.weights.bold,
     color: colors.textPrimary,
+    textAlign: 'center',
+    marginBottom: spacing[4],
   },
   rankBadge: {
     flexDirection: 'row',
@@ -461,17 +472,21 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.semibold,
     color: colors.textSecondary,
   },
-  routeSection: {
+  // Route is demoted to the bottom: a compact, muted card rather than a full
+  // bordered section, keeping every action (view/change/clear/select) intact.
+  routeCard: {
+    marginHorizontal: spacing[4],
+    marginTop: spacing[5],
     paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.separator,
+    paddingVertical: spacing[3],
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: radii.lg,
   },
   routeHeading: {
-    fontSize: typography.sizes.sm,
+    fontSize: typography.sizes.xs,
     fontWeight: typography.weights.semibold,
     color: colors.textMuted,
-    marginBottom: spacing[3],
+    marginBottom: spacing[2],
   },
   routeName: {
     fontSize: typography.sizes.md,
@@ -506,16 +521,11 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     color: colors.textSecondary,
   },
-  progressSection: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.separator,
-  },
   progressHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    alignSelf: 'stretch',
     marginBottom: spacing[5],
   },
   sectionHeading: {
