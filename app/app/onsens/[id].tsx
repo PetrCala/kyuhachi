@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ComponentProps } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import {
   doc,
@@ -45,10 +46,17 @@ function InfoRow({
   label,
   value,
   onPress,
+  action,
 }: {
   label: string;
   value: string;
   onPress?: () => void;
+  /** A trailing icon button (e.g. directions on the address row). */
+  action?: {
+    icon: ComponentProps<typeof Ionicons>['name'];
+    onPress: () => void;
+    accessibilityLabel: string;
+  };
 }) {
   return (
     <View style={styles.infoRow}>
@@ -64,6 +72,17 @@ function InfoRow({
         </Pressable>
       ) : (
         <Text style={styles.infoValue}>{value}</Text>
+      )}
+      {action && (
+        <Pressable
+          style={styles.infoAction}
+          onPress={action.onPress}
+          accessibilityRole="button"
+          accessibilityLabel={action.accessibilityLabel}
+          hitSlop={8}
+        >
+          <Ionicons name={action.icon} size={spacing[5]} color={colors.actionPrimary} />
+        </Pressable>
       )}
     </View>
   );
@@ -187,7 +206,16 @@ export default function OnsenDetail() {
         </View>
 
         <View style={styles.section}>
-          <InfoRow label={t('onsenDetail.labelAddress')} value={onsen.address} />
+          <InfoRow
+            label={t('onsenDetail.labelAddress')}
+            value={onsen.address}
+            action={{
+              icon: 'navigate',
+              onPress: () =>
+                Linking.openURL(`https://maps.apple.com/?daddr=${onsen.lat},${onsen.lng}`),
+              accessibilityLabel: t('onsenDetail.getDirections'),
+            }}
+          />
           {onsen.phone && (
             <InfoRow
               label={t('onsenDetail.labelPhone')}
@@ -231,17 +259,8 @@ export default function OnsenDetail() {
           )}
         </View>
 
-        <View style={styles.section}>
-          <Pressable
-            onPress={() =>
-              Linking.openURL(`https://maps.apple.com/?daddr=${onsen.lat},${onsen.lng}`)
-            }
-            accessibilityRole="button"
-            hitSlop={4}
-          >
-            <Text style={styles.linkAction}>{t('onsenDetail.getDirections')} ›</Text>
-          </Pressable>
-          {onsen.websiteUrl && (
+        {onsen.websiteUrl && (
+          <View style={styles.section}>
             <Pressable
               onPress={() => Linking.openURL(onsen.websiteUrl!)}
               accessibilityRole="link"
@@ -249,8 +268,8 @@ export default function OnsenDetail() {
             >
               <Text style={styles.websiteLink}>{onsen.websiteUrl}</Text>
             </Pressable>
-          )}
-        </View>
+          </View>
+        )}
 
         {challengeId && !visit && !visitLoading && (
           <View style={styles.visitSection}>
@@ -358,11 +377,15 @@ const styles = StyleSheet.create({
     color: colors.actionPrimary,
     textDecorationLine: 'underline',
   },
-  linkAction: {
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.semibold,
-    color: colors.actionPrimary,
-    paddingVertical: spacing[2],
+  infoAction: {
+    alignSelf: 'center',
+    marginLeft: spacing[2],
+    width: spacing[8],
+    height: spacing[8],
+    borderRadius: radii.full,
+    backgroundColor: colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   hoursToggle: {
     paddingVertical: spacing[2],
