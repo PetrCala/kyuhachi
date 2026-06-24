@@ -218,14 +218,13 @@ export default function Home() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.headerSection}>
-          <Text style={styles.wordmark}>{HOME_WORDMARK}</Text>
-          <Text style={styles.challengeName}>{challenge.name}</Text>
-          {completionCount !== null && (
-            <Text style={styles.progress}>
-              {t('home.progress', { visited: eligibleVisitCount, total: completionCount })}
+        <View style={styles.brandStrip}>
+          <View style={styles.brandIdentity}>
+            <Text style={styles.brandWordmark}>{HOME_WORDMARK}</Text>
+            <Text style={styles.challengeName} numberOfLines={1}>
+              {challenge.name}
             </Text>
-          )}
+          </View>
           {ranks.length > 0 && (
             <Pressable style={styles.rankBadge} onPress={openRank} accessibilityRole="button">
               <Text style={styles.rankBadgeText}>
@@ -249,47 +248,11 @@ export default function Home() {
           </View>
         </View>
 
-        <View style={styles.routeSection}>
-          <Text style={styles.routeHeading}>{t('challengeProgress.routeHeading')}</Text>
-          {activeRoute ? (
-            <>
-              <Text style={styles.routeName}>{activeRoute.name}</Text>
-              <View style={styles.routeActions}>
-                <Pressable
-                  style={styles.routeButton}
-                  onPress={() => {
-                    if (challenge.activeRouteId) {
-                      router.push({
-                        pathname: '/map',
-                        params: { routeId: challenge.activeRouteId },
-                      });
-                    }
-                  }}
-                >
-                  <Text style={styles.routeButtonText}>
-                    {t('challengeProgress.viewRouteOnMap')}
-                  </Text>
-                </Pressable>
-                <Pressable style={styles.routeButton} onPress={selectRoute}>
-                  <Text style={styles.routeButtonText}>{t('challengeProgress.changeRoute')}</Text>
-                </Pressable>
-                <Pressable style={styles.routeButton} onPress={clearRoute}>
-                  <Text style={styles.routeButtonText}>{t('challengeProgress.clearRoute')}</Text>
-                </Pressable>
-              </View>
-            </>
-          ) : (
-            <View style={styles.routeEmptyRow}>
-              <Text style={styles.routeEmptyText}>{t('challengeProgress.noRoute')}</Text>
-              <Pressable style={styles.routeButton} onPress={selectRoute}>
-                <Text style={styles.routeButtonText}>{t('challengeProgress.selectRoute')}</Text>
-              </Pressable>
-            </View>
-          )}
-        </View>
-
         {completionCount !== null && (
-          <View style={styles.progressSection}>
+          <View style={styles.progressHero}>
+            <Text style={styles.progress}>
+              {t('home.progress', { visited: eligibleVisitCount, total: completionCount })}
+            </Text>
             <View style={styles.progressHeaderRow}>
               <Text style={styles.sectionHeading}>{t('challengeProgress.progressHeading')}</Text>
               {tiers.length > 0 && (
@@ -337,6 +300,37 @@ export default function Home() {
           </View>
         )}
 
+        {/* Route floats up directly under the hero while a trip is active — it's
+            the most relevant block mid-route. With no route, this slot collapses
+            and a slim "Add a route" prompt appears at the bottom instead. */}
+        {activeRoute && (
+          <View style={styles.routeSection}>
+            <Text style={styles.routeHeading}>{t('challengeProgress.routeHeading')}</Text>
+            <Text style={styles.routeName}>{activeRoute.name}</Text>
+            <View style={styles.routeActions}>
+              <Pressable
+                style={styles.routeButton}
+                onPress={() => {
+                  if (challenge.activeRouteId) {
+                    router.push({
+                      pathname: '/map',
+                      params: { routeId: challenge.activeRouteId },
+                    });
+                  }
+                }}
+              >
+                <Text style={styles.routeButtonText}>{t('challengeProgress.viewRouteOnMap')}</Text>
+              </Pressable>
+              <Pressable style={styles.routeButton} onPress={selectRoute}>
+                <Text style={styles.routeButtonText}>{t('challengeProgress.changeRoute')}</Text>
+              </Pressable>
+              <Pressable style={styles.routeButton} onPress={clearRoute}>
+                <Text style={styles.routeButtonText}>{t('challengeProgress.clearRoute')}</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
+
         <SuggestNextCard candidates={nextCandidates} activeRoute={activeRoute} />
 
         <View style={styles.recentSection}>
@@ -360,6 +354,17 @@ export default function Home() {
             ))
           )}
         </View>
+
+        {/* No active route: the route block collapses to this slim "Add a route"
+            prompt at the very bottom, out of the way until the user wants one. */}
+        {!activeRoute && (
+          <View style={styles.routeEmptyRow}>
+            <Text style={styles.routeEmptyText}>{t('challengeProgress.noRoute')}</Text>
+            <Pressable style={styles.routeButton} onPress={selectRoute}>
+              <Text style={styles.routeButtonText}>{t('challengeProgress.selectRoute')}</Text>
+            </Pressable>
+          </View>
+        )}
       </ScrollView>
       <RecordVisitFab
         style={styles.fab}
@@ -405,31 +410,57 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginBottom: spacing[6],
   },
-  headerSection: {
+  // Slim top strip: brand identity on the left, rank badge + nav pills wrapping
+  // to the right. The big progress number has moved out of here into the hero.
+  brandStrip: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
-    paddingTop: spacing[4],
-    paddingBottom: spacing[6],
+    gap: spacing[2],
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[3],
+    paddingBottom: spacing[3],
     borderBottomWidth: 1,
     borderBottomColor: colors.separator,
+  },
+  brandIdentity: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: spacing[2],
+    flex: 1,
+  },
+  brandWordmark: {
+    fontFamily: typography.fonts.brand,
+    fontSize: typography.sizes.xl,
+    color: colors.textPrimary,
   },
   challengeName: {
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.medium,
     color: colors.textSecondary,
-    marginBottom: spacing[2],
+    flexShrink: 1,
+  },
+  // Progress hero: the single home for the big count, the Progress heading row,
+  // the bar, and the claim/earned-tier slot.
+  progressHero: {
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[5],
+    paddingBottom: spacing[5],
+    borderBottomWidth: 1,
+    borderBottomColor: colors.separator,
   },
   progress: {
     fontSize: typography.sizes.xxxl,
     fontWeight: typography.weights.bold,
     color: colors.textPrimary,
+    marginBottom: spacing[4],
   },
   rankBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[1],
-    marginTop: spacing[3],
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[2],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
     borderRadius: radii.full,
     borderWidth: 1,
     borderColor: colors.border,
@@ -446,9 +477,7 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'center',
     gap: spacing[2],
-    marginTop: spacing[3],
   },
   pillButton: {
     paddingHorizontal: spacing[4],
@@ -484,10 +513,16 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing[2],
   },
+  // Slim bottom prompt shown only when no route is active — the collapsed
+  // counterpart of the floating route block.
   routeEmptyRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[4],
+    borderTopWidth: 1,
+    borderTopColor: colors.separator,
   },
   routeEmptyText: {
     fontSize: typography.sizes.md,
@@ -505,12 +540,6 @@ const styles = StyleSheet.create({
   routeButtonText: {
     fontSize: typography.sizes.sm,
     color: colors.textSecondary,
-  },
-  progressSection: {
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[5],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.separator,
   },
   progressHeaderRow: {
     flexDirection: 'row',
