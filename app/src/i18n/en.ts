@@ -458,6 +458,11 @@ const en = {
   'routes.importErrorNoTrack': 'No track found in this file.',
   'routes.importErrorParse': 'Couldn’t read this file. It may be corrupted or not a valid GPS track.',
   'routes.importErrorSave': 'Couldn’t save the route. Check your connection and try again.',
+  'routes.importingProgress': 'Importing {{done}} of {{total}}…',
+  'routes.importSummaryTitle': 'Import complete',
+  'routes.importedCount': 'Imported {{count}} of {{total}} routes.',
+  'routes.importSkippedCount': '{{count}} skipped — unsupported file type.',
+  'routes.importFailedCount': '{{count}} couldn’t be read.',
 
   // onsen detail (visit)
   'onsenDetail.notFound': 'Onsen not found',

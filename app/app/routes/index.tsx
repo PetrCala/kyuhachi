@@ -42,6 +42,15 @@ interface RouteRow {
   data: RouteDocument;
 }
 
+// Result of importing one picked file. Drives both the single-file alerts and
+// the bulk-import tally.
+type ImportOutcome =
+  | { status: 'ok'; routeId: string; name: string; points: { lat: number; lng: number }[] }
+  | { status: 'unsupported' }
+  | { status: 'failed'; code: 'noTrack' | 'parse' | 'save' };
+
+type ImportFailure = Exclude<ImportOutcome, { status: 'ok' }>;
+
 const METERS_PER_KM = 1000;
 
 // Keep the draw overlay up a touch longer than the animation so the line
@@ -59,6 +68,12 @@ export default function RoutesList() {
   const [routes, setRoutes] = useState<RouteRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
+  // While a bulk import runs, tracks which file we're on so the button can show
+  // "Importing 3 of 7…". Null for single-file imports.
+  const [importProgress, setImportProgress] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
   const [selecting, setSelecting] = useState(false);
   const [drawing, setDrawing] = useState<{
     name: string;
@@ -129,62 +144,111 @@ export default function RoutesList() {
     }
   }
 
-  // Import pipeline reused from PR 1: pick a file, parse it (route-import module),
-  // store the simplified track. In normal mode open it on the map; in select mode
-  // attach the freshly imported route to the challenge and return.
+  // Parse one picked file (route-import module) and store the simplified track.
+  // Never throws: every failure is reported as an ImportOutcome so a bulk import
+  // can keep going. Only parse / no-track failures are the file's fault —
+  // file-read, Firestore-write, permission and network errors map to `save`, so
+  // a `permission-denied` from the routes rule isn't mislabelled as corruption.
+  async function importOne(
+    asset: DocumentPicker.DocumentPickerAsset
+  ): Promise<ImportOutcome> {
+    if (!user) return { status: 'failed', code: 'save' };
+    // gpx/kml/tcx have no standard MIME type, so accept any file and branch on extension.
+    const format = sourceFormatFromName(asset.name);
+    if (!format) return { status: 'unsupported' };
+    try {
+      const text = await new File(asset.uri).text();
+      const parsed = parseRoute(text, format, nameWithoutExtension(asset.name));
+      const ref = await addDoc(
+        collection(db, COLLECTIONS.USERS, user.uid, SUBCOLLECTIONS.ROUTES),
+        { ...parsed, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }
+      );
+      return { status: 'ok', routeId: ref.id, name: parsed.name, points: parsed.points };
+    } catch (error) {
+      if (__DEV__) console.warn('[routes] import failed', error);
+      if (error instanceof RouteImportError) return { status: 'failed', code: error.code };
+      return { status: 'failed', code: 'save' };
+    }
+  }
+
+  // The single-file alert message for a failed/unsupported import.
+  function failureMessage(o: ImportFailure): string {
+    if (o.status === 'unsupported') return t('routes.importErrorFormat');
+    if (o.code === 'noTrack') return t('routes.importErrorNoTrack');
+    if (o.code === 'save') return t('routes.importErrorSave');
+    return t('routes.importErrorParse');
+  }
+
+  // Pick file(s) and import them. Select mode attaches exactly one route to the
+  // challenge; normal mode allows bulk selection. A single file keeps its
+  // original payoff (open it on the map, or show the exact reason it failed);
+  // several files stay on the list — the live query already shows the new
+  // routes — and report a tally.
   async function handleImport() {
     if (!user || importing) return;
     try {
-      // gpx/kml/tcx have no standard MIME type, so accept any file and branch on extension.
       const result = await DocumentPicker.getDocumentAsync({
         type: '*/*',
         copyToCacheDirectory: true,
-        multiple: false,
+        multiple: !selectMode,
       });
       if (result.canceled) return;
+      const assets = result.assets;
 
-      const asset = result.assets[0];
-      const format = sourceFormatFromName(asset.name);
-      if (!format) {
-        Alert.alert(t('routes.importErrorTitle'), t('routes.importErrorFormat'));
+      setImporting(true);
+
+      if (selectMode) {
+        const outcome = await importOne(assets[0]);
+        if (outcome.status === 'ok') {
+          await setChallengeRoute(outcome.routeId, {
+            name: outcome.name,
+            points: outcome.points,
+          });
+        } else {
+          Alert.alert(t('routes.importErrorTitle'), failureMessage(outcome));
+        }
         return;
       }
 
-      setImporting(true);
-      const text = await new File(asset.uri).text();
-      const parsed = parseRoute(text, format, nameWithoutExtension(asset.name));
-
-      const ref = await addDoc(
-        collection(db, COLLECTIONS.USERS, user.uid, SUBCOLLECTIONS.ROUTES),
-        {
-          ...parsed,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
+      let imported = 0;
+      let unsupported = 0;
+      let failed = 0;
+      let firstRouteId: string | null = null;
+      let lastFailure: ImportFailure | null = null;
+      for (let i = 0; i < assets.length; i++) {
+        setImportProgress({ done: i + 1, total: assets.length });
+        const outcome = await importOne(assets[i]);
+        if (outcome.status === 'ok') {
+          imported++;
+          if (!firstRouteId) firstRouteId = outcome.routeId;
+        } else {
+          if (outcome.status === 'unsupported') unsupported++;
+          else failed++;
+          lastFailure = outcome;
         }
-      );
+      }
 
-      if (selectMode) {
-        await setChallengeRoute(ref.id, { name: parsed.name, points: parsed.points });
-      } else {
-        router.push({ pathname: '/map', params: { routeId: ref.id } });
+      // Single file behaves exactly as before: open it, or explain the failure.
+      if (assets.length === 1) {
+        if (firstRouteId) {
+          router.push({ pathname: '/map', params: { routeId: firstRouteId } });
+        } else if (lastFailure) {
+          Alert.alert(t('routes.importErrorTitle'), failureMessage(lastFailure));
+        }
+        return;
       }
+
+      const lines = [t('routes.importedCount', { count: imported, total: assets.length })];
+      if (unsupported > 0) lines.push(t('routes.importSkippedCount', { count: unsupported }));
+      if (failed > 0) lines.push(t('routes.importFailedCount', { count: failed }));
+      Alert.alert(t('routes.importSummaryTitle'), lines.join('\n'));
     } catch (error) {
-      // Only parse / no-track failures are the file's fault. File-read,
-      // Firestore-write, permission and network errors are not — don't
-      // mislabel them as a corrupt-file error (which previously masked e.g.
-      // a `permission-denied` from the routes security rule).
+      // Safety net for the picker itself; per-file errors are handled in importOne.
       if (__DEV__) console.warn('[routes] import failed', error);
-      let message: string;
-      if (!(error instanceof RouteImportError)) {
-        message = t('routes.importErrorSave');
-      } else if (error.code === 'noTrack') {
-        message = t('routes.importErrorNoTrack');
-      } else {
-        message = t('routes.importErrorParse');
-      }
-      Alert.alert(t('routes.importErrorTitle'), message);
+      Alert.alert(t('routes.importErrorTitle'), t('routes.importErrorSave'));
     } finally {
       setImporting(false);
+      setImportProgress(null);
     }
   }
 
@@ -309,7 +373,14 @@ export default function RoutesList() {
           disabled={importing || selecting}
         >
           <Text style={styles.importButtonText}>
-            {importing ? t('routes.importing') : t('routes.import')}
+            {!importing
+              ? t('routes.import')
+              : importProgress && importProgress.total > 1
+                ? t('routes.importingProgress', {
+                    done: importProgress.done,
+                    total: importProgress.total,
+                  })
+                : t('routes.importing')}
           </Text>
         </Pressable>
       </ScrollView>
