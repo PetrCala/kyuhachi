@@ -85,6 +85,12 @@ export interface ChallengeDocument {
    * visit triggers never change it.
    */
   earnedTier: string | null
+  /**
+   * When the current `earnedTier` was claimed. Written by the `claimTier`
+   * callable alongside `earnedTier` (server-only, like it); updated on each
+   * upgrade so it always reflects the current tier. Null until a tier is claimed.
+   */
+  earnedTierAt: Timestamp | null
   /** Set by onVisitCreated Function when unique eligible visits >= completionCount */
   completedAt: Timestamp | null
   createdAt: Timestamp

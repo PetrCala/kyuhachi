@@ -147,6 +147,7 @@ export default function ChallengePreview() {
         snapshotCatalogVersion: catalogVersion,
         activeRouteId: null,
         earnedTier: null,
+        earnedTierAt: null,
         completedAt: null,
         createdAt: serverTimestamp(),
       });
