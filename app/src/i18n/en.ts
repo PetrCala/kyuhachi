@@ -103,12 +103,12 @@ const en = {
   'stats.transport.car': 'Car',
   'stats.transport.unreported': 'Unreported',
 
-  // passport (御湯印帳 — official stamp book)
-  'passport.title': 'Passport',
+  // passport (御湯印帳 — official stamp book; "Spaport" = spa + passport pun)
+  'passport.title': 'Spaport',
   'passport.progress': '{{visited}} / {{total}}',
   'passport.hint': 'Stamps fill in the order you visit.',
   'passport.pageIndicator': 'Page {{page}} of {{total}}',
-  'passport.empty': 'Start a challenge to begin your stamp book.',
+  'passport.empty': 'Start a challenge to begin your Spaport.',
 
   // visits (full history + feed cards)
   'visits.title': 'All visits',
