@@ -74,6 +74,10 @@ const en = {
   'home.recentVisits.title': 'Recent visits',
   'home.recentVisits.seeAll': 'See all',
   'home.recentVisits.empty': 'No visits yet',
+  'home.suggestNext.heading': 'Nearest unvisited',
+  'home.suggestNext.locationPrompt':
+    'Turn on location to see the closest onsen you haven’t visited yet.',
+  'home.suggestNext.enableLocation': 'Enable location',
 
   // stats (cost/budget)
   'stats.title': 'Stats',
@@ -281,6 +285,7 @@ const en = {
   'onsenDetail.labelFee': 'Admission Fee',
   'onsenDetail.labelSpringQuality': 'Spring Quality',
   'onsenDetail.labelHours': 'Business Hours',
+  'onsenDetail.getDirections': 'Get directions',
   'onsenDetail.markVisited': 'Mark as Visited',
   'onsenDetail.visited': 'Visited ✓',
   'onsenDetail.labelNotes': 'Notes',

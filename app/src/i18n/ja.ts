@@ -76,6 +76,9 @@ const ja: Record<keyof typeof en, string> = {
   'home.recentVisits.title': '最近の訪問',
   'home.recentVisits.seeAll': 'すべて見る',
   'home.recentVisits.empty': 'まだ訪問記録がありません',
+  'home.suggestNext.heading': '最寄りの未訪問温泉',
+  'home.suggestNext.locationPrompt': '位置情報をオンにすると、まだ訪れていない最寄りの温泉が表示されます。',
+  'home.suggestNext.enableLocation': '位置情報をオンにする',
 
   // stats (cost/budget)
   'stats.title': '統計',
@@ -271,6 +274,7 @@ const ja: Record<keyof typeof en, string> = {
   'onsenDetail.labelFee': '料金',
   'onsenDetail.labelSpringQuality': '泉質',
   'onsenDetail.labelHours': '営業時間',
+  'onsenDetail.getDirections': '経路を表示',
   'onsenDetail.markVisited': '訪問済みにする',
   'onsenDetail.visited': '訪問済み ✓',
   'onsenDetail.labelNotes': 'メモ',
