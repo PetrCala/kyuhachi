@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { useActiveChallengeProgress } from '@/hooks/useActiveChallengeProgress';
 import { Stamp } from '@/components/Stamp';
 import { StampSlot } from '@/components/StampSlot';
-import { GRID_COLS, GRID_ROWS, pageCells, pageCount } from '@/lib/passport';
+import { GRID_COLS, GRID_ROWS, pageCells, pageCount, pageOfSlot } from '@/lib/passport';
 import { colors, spacing, typography, radii } from '@/theme';
 
 const PAGE_H_PAD = spacing[5];
@@ -79,7 +79,9 @@ export default function Passport() {
   const { width } = useWindowDimensions();
   const { loading, challenge, completionCount, eligibleVisitCount, visits, onsenMap } =
     useActiveChallengeProgress();
-  const [page, setPage] = useState(0);
+  // null until the user pages by hand; the displayed page then follows the swipe.
+  // Before that, the indicator tracks the page the book opened on (the latest stamp).
+  const [scrolledPage, setScrolledPage] = useState<number | null>(null);
 
   // Eligible visits in visit order — the sequence the book fills in.
   const stamped = useMemo<StampEntry[]>(() => {
@@ -106,11 +108,25 @@ export default function Passport() {
   const totalSlots = completionCount ?? 0;
   const pages = pageCount(totalSlots);
   const stampSize = Math.floor((width - PAGE_H_PAD * 2 - CELL_GAP * (GRID_COLS - 1)) / GRID_COLS);
+
+  // The page holding the most recent stamp — the book opens here. Latched on the
+  // first render with data so a later live visit snapshot can't yank the user off
+  // the page they paged to. Stays 0 for an empty book (no stamps yet).
+  const openPageRef = useRef<number | null>(null);
+  if (openPageRef.current === null && stamped.length > 0) {
+    openPageRef.current = pageOfSlot(stamped.length - 1);
+  }
+  const openPage = openPageRef.current ?? 0;
+  const page = scrolledPage ?? openPage;
+
   // Right-to-left paging: pages render reversed so page 1 sits on the right and
-  // the view opens scrolled to it; swiping left advances to later pages, like
-  // reading a Japanese stamp book. The offset is memoized so a live visit
-  // snapshot re-render never yanks the scroll position back to page 1.
-  const initialOffset = useMemo(() => ({ x: (pages - 1) * width, y: 0 }), [pages, width]);
+  // later pages sit to its left, like reading a Japanese stamp book. The offset
+  // opens the view on `openPage`; it's memoized so a live visit snapshot re-render
+  // never yanks the scroll position away from where the user paged to.
+  const initialOffset = useMemo(
+    () => ({ x: (pages - 1 - openPage) * width, y: 0 }),
+    [pages, width, openPage]
+  );
 
   const header = <Stack.Screen options={{ title: t('passport.title'), headerShown: true }} />;
 
@@ -134,7 +150,7 @@ export default function Passport() {
 
   function onScrollEnd(e: NativeSyntheticEvent<NativeScrollEvent>) {
     const domIndex = Math.round(e.nativeEvent.contentOffset.x / width);
-    setPage(pages - 1 - domIndex);
+    setScrolledPage(pages - 1 - domIndex);
   }
 
   return (
