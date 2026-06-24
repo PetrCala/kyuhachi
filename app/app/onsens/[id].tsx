@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import { useTranslation } from 'react-i18next';
 import {
   doc,
@@ -151,6 +152,15 @@ export default function OnsenDetail() {
     router.push({ pathname: '/onsens/edit-visit', params: { id } });
   }
 
+  // Jump to the Map tab and center on this onsen's pin. `focusTs` makes each tap
+  // a fresh request so the map re-focuses even on a repeat visit to the same id.
+  function showOnMap() {
+    router.push({
+      pathname: '/map',
+      params: { focusOnsenId: id, focusTs: String(Date.now()) },
+    });
+  }
+
   if (loading) {
     return (
       <>
@@ -254,6 +264,33 @@ export default function OnsenDetail() {
                 })}
             </>
           )}
+        </View>
+
+        <View style={styles.mapPreviewSection}>
+          <Pressable
+            style={styles.mapPreviewCard}
+            onPress={showOnMap}
+            accessibilityRole="button"
+            accessibilityLabel={t('onsenDetail.showOnMap')}
+          >
+            <MapView
+              style={styles.miniMap}
+              provider={PROVIDER_DEFAULT}
+              pointerEvents="none"
+              scrollEnabled={false}
+              zoomEnabled={false}
+              rotateEnabled={false}
+              pitchEnabled={false}
+              initialRegion={{
+                latitude: onsen.lat,
+                longitude: onsen.lng,
+                latitudeDelta: 0.02,
+                longitudeDelta: 0.02,
+              }}
+            >
+              <Marker coordinate={{ latitude: onsen.lat, longitude: onsen.lng }} />
+            </MapView>
+          </Pressable>
         </View>
 
         {onsen.websiteUrl && (
@@ -402,6 +439,20 @@ const styles = StyleSheet.create({
     color: colors.actionPrimary,
     textDecorationLine: 'underline',
     paddingVertical: spacing[2],
+  },
+  mapPreviewSection: {
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[4],
+  },
+  // Rounded card that clips the preview map's corners.
+  mapPreviewCard: {
+    borderRadius: radii.md,
+    overflow: 'hidden',
+  },
+  miniMap: {
+    width: '100%',
+    height: 160,
+    backgroundColor: colors.backgroundSecondary,
   },
   visitSection: {
     paddingHorizontal: spacing[4],
