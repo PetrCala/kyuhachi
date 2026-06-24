@@ -5,7 +5,7 @@ import {
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
 import { readFileSync } from 'fs';
-import { doc, getDoc, setDoc, deleteDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs } from 'firebase/firestore';
 
 let testEnv: RulesTestEnvironment;
 
@@ -175,6 +175,40 @@ describe('users/challenges', () => {
   test('other user: write denied', async () => {
     await assertFails(
       setDoc(doc(authDb('user-2'), challengePath), { name: 'Hacked' })
+    );
+  });
+
+  test('owner: create with null earnedTier allowed', async () => {
+    await assertSucceeds(
+      setDoc(doc(authDb('user-1'), challengePath), { name: 'My Challenge', earnedTier: null })
+    );
+  });
+
+  test('owner: create with a non-null earnedTier denied', async () => {
+    await assertFails(
+      setDoc(doc(authDb('user-1'), challengePath), { name: 'My Challenge', earnedTier: 'gold' })
+    );
+  });
+
+  test('owner: update other fields (not earnedTier) allowed', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), challengePath), {
+        name: 'My Challenge',
+        earnedTier: null,
+        activeRouteId: null,
+      });
+    });
+    await assertSucceeds(
+      updateDoc(doc(authDb('user-1'), challengePath), { name: 'Renamed', activeRouteId: 'route-9' })
+    );
+  });
+
+  test('owner: cannot change earnedTier (claim is server-only)', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), challengePath), { name: 'My Challenge', earnedTier: null });
+    });
+    await assertFails(
+      updateDoc(doc(authDb('user-1'), challengePath), { earnedTier: 'gold' })
     );
   });
 });

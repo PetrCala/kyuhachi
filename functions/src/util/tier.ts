@@ -49,25 +49,38 @@ export function computeEarnedTier(
   return tier?.id ?? null;
 }
 
+export interface ChallengeEvaluation {
+  /** Highest tier the challenge currently *qualifies* for, or null. */
+  eligibleTier: string | null;
+  /** Unique eligible-onsen visit count. */
+  eligibleVisitCount: number;
+  /** The type's completion target (default 88). */
+  completionCount: number;
+  /** The type's tiers, ordered best → worst (for ranking a claim). */
+  tiers: TierLike[];
+  /** The challenge document data (for reading the currently-claimed earnedTier). */
+  challenge: DocumentData;
+}
+
 /**
- * Recompute a challenge's earnedTier (and set completedAt the first time the
- * eligible visit count reaches the type's completionCount), writing only when
- * something changed. Called from both the create and delete visit triggers;
- * writing to the challenge doc does not re-trigger the visit functions.
+ * Gather a challenge's progress and the tier it currently qualifies for. Shared
+ * by the visit triggers (for completedAt) and the claimTier callable (to verify
+ * a claim). Returns null when the challenge or its type is missing, or the
+ * challenge has no eligible pool yet.
  */
-export async function updateChallengeProgress(
+export async function evaluateChallenge(
   db: Firestore,
   challengeRef: DocumentReference,
-): Promise<void> {
+): Promise<ChallengeEvaluation | null> {
   const snap = await challengeRef.get();
-  if (!snap.exists) return; // challenge deleted (e.g. whole-challenge delete) — nothing to do
+  if (!snap.exists) return null; // challenge deleted (e.g. whole-challenge delete)
   const challenge = snap.data() as DocumentData;
 
   const eligible: string[] = challenge.snapshotEligibleOnsenIds ?? [];
-  if (eligible.length === 0) return;
+  if (eligible.length === 0) return null;
 
   const typeSnap = await db.collection('challenge_types').doc(challenge.typeId).get();
-  if (!typeSnap.exists) return;
+  if (!typeSnap.exists) return null;
   const type = typeSnap.data() as DocumentData;
 
   const eligibleSet = new Set(eligible);
@@ -80,23 +93,41 @@ export async function updateChallengeProgress(
     ? Math.floor((Date.now() - challenge.startDate.toDate().getTime()) / 86_400_000)
     : 0;
 
-  const earnedTier = computeEarnedTier(
-    type.tiers ?? [],
+  const tiers: TierLike[] = type.tiers ?? [];
+  const eligibleTier = computeEarnedTier(
+    tiers,
     type.baseMode,
     eligibleDocs.length,
     transports,
     daysSinceStart,
   );
 
-  const update: DocumentData = {};
-  if (earnedTier !== (challenge.earnedTier ?? null)) {
-    update.earnedTier = earnedTier;
-  }
-  const completionCount: number = type.completionCount ?? 88;
-  if (challenge.completedAt == null && eligibleDocs.length >= completionCount) {
-    update.completedAt = FieldValue.serverTimestamp();
-  }
-  if (Object.keys(update).length > 0) {
-    await challengeRef.update(update);
+  return {
+    eligibleTier,
+    eligibleVisitCount: eligibleDocs.length,
+    completionCount: type.completionCount ?? 88,
+    tiers,
+    challenge,
+  };
+}
+
+/**
+ * Set completedAt the first time the eligible visit count reaches the type's
+ * completionCount. Called from both the create and delete visit triggers;
+ * writing to the challenge doc does not re-trigger the visit functions.
+ *
+ * Tiers are deliberately NOT touched here: earnedTier is claim-controlled (only
+ * the claimTier callable writes it), so visits never auto-earn or revoke a tier.
+ */
+export async function updateChallengeProgress(
+  db: Firestore,
+  challengeRef: DocumentReference,
+): Promise<void> {
+  const evaluation = await evaluateChallenge(db, challengeRef);
+  if (!evaluation) return;
+
+  const { eligibleVisitCount, completionCount, challenge } = evaluation;
+  if (challenge.completedAt == null && eligibleVisitCount >= completionCount) {
+    await challengeRef.update({ completedAt: FieldValue.serverTimestamp() });
   }
 }

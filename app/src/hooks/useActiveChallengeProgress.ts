@@ -14,6 +14,7 @@ import {
   documentId,
   type FirebaseFirestoreTypes,
 } from '@react-native-firebase/firestore';
+import { httpsCallable } from '@react-native-firebase/functions';
 import type {
   UserDocument,
   ChallengeDocument,
@@ -21,13 +22,15 @@ import type {
   OnsenDocument,
   RouteDocument,
   Tier,
+  TransportMode,
   VisitDocument,
 } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
-import { db } from '@/firebase';
+import { db, functions } from '@/firebase';
 import { firebaseErrorKey } from '@/lib/firebase-errors';
 import { localizeTier } from '@/lib/challenge-i18n';
+import { countShortcuts, highestEligibleTier, type TierProgress } from '@/lib/tier-eligibility';
 
 export interface OnsenRow {
   id: string;
@@ -59,6 +62,16 @@ export interface ActiveChallengeProgress {
   tiers: Tier[];
   completionCount: number | null;
   eligibleVisitCount: number;
+  /**
+   * The highest tier the challenge currently *qualifies* for (claimed or not),
+   * or null. Drives the Claim/Upgrade button; the claim itself is verified
+   * server-side by the claimTier callable.
+   */
+  eligibleTier: Tier | null;
+  /** True while a claimTier callable request is in flight. */
+  claiming: boolean;
+  /** Claim the highest currently-eligible tier via the server callable. */
+  claimTier: () => Promise<void>;
   activeRoute: RouteDocument | null;
   /** kyuhachiIds of every onsen visited in the active challenge (not just eligible ones). */
   visitedIds: Set<string>;
@@ -75,9 +88,10 @@ export interface ActiveChallengeProgress {
 /**
  * The shared data layer for the home dashboard and the record-a-visit list.
  * Subscribes to the active challenge (user → challenge → visits), its challenge
- * type (tiers / completion target), the eligible onsens' display data, and the
- * active route. A challenge's tier (earnedTier) is maintained server-side by the
- * visit Functions and read straight off the challenge doc where it's shown.
+ * type (tiers / completion target / baseMode), the eligible onsens' display
+ * data, and the active route. The claimed tier (`challenge.earnedTier`) is read
+ * straight off the challenge doc; eligibility for the next claim is derived here
+ * and the claim is committed through the `claimTier` server callable.
  */
 export function useActiveChallengeProgress(): ActiveChallengeProgress {
   const { t } = useTranslation();
@@ -89,9 +103,11 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
   const [visits, setVisits] = useState<Map<string, VisitDocument>>(new Map());
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [completionCount, setCompletionCount] = useState<number | null>(null);
+  const [baseMode, setBaseMode] = useState<TransportMode | null>(null);
   const [onsenMap, setOnsenMap] = useState<Map<string, OnsenDisplayInfo>>(new Map());
   const [activeRoute, setActiveRoute] = useState<RouteDocument | null>(null);
   const [loading, setLoading] = useState(true);
+  const [claiming, setClaiming] = useState(false);
 
   // Listen to user → challenge → visits chain
   useEffect(() => {
@@ -193,6 +209,7 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
     if (!challenge) {
       setTiers([]);
       setCompletionCount(null);
+      setBaseMode(null);
       return;
     }
     const unsub = onSnapshot(
@@ -201,11 +218,13 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
         if (!snapshot.exists()) {
           setTiers([]);
           setCompletionCount(null);
+          setBaseMode(null);
           return;
         }
         const data = snapshot.data() as ChallengeTypeDocument;
         setTiers((data.tiers ?? []).map((tier) => localizeTier(challenge.typeId, tier, t)));
         setCompletionCount(data.completionCount);
+        setBaseMode(data.baseMode ?? null);
       }
     );
     return unsub;
@@ -295,6 +314,28 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
     return [...visitedIds].filter((id) => eligible.has(id)).length;
   }, [challenge, visitedIds]);
 
+  // The tier the challenge currently qualifies for — gates the Claim/Upgrade
+  // button. Mirrors the server's check (the callable re-verifies before writing).
+  const eligibleTier = useMemo<Tier | null>(() => {
+    if (!challenge || tiers.length === 0) return null;
+    const eligibleSet = new Set(challenge.snapshotEligibleOnsenIds);
+    const transports: (TransportMode | null)[] = [];
+    for (const [onsenId, visit] of visits) {
+      if (eligibleSet.has(onsenId)) {
+        transports.push(visit.structuredData?.transportMode ?? null);
+      }
+    }
+    const daysSinceStart = challenge.startDate
+      ? Math.floor((Date.now() - challenge.startDate.toMillis()) / 86_400_000)
+      : 0;
+    const progress: TierProgress = {
+      eligibleVisits: eligibleVisitCount,
+      shortcutCount: countShortcuts(transports, baseMode),
+      daysSinceStart,
+    };
+    return highestEligibleTier(tiers, progress);
+  }, [challenge, tiers, visits, baseMode, eligibleVisitCount]);
+
   const selectRoute = useCallback(() => {
     if (!challengeId) return;
     router.push({ pathname: '/routes', params: { selectFor: challengeId } });
@@ -312,6 +353,20 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
     }
   }, [user, challengeId, t]);
 
+  // Commit a claim through the server callable — the sole writer of earnedTier.
+  // The new value lands via the challenge snapshot, which drives the celebration.
+  const claimTier = useCallback(async () => {
+    if (!challengeId || claiming) return;
+    setClaiming(true);
+    try {
+      await httpsCallable(functions, 'claimTier')({ challengeId });
+    } catch (error) {
+      Alert.alert(t('challengeProgress.errorClaim'), t(firebaseErrorKey(error)));
+    } finally {
+      setClaiming(false);
+    }
+  }, [challengeId, claiming, t]);
+
   return {
     loading,
     hasChallenge,
@@ -320,6 +375,9 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
     tiers,
     completionCount,
     eligibleVisitCount,
+    eligibleTier,
+    claiming,
+    claimTier,
     activeRoute,
     visitedIds,
     visits,
