@@ -1,5 +1,5 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { evaluateChallenge } from '../util/tier';
 
 /**
@@ -51,7 +51,10 @@ export const claimTier = onCall(async (request) => {
     );
   }
 
-  await challengeRef.update({ earnedTier: eligibleTier });
+  await challengeRef.update({
+    earnedTier: eligibleTier,
+    earnedTierAt: FieldValue.serverTimestamp(),
+  });
 
   return { claimedTier: eligibleTier };
 });

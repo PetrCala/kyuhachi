@@ -147,6 +147,7 @@ const ja: Record<keyof typeof en, string> = {
   'challengeProgress.upgradeTier': '{{tier}}にアップグレード',
   'challengeProgress.errorClaim': '称号の獲得に失敗しました',
   'challengeProgress.tierClaimed': '獲得済み',
+  'challengeProgress.tierClaimedOn': '{{date}}に獲得',
   'challengeRules.title': 'ルール',
   'challengeRules.rulesHeading': 'チャレンジルール',
   'challengeRules.tiersHeading': '称号条件',

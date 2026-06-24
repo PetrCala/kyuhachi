@@ -211,6 +211,25 @@ describe('users/challenges', () => {
       updateDoc(doc(authDb('user-1'), challengePath), { earnedTier: 'gold' })
     );
   });
+
+  test('owner: create with a non-null earnedTierAt denied', async () => {
+    await assertFails(
+      setDoc(doc(authDb('user-1'), challengePath), { name: 'My Challenge', earnedTierAt: new Date() })
+    );
+  });
+
+  test('owner: cannot change earnedTierAt (claim time is server-only)', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), challengePath), {
+        name: 'My Challenge',
+        earnedTier: null,
+        earnedTierAt: null,
+      });
+    });
+    await assertFails(
+      updateDoc(doc(authDb('user-1'), challengePath), { earnedTierAt: new Date() })
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------

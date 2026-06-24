@@ -27,7 +27,7 @@ const HOME_WORDMARK = '九八';
 const RECENT_VISITS_PREVIEW = 3;
 
 export default function Home() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const {
     loading,
     challengeId,
@@ -81,6 +81,16 @@ export default function Home() {
   const earnedTierName = challenge?.earnedTier
     ? tiers.find((tier) => tier.id === challenge.earnedTier)?.name ??
       t(`challengeTier.${challenge.earnedTier}`, { defaultValue: challenge.earnedTier })
+    : null;
+
+  // Absolute, localized claim date for the resting row, e.g. "Jun 24, 2026" /
+  // "2026年6月24日". Null for tiers claimed before earnedTierAt was recorded.
+  const claimedOnDate = challenge?.earnedTierAt
+    ? challenge.earnedTierAt.toDate().toLocaleDateString(i18n.language, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      })
     : null;
 
   const feed = useMemo(() => buildVisitFeed(visits, onsenMap), [visits, onsenMap]);
@@ -252,7 +262,11 @@ export default function Home() {
                 <ChallengeBadge tierId={challenge.earnedTier} size={spacing[8]} accessibilityLabel={null} />
                 <View>
                   <Text style={styles.tierRowName}>{earnedTierName}</Text>
-                  <Text style={styles.tierRowSub}>{t('challengeProgress.tierClaimed')}</Text>
+                  <Text style={styles.tierRowSub}>
+                    {claimedOnDate
+                      ? t('challengeProgress.tierClaimedOn', { date: claimedOnDate })
+                      : t('challengeProgress.tierClaimed')}
+                  </Text>
                 </View>
               </View>
             ) : null}
