@@ -101,6 +101,17 @@ export default function Passport() {
     return list;
   }, [challenge, visits, onsenMap]);
 
+  // Layout values, computed before the early returns so the hooks order is
+  // stable. completionCount is null only while loading, when we bail out below.
+  const totalSlots = completionCount ?? 0;
+  const pages = pageCount(totalSlots);
+  const stampSize = Math.floor((width - PAGE_H_PAD * 2 - CELL_GAP * (GRID_COLS - 1)) / GRID_COLS);
+  // Right-to-left paging: pages render reversed so page 1 sits on the right and
+  // the view opens scrolled to it; swiping left advances to later pages, like
+  // reading a Japanese stamp book. The offset is memoized so a live visit
+  // snapshot re-render never yanks the scroll position back to page 1.
+  const initialOffset = useMemo(() => ({ x: (pages - 1) * width, y: 0 }), [pages, width]);
+
   const header = <Stack.Screen options={{ title: t('passport.title'), headerShown: true }} />;
 
   if (loading || (challenge && completionCount === null)) {
@@ -121,12 +132,9 @@ export default function Passport() {
     );
   }
 
-  const totalSlots = completionCount;
-  const pages = pageCount(totalSlots);
-  const stampSize = Math.floor((width - PAGE_H_PAD * 2 - CELL_GAP * (GRID_COLS - 1)) / GRID_COLS);
-
   function onScrollEnd(e: NativeSyntheticEvent<NativeScrollEvent>) {
-    setPage(Math.round(e.nativeEvent.contentOffset.x / width));
+    const domIndex = Math.round(e.nativeEvent.contentOffset.x / width);
+    setPage(pages - 1 - domIndex);
   }
 
   return (
@@ -144,26 +152,33 @@ export default function Passport() {
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
+          contentOffset={initialOffset}
           onMomentumScrollEnd={onScrollEnd}
         >
-          {Array.from({ length: pages }).map((_, p) => (
-            <View key={p} style={{ width }}>
-              <PassportPage
-                pageIndex={p}
-                totalSlots={totalSlots}
-                stamped={stamped}
-                stampSize={stampSize}
-              />
-            </View>
-          ))}
+          {Array.from({ length: pages }).map((_, domIndex) => {
+            const logicalPage = pages - 1 - domIndex;
+            return (
+              <View key={logicalPage} style={{ width }}>
+                <PassportPage
+                  pageIndex={logicalPage}
+                  totalSlots={totalSlots}
+                  stamped={stamped}
+                  stampSize={stampSize}
+                />
+              </View>
+            );
+          })}
         </ScrollView>
       </View>
 
       <View style={styles.footerArea}>
         <View style={styles.dots}>
-          {Array.from({ length: pages }).map((_, p) => (
-            <View key={p} style={[styles.dot, p === page && styles.dotActive]} />
-          ))}
+          {Array.from({ length: pages }).map((_, domIndex) => {
+            const logicalPage = pages - 1 - domIndex;
+            return (
+              <View key={logicalPage} style={[styles.dot, logicalPage === page && styles.dotActive]} />
+            );
+          })}
         </View>
         <Text style={styles.pageLabel}>
           {t('passport.pageIndicator', { page: page + 1, total: pages })}

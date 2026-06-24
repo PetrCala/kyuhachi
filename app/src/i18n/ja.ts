@@ -106,7 +106,7 @@ const ja: Record<keyof typeof en, string> = {
 
   // passport (stamp book)
   'passport.title': 'スタンプ帳',
-  'passport.progress': '{{visited}} / {{total}} 湯',
+  'passport.progress': '{{visited}} / {{total}}',
   'passport.hint': 'スタンプは訪問した順に押されます。',
   'passport.pageIndicator': '{{total}}ページ中{{page}}ページ',
   'passport.empty': 'チャレンジを始めると、スタンプ帳を集め始められます。',

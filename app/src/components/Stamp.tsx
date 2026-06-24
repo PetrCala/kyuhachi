@@ -36,19 +36,21 @@ export function Stamp({ prefecture, areaName, name, date, size }: StampProps) {
             {prefecture}
           </Text>
           <View style={styles.rule} />
-          {areaName ? (
-            <Text style={styles.area} numberOfLines={1} adjustsFontSizeToFit>
-              {areaName}
+          <View style={styles.middle}>
+            {areaName ? (
+              <Text style={styles.area} numberOfLines={1} adjustsFontSizeToFit>
+                {areaName}
+              </Text>
+            ) : null}
+            <Text
+              style={styles.name}
+              numberOfLines={2}
+              adjustsFontSizeToFit
+              minimumFontScale={0.4}
+            >
+              {name}
             </Text>
-          ) : null}
-          <Text
-            style={styles.name}
-            numberOfLines={2}
-            adjustsFontSizeToFit
-            minimumFontScale={0.5}
-          >
-            {name}
-          </Text>
+          </View>
           <View style={styles.rule} />
           <Text style={styles.brand}>{SEAL_BRAND}</Text>
         </View>
@@ -69,6 +71,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.sm,
     padding: spacing[1],
     backgroundColor: colors.background,
+    overflow: 'hidden',
   },
   inner: {
     flex: 1,
@@ -76,9 +79,17 @@ const styles = StyleSheet.create({
     borderColor: colors.stampInk,
     borderRadius: radii.sm,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing[2],
+    paddingVertical: spacing[1],
     paddingHorizontal: spacing[1],
+    gap: spacing[1],
+  },
+  // Flexible band between the rules: holds the area + facility name and bounds
+  // the name's height so a long name shrinks to fit instead of overflowing.
+  middle: {
+    flex: 1,
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    justifyContent: 'center',
     gap: spacing[1],
   },
   prefecture: {
@@ -97,8 +108,11 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.xs,
     color: colors.stampInk,
     textAlign: 'center',
+    alignSelf: 'stretch',
   },
   name: {
+    flex: 1,
+    alignSelf: 'stretch',
     fontFamily: typography.fonts.brand,
     fontSize: typography.sizes.lg,
     color: colors.stampInk,
