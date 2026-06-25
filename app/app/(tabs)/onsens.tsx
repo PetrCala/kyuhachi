@@ -46,6 +46,7 @@ export default function OnsenBrowse() {
       onsens.map((o) => ({
         id: o.id,
         name: o.name,
+        nameKana: o.nameKana,
         areaName: o.areaName,
         prefecture: o.prefecture,
         lat: o.lat,
