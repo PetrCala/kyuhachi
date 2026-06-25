@@ -144,8 +144,14 @@ export default function MapScreen() {
   // Dev builds always stand in a simulated spot in Kyushu (on the active route
   // when there is one) so the location UX can be checked away from Japan;
   // production always shows the real device location. Gated on __DEV__ so the
-  // whole branch is stripped from release builds.
-  const simulated = __DEV__ ? simulatedCoordinate(route, onsens) : null;
+  // whole branch is stripped from release builds. Memoized so the screen's
+  // per-frame re-renders (the zoom slider streams the live camera altitude on
+  // every gesture frame) don't hand the dev sim Marker a fresh coordinate object
+  // each time, which would re-commit it to the native map every frame.
+  const simulated = useMemo(
+    () => (__DEV__ ? simulatedCoordinate(route, onsens) : null),
+    [route, onsens]
+  );
 
   // Ask for foreground location once on mount so the blue dot can show. The
   // recenter button re-prompts if the user hasn't decided yet.
@@ -302,6 +308,16 @@ export default function MapScreen() {
     );
   }, [onsens, route, nearRouteOnly, nearRouteRadiusKm]);
 
+  // The drawn route's points in the shape <Polyline> wants. Memoized so the
+  // screen's per-frame re-renders don't rebuild this array (and with it the
+  // whole native polyline overlay) on every gesture frame — a fresh array each
+  // pan frame floods the iOS UI thread and can stall the map's own pan gesture,
+  // leaving the map frozen. Recomputed only when the route itself changes.
+  const routeCoordinates = useMemo(
+    () => route?.points.map((p) => ({ latitude: p.lat, longitude: p.lng })) ?? [],
+    [route]
+  );
+
   // Surface the active route's name in the tab header (the tab bar label stays
   // the static "Map"); falls back to the generic title when no route is drawn.
   useEffect(() => {
@@ -387,7 +403,7 @@ export default function MapScreen() {
         ))}
         {route && (
           <Polyline
-            coordinates={route.points.map((p) => ({ latitude: p.lat, longitude: p.lng }))}
+            coordinates={routeCoordinates}
             strokeColor={colors.actionPrimary}
             strokeWidth={spacing[1]}
           />
