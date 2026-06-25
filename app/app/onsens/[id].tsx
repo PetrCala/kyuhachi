@@ -1,4 +1,4 @@
-import { useState, useEffect, type ComponentProps } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -19,10 +19,12 @@ import {
   onSnapshot,
   type FirebaseFirestoreTypes,
 } from '@react-native-firebase/firestore';
-import type { OnsenDocument, WeeklySchedule } from '@kyuhachi/shared';
+import type { OnsenDocument } from '@kyuhachi/shared';
 import { COLLECTIONS } from '@kyuhachi/shared';
 import type { VisitFeedItem } from '@/lib/visit-feed';
 import { VisitCard } from '@/components/VisitCard';
+import { OnsenInfoRow } from '@/components/OnsenInfoRow';
+import { OnsenHours } from '@/components/OnsenHours';
 import RecordVisitFab from '@/components/RecordVisitFab';
 import { useVisit } from '@/hooks/useVisit';
 import { usePreferences } from '@/context/PreferencesContext';
@@ -31,86 +33,8 @@ import { colors, spacing, typography, radii } from '@/theme';
 
 type OnsenWithId = OnsenDocument & { id: string };
 
-const WEEKDAYS: (keyof WeeklySchedule)[] = [
-  'monday',
-  'tuesday',
-  'wednesday',
-  'thursday',
-  'friday',
-  'saturday',
-  'sunday',
-];
-
-// Collapse consecutive days (Mon→Sun) sharing the same window / closed state.
-function groupSchedule(schedule: WeeklySchedule) {
-  const groups: { days: (keyof WeeklySchedule)[]; slot: WeeklySchedule['monday'] }[] = [];
-  for (const day of WEEKDAYS) {
-    const slot = schedule[day];
-    const last = groups[groups.length - 1];
-    const same =
-      !!last &&
-      ((last.slot === null && slot === null) ||
-        (!!last.slot && !!slot && last.slot.opens === slot.opens && last.slot.closes === slot.closes));
-    if (same) last.days.push(day);
-    else groups.push({ days: [day], slot });
-  }
-  return groups;
-}
-
-function InfoRow({
-  label,
-  value,
-  onPress,
-  action,
-}: {
-  label: string;
-  value: string;
-  onPress?: () => void;
-  /** An inline icon (e.g. directions) shown right after the value text, tappable on its own. */
-  action?: {
-    icon: ComponentProps<typeof Ionicons>['name'];
-    onPress: () => void;
-    accessibilityLabel: string;
-  };
-}) {
-  return (
-    <View style={styles.infoRow}>
-      <Text style={styles.infoLabel} selectable>
-        {label}
-      </Text>
-      {onPress ? (
-        <Pressable
-          style={styles.infoValuePressable}
-          onPress={onPress}
-          accessibilityRole="button"
-          hitSlop={4}
-        >
-          <Text style={[styles.infoValue, styles.infoValueLink]} selectable>
-            {value}
-          </Text>
-        </Pressable>
-      ) : (
-        <Text style={styles.infoValue} selectable>
-          {value}
-          {action && (
-            <Text
-              onPress={action.onPress}
-              accessibilityRole="button"
-              accessibilityLabel={action.accessibilityLabel}
-              suppressHighlighting
-            >
-              {'  '}
-              <Ionicons name={action.icon} size={typography.sizes.md} color={colors.actionPrimary} />
-            </Text>
-          )}
-        </Text>
-      )}
-    </View>
-  );
-}
-
 export default function OnsenDetail() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const router = useRouter();
   // Whether onsen pages embed a tappable map preview (default) or instead show a
   // compact map icon in the header. Both routes focus this onsen on the Map tab.
@@ -119,8 +43,6 @@ export default function OnsenDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [onsen, setOnsen] = useState<OnsenWithId | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showOriginal, setShowOriginal] = useState(false);
-  const [showWeek, setShowWeek] = useState(false);
 
   const { challengeId, visit, loading: visitLoading } = useVisit(id);
 
@@ -178,18 +100,6 @@ export default function OnsenDetail() {
     );
   }
 
-  const schedule = onsen.businessHours?.schedule ?? null;
-  const hoursExceptions = onsen.businessHours?.exceptions ?? [];
-  const hoursConfidence = onsen.businessHours?.confidence;
-  const lang: 'en' | 'ja' = i18n.language?.toLowerCase().startsWith('ja') ? 'ja' : 'en';
-  const dayShort = (day: keyof WeeklySchedule) => t(`onsenDetail.dayShort.${day}`);
-  const dayRange = (days: (keyof WeeklySchedule)[]) =>
-    days.length === 1 ? dayShort(days[0]) : `${dayShort(days[0])}–${dayShort(days[days.length - 1])}`;
-  const todayKey = WEEKDAYS[(new Date().getDay() + 6) % 7];
-  const todaySlot = schedule ? schedule[todayKey] : null;
-  const todayLabel = todaySlot
-    ? `${todaySlot.opens}–${todaySlot.closes}`
-    : t('onsenDetail.closedToday');
   const feedItem: VisitFeedItem | null = visit
     ? {
         onsenId: onsen.id,
@@ -251,7 +161,7 @@ export default function OnsenDetail() {
         </View>
 
         <View style={styles.section}>
-          <InfoRow
+          <OnsenInfoRow
             label={t('onsenDetail.labelAddress')}
             value={onsen.address}
             action={{
@@ -262,97 +172,19 @@ export default function OnsenDetail() {
             }}
           />
           {onsen.phone && (
-            <InfoRow
+            <OnsenInfoRow
               label={t('onsenDetail.labelPhone')}
               value={onsen.phone}
               onPress={() => Linking.openURL(`tel:${onsen.phone!.replace(/[^\d+]/g, '')}`)}
             />
           )}
           {onsen.admissionFee && (
-            <InfoRow label={t('onsenDetail.labelFee')} value={onsen.admissionFee} />
+            <OnsenInfoRow label={t('onsenDetail.labelFee')} value={onsen.admissionFee} />
           )}
           {onsen.springQuality && (
-            <InfoRow label={t('onsenDetail.labelSpringQuality')} value={onsen.springQuality} />
+            <OnsenInfoRow label={t('onsenDetail.labelSpringQuality')} value={onsen.springQuality} />
           )}
-          {onsen.businessHours && (
-            <>
-              {/* Base hours: the weekly grid when structured, else the raw text. */}
-              {schedule ? (
-                <>
-                  <Pressable
-                    style={styles.hoursTodayRow}
-                    onPress={() => setShowWeek((v) => !v)}
-                    accessibilityRole="button"
-                    hitSlop={4}
-                  >
-                    <Text style={styles.infoLabel}>{t('onsenDetail.today')}</Text>
-                    <Text style={[styles.infoValue, styles.hoursTodayValue]} selectable>
-                      {todayLabel}
-                    </Text>
-                    <Ionicons
-                      name={showWeek ? 'chevron-up' : 'chevron-down'}
-                      size={typography.sizes.md}
-                      color={colors.textMuted}
-                    />
-                  </Pressable>
-                  {showWeek &&
-                    groupSchedule(schedule).map((g, i) => {
-                      const isToday = g.days.includes(todayKey);
-                      return (
-                        <View key={i} style={styles.dayRow}>
-                          <Text style={[styles.dayLabel, isToday && styles.dayToday]} selectable>
-                            {dayRange(g.days)}
-                          </Text>
-                          <Text style={[styles.dayValue, isToday && styles.dayToday]} selectable>
-                            {g.slot ? `${g.slot.opens}–${g.slot.closes}` : t('onsenDetail.closed')}
-                          </Text>
-                        </View>
-                      );
-                    })}
-                </>
-              ) : (
-                <InfoRow label={t('onsenDetail.labelHours')} value={onsen.businessHours.raw} />
-              )}
-
-              {/* Schedule exceptions / irregularities — factual notes, not warnings. */}
-              {hoursExceptions.map((ex, i) => (
-                <View key={i} style={styles.hoursExceptionRow}>
-                  <Ionicons
-                    name="calendar-outline"
-                    size={typography.sizes.sm}
-                    color={colors.textMuted}
-                    style={styles.hoursExceptionIcon}
-                  />
-                  <Text style={styles.hoursException} selectable>
-                    {ex[lang] ?? ex.en}
-                  </Text>
-                </View>
-              ))}
-              {hoursConfidence && hoursConfidence !== 'high' && (
-                <Text style={styles.hoursHint}>{t('onsenDetail.hoursVary')}</Text>
-              )}
-
-              {/* Let the user fall back to the verbatim source text. */}
-              {schedule && (
-                <>
-                  <Pressable
-                    style={styles.hoursToggle}
-                    onPress={() => setShowOriginal((v) => !v)}
-                    hitSlop={4}
-                  >
-                    <Text style={styles.hoursToggleText}>
-                      {showOriginal ? t('onsenDetail.hideOriginal') : t('onsenDetail.showOriginal')}
-                    </Text>
-                  </Pressable>
-                  {showOriginal && (
-                    <Text style={styles.hoursRaw} selectable>
-                      {onsen.businessHours.raw}
-                    </Text>
-                  )}
-                </>
-              )}
-            </>
-          )}
+          {onsen.businessHours && <OnsenHours hours={onsen.businessHours} />}
         </View>
 
         {showOnsenMapPreview && (
@@ -389,7 +221,7 @@ export default function OnsenDetail() {
             <Pressable
               onPress={() => Linking.openURL(onsen.websiteUrl!)}
               accessibilityRole="link"
-              hitSlop={4}
+              hitSlop={spacing[1]}
             >
               <Text style={styles.websiteLink} selectable>
                 {onsen.websiteUrl}
@@ -480,97 +312,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.separator,
     paddingBottom: spacing[2],
-  },
-  infoRow: {
-    flexDirection: 'row',
-    paddingVertical: spacing[2],
-  },
-  infoLabel: {
-    width: 80,
-    fontSize: typography.sizes.sm,
-    color: colors.textMuted,
-    flexShrink: 0,
-  },
-  infoValue: {
-    flex: 1,
-    fontSize: typography.sizes.sm,
-    color: colors.textPrimary,
-    lineHeight: 20,
-  },
-  infoValuePressable: {
-    flex: 1,
-  },
-  infoValueLink: {
-    color: colors.actionPrimary,
-    textDecorationLine: 'underline',
-  },
-  hoursToggle: {
-    paddingVertical: spacing[2],
-  },
-  hoursToggleText: {
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.medium,
-    color: colors.actionPrimary,
-  },
-  dayRow: {
-    flexDirection: 'row',
-    paddingVertical: spacing[1],
-  },
-  dayLabel: {
-    width: 80,
-    fontSize: typography.sizes.sm,
-    color: colors.textMuted,
-    flexShrink: 0,
-  },
-  dayValue: {
-    flex: 1,
-    fontSize: typography.sizes.sm,
-    color: colors.textPrimary,
-  },
-  hoursTodayRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing[1],
-  },
-  hoursTodayValue: {
-    flex: 1,
-    marginLeft: spacing[2],
-  },
-  dayToday: {
-    color: colors.textPrimary,
-    fontWeight: typography.weights.medium,
-  },
-  hoursHeader: {
-    fontSize: typography.sizes.sm,
-    color: colors.textMuted,
-    marginBottom: spacing[1],
-  },
-  hoursExceptionRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing[2],
-    paddingVertical: spacing[1] / 2,
-  },
-  hoursExceptionIcon: {
-    marginTop: spacing[1] / 2,
-  },
-  hoursException: {
-    flex: 1,
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
-    lineHeight: 20,
-  },
-  hoursHint: {
-    fontSize: typography.sizes.xs,
-    color: colors.textMuted,
-    fontStyle: 'italic',
-    paddingTop: spacing[1],
-  },
-  hoursRaw: {
-    fontSize: typography.sizes.sm,
-    color: colors.textPrimary,
-    lineHeight: 20,
-    paddingTop: spacing[1],
   },
   websiteLink: {
     fontSize: typography.sizes.sm,
