@@ -38,7 +38,7 @@ describe('StampClaimModal', () => {
     expect(screen.queryByText('stampClaim.collect')).toBeNull();
   });
 
-  it('inks the earned stamp and offers the Collect button when animating', async () => {
+  it('inks the earned stamp, shows the glow, and offers the Collect button when animating', async () => {
     render(<StampClaimModal reward={REWARD} animationsEnabled onDismiss={jest.fn()} />);
     await flush();
     expect(screen.getByText('stampClaim.title')).toBeTruthy();
@@ -46,13 +46,17 @@ describe('StampClaimModal', () => {
     // The reward's onsen fields are inked onto the seal.
     expect(screen.getByText('むし湯')).toBeTruthy();
     expect(screen.getByText('大分県')).toBeTruthy();
+    // The glow halo is present while the flourish plays.
+    expect(screen.getByTestId('stampGlow')).toBeTruthy();
   });
 
-  it('still shows the stamp and Collect button with animations disabled', async () => {
+  it('shows the stamp and Collect button but hides the glow with animations disabled', async () => {
     render(<StampClaimModal reward={REWARD} animationsEnabled={false} onDismiss={jest.fn()} />);
     await flush();
     expect(screen.getByText('stampClaim.title')).toBeTruthy();
     expect(screen.getByText('stampClaim.collect')).toBeTruthy();
     expect(screen.getByText('むし湯')).toBeTruthy();
+    // No glow halo lingers behind the seal when the flourish is off.
+    expect(screen.queryByTestId('stampGlow')).toBeNull();
   });
 });
