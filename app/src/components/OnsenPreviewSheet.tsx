@@ -3,7 +3,6 @@ import {
   Animated,
   Dimensions,
   Easing,
-  Image,
   Linking,
   Modal,
   PanResponder,
@@ -13,6 +12,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -217,7 +217,13 @@ export default function OnsenPreviewSheet({
 
             <View style={styles.hero}>
               {shown.imageUrl ? (
-                <Image source={{ uri: shown.imageUrl }} style={styles.heroImage} resizeMode="cover" />
+                <Image
+                  source={shown.imageUrl}
+                  style={styles.heroImage}
+                  contentFit="cover"
+                  transition={200}
+                  cachePolicy="memory-disk"
+                />
               ) : (
                 <View style={styles.heroPlaceholder}>
                   <Ionicons
