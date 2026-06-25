@@ -9,6 +9,13 @@
   "storage": {
     "rules": "firebase/storage.rules"
   },
+  "hosting": {
+    "public": "firebase/public",
+    "predeploy": ["npm --prefix \"$PROJECT_DIR\" run build:legal"],
+    "cleanUrls": true,
+    "trailingSlash": false,
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
+  },
   "emulators": {
     "auth": {
       "port": 9099
