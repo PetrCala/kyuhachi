@@ -1,10 +1,23 @@
 import type { Timestamp } from './firestore';
 
+export interface LocalizedText {
+  en: string;
+  ja: string;
+}
+
 export interface ParsedHours {
-  /** Raw string from 88onsen.com for display fallback */
+  /** Raw string from 88onsen.com — the canonical fallback / "original text" */
   raw: string;
-  /** Structured schedule if successfully parsed */
+  /** Structured base weekly schedule, or null when the hours can't be a clean grid */
   schedule: WeeklySchedule | null;
+  /**
+   * Display-only caveats shown under the grid (seasonal hours, monthly Nth-weekday
+   * closures, holiday rules, irregular closing, split sessions). The app renders
+   * these as captions; it never computes open/closed from them.
+   */
+  exceptions?: LocalizedText[];
+  /** Parse confidence; anything other than 'high' surfaces a "hours may vary" hint. */
+  confidence?: 'high' | 'medium' | 'low';
 }
 
 export interface WeeklySchedule {

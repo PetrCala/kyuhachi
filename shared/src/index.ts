@@ -2,6 +2,7 @@ export type {
   ParsedHours,
   WeeklySchedule,
   DaySchedule,
+  LocalizedText,
   OnsenDocument,
   CatalogMetaDocument,
 } from './types/onsen';
