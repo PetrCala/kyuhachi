@@ -260,6 +260,7 @@ const en = {
   'more.account': 'Account',
   'more.signOut': 'Sign out',
   'more.language': 'Language',
+  'more.about': 'About',
 
   // preferences
   'preferences.title': 'Preferences',
@@ -275,6 +276,27 @@ const en = {
   'preferences.nearRouteRadiusTitle': 'Near-route distance (km)',
   'preferences.nearRouteRadiusHint':
     'When “Near route” is on, the map hides onsens farther than {{km}} km from the selected route.',
+
+  // about (More → About)
+  'about.title': 'About',
+  'about.tagline': '九州八十八湯チャレンジ',
+  'about.version': 'Version {{version}}',
+  'about.versionWithBuild': 'Version {{version}} ({{build}})',
+  'about.aboutHeader': 'About the challenge',
+  'about.aboutBody':
+    'The 九州八十八湯 challenge invites you to soak in 88 of Kyushu’s historic hot springs, drawn from an official pool of eligible onsens. Kyuhachi helps you track your visits, follow routes, and earn each tier along the way.',
+  'about.linksHeader': 'Links',
+  'about.github': 'GitHub',
+  'about.dataSource': 'Onsen data (88onsen.com)',
+  'about.reportBug': 'Report a bug',
+  'about.legalHeader': 'Legal',
+  'about.privacy': 'Privacy Policy',
+  'about.terms': 'Terms of Service',
+  'about.acknowledgmentsHeader': 'Acknowledgments',
+  'about.acknowledgmentsBody':
+    'Onsen information is sourced from 88onsen.com. Built with Expo, React Native, and Firebase. The 九 / 八 brand mark is set in Klee One.',
+  'about.copyright': '© 2026 Petr Cala',
+  'about.madeWith': 'Made with ♨ in Kyushu',
 
   // challenge progress
   'challengeProgress.title': 'Challenge Progress',

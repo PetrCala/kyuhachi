@@ -261,6 +261,7 @@ const ja: Record<keyof typeof en, string> = {
   'more.account': 'アカウント',
   'more.signOut': 'サインアウト',
   'more.language': '言語',
+  'more.about': 'アプリについて',
 
   // preferences
   'preferences.title': '設定',
@@ -275,6 +276,27 @@ const ja: Record<keyof typeof en, string> = {
   'preferences.nearRouteRadiusTitle': 'ルート付近の距離（km）',
   'preferences.nearRouteRadiusHint':
     '「ルート付近」をオンにすると、選択中のルートから{{km}}kmより離れた温泉を地図上で非表示にします。',
+
+  // about (More → About)
+  'about.title': 'アプリについて',
+  'about.tagline': '九州八十八湯チャレンジ',
+  'about.version': 'バージョン {{version}}',
+  'about.versionWithBuild': 'バージョン {{version}}（{{build}}）',
+  'about.aboutHeader': 'チャレンジについて',
+  'about.aboutBody':
+    '九州八十八湯チャレンジは、公式の対象温泉プールから九州の名湯88湯を巡る挑戦です。Kyuhachiは訪問の記録、ルートの活用、各ティアの達成をサポートします。',
+  'about.linksHeader': 'リンク',
+  'about.github': 'GitHub',
+  'about.dataSource': '温泉データ（88onsen.com）',
+  'about.reportBug': '不具合を報告',
+  'about.legalHeader': '法的情報',
+  'about.privacy': 'プライバシーポリシー',
+  'about.terms': '利用規約',
+  'about.acknowledgmentsHeader': '謝辞',
+  'about.acknowledgmentsBody':
+    '温泉情報は88onsen.comを参照しています。Expo、React Native、Firebaseで構築しています。九／八のブランドマークはKlee Oneで表示しています。',
+  'about.copyright': '© 2026 Petr Cala',
+  'about.madeWith': '九州で♨とともに作りました',
 
   // challenge progress
   'challengeProgress.title': 'チャレンジ進捗',

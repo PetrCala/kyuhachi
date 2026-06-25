@@ -110,6 +110,11 @@ export default function More() {
           icon="stats-chart-outline"
           label={t('more.stats')}
           onPress={() => router.push('/stats')}
+        />
+        <Row
+          icon="information-circle-outline"
+          label={t('more.about')}
+          onPress={() => router.push('/more/about')}
           last
         />
       </View>
