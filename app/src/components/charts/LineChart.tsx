@@ -19,6 +19,8 @@ interface LineChartProps {
   yTickFormat?: (value: number) => string;
 }
 
+type XTick = { x: number; label: string; anchor: 'start' | 'middle' | 'end' };
+
 const DEFAULT_HEIGHT = spacing[10] * 3; // 120
 const PAD = spacing[2];
 const STROKE = spacing[1] / 2; // 2
@@ -96,20 +98,39 @@ export function LineChart({
       for (let v = 0; v <= maxY + 1e-9; v += yAxis.step) yTicks.push(v);
     }
 
-    // X ticks: evenly spaced across the time range, count fit to the width,
-    // de-duplicated so a short span doesn't repeat the same label.
-    const xTicks: { x: number; label: string; anchor: 'start' | 'middle' | 'end' }[] = [];
+    // X ticks: evenly spaced across the time range. Use the largest count (fit to
+    // the width) whose labels are all distinct, so they stay evenly spread instead
+    // of collapsing toward one end — a short span just falls back to fewer ticks.
+    const xTicks: XTick[] = [];
     if (xTickFormat) {
-      const count =
-        maxX === minX ? 1 : Math.max(2, Math.min(5, Math.floor((plotRight - plotLeft) / PX_PER_X_TICK)));
-      let prevLabel: string | null = null;
-      for (let i = 0; i < count; i++) {
-        const v = count === 1 ? minX : minX + ((maxX - minX) * i) / (count - 1);
-        const label = xTickFormat(v);
-        if (label === prevLabel) continue;
-        prevLabel = label;
-        const anchor = count === 1 ? 'middle' : i === 0 ? 'start' : i === count - 1 ? 'end' : 'middle';
-        xTicks.push({ x: scale(v, minX, maxX, plotLeft, plotRight), label, anchor });
+      const project = (v: number) => scale(v, minX, maxX, plotLeft, plotRight);
+      if (maxX === minX) {
+        xTicks.push({ x: project(minX), label: xTickFormat(minX), anchor: 'middle' });
+      } else {
+        const maxCount = Math.max(2, Math.min(5, Math.floor((plotRight - plotLeft) / PX_PER_X_TICK)));
+        for (let count = maxCount; count >= 2; count--) {
+          const candidate: XTick[] = [];
+          const labels = new Set<string>();
+          for (let i = 0; i < count; i++) {
+            const v = minX + ((maxX - minX) * i) / (count - 1);
+            const label = xTickFormat(v);
+            labels.add(label);
+            candidate.push({
+              x: project(v),
+              label,
+              anchor: i === 0 ? 'start' : i === count - 1 ? 'end' : 'middle',
+            });
+          }
+          if (labels.size === count) {
+            xTicks.push(...candidate);
+            break;
+          }
+        }
+        // The whole range collapses to a single label (a sub-day span at day
+        // granularity): show it once, centered.
+        if (xTicks.length === 0) {
+          xTicks.push({ x: project((minX + maxX) / 2), label: xTickFormat(minX), anchor: 'middle' });
+        }
       }
     }
 
