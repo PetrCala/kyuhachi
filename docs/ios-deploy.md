@@ -43,6 +43,51 @@ store or renew. This requires the ASC key to have **App Manager** (or Admin)
 role. If the key is Developer-only, store the profile as a base64 secret and use
 the `install_provisioning_profile` fallback noted in the Fastfile.
 
+## Preview builds (PR previews)
+
+[.github/workflows/preview-build.yml](../.github/workflows/preview-build.yml)
+lets you install a PR on your phone **without** releasing to the App Store, at
+$0 (same self-owned runner + fastlane path as the deploy — no EAS cloud build).
+
+**How to use it:** apply the **`preview-build`** label to a PR. The workflow
+builds the PR's **HEAD commit** and uploads it to the **same** app's TestFlight
+internal testers (`fastlane ios preview`), tagged **`PREVIEW PR #<n>`** in the
+"What to Test" note so it's distinguishable from production builds. It then
+comments on the PR. To rebuild from the latest commit, **remove and re-apply**
+the label (each application is a fresh trigger; a superseded run is cancelled).
+
+Install UX is TestFlight, **not** a one-tap OTA link: open the TestFlight app on
+your device (you must be an internal tester); the build appears after Apple
+processing (~5–15 min). Internal builds skip Beta App Review.
+
+### Why it can be tested before merging
+
+The workflow triggers on `pull_request: [labeled]`, so GitHub runs the version of
+the file **on the PR's head branch** — an unmerged `preview-build.yml` executes
+when you label its own PR. Because the branch lives in **this repo** (not a fork),
+the run gets the signing secrets and a write-scoped token. Fork PRs get neither
+and fail fast at the secret guard — by design. (Never switch this to
+`pull_request_target`: it would run trusted code with secrets against untrusted
+fork code.)
+
+### Notes
+
+- The build number comes from TestFlight (`latest + 1`, scoped to the marketing
+  version), shared with production deploys — preview and deploy build numbers
+  simply interleave, which is harmless for internal testing.
+- `preview` and `beta` share one body in the Fastfile; `beta` (production) is
+  unchanged — it just passes no changelog.
+- No new bundle id / ASC app / Firebase config: previews reuse `com.kyuhachi.app`
+  (ASC app `6761064476`) and all five existing secrets.
+
+### One-time setup for previews
+
+1. Create the label:
+   `gh label create preview-build --repo PetrCala/kyuhachi --description "Build a TestFlight preview from this PR"`
+2. In App Store Connect (app `6761064476` → TestFlight → Internal Testing),
+   ensure an internal group exists and your Apple ID is an accepted tester with
+   the TestFlight app installed on your device.
+
 ## Required GitHub secrets
 
 | Secret | What it is |

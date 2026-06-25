@@ -1,0 +1,170 @@
+name: Preview Build
+
+# PR preview builds. Apply the `preview-build` label to a PR and this builds the
+# PR's HEAD commit and uploads it to TestFlight (internal testers) as a preview,
+# tagged "PREVIEW PR #<n>" — so you can install the PR on your phone without
+# releasing to the App Store, at $0 (kyuhachi is public, so macOS runner minutes
+# are free; no EAS cloud build).
+#
+# This is intentionally a near-clone of deploy.yml's job. GitHub Actions has no
+# native include; a composite action in .github/actions/ for two callers is an
+# abstraction this repo otherwise doesn't have. The two workflows differ only in
+# trigger, concurrency, checkout ref, the fastlane lane (`preview` vs `beta`),
+# and the PR comment. Keep the shared steps in sync when editing either file.
+#
+# Because this uses `pull_request` (NOT pull_request_target), the version of this
+# file ON THE PR'S HEAD BRANCH runs — so the workflow can be tested end-to-end on
+# its own PR before merging to master. Same-repo (non-fork) PRs get the signing
+# secrets and a write-scoped token; fork PRs get neither and fail fast at the
+# secret guard (by design — never switch this to pull_request_target).
+
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  # One in-flight preview per PR; re-applying the label supersedes the older run
+  # (cancel-in-progress true — opposite of deploy.yml, to save runner minutes).
+  # A distinct group from deploy.yml so a preview never cancels a production deploy.
+  group: preview-ios-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    name: iOS Preview + TestFlight
+    # `labeled` fires for EVERY label; only act on ours, or every label burns minutes.
+    if: github.event.label.name == 'preview-build'
+    runs-on: macos-26
+    timeout-minutes: 90
+    env:
+      # Pin Xcode to a version present on the macos-26 image (mirrors deploy.yml).
+      # If the image's Xcode changes, update this path here and in deploy.yml.
+      DEVELOPER_DIR: /Applications/Xcode_26.1.1.app/Contents/Developer
+      # `xcodebuild -showBuildSettings` is slow with many static pods; bump
+      # fastlane's defaults so build_app doesn't time out reading settings.
+      FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT: "120"
+      FASTLANE_XCODEBUILD_SETTINGS_RETRIES: "5"
+    steps:
+      # Build the PR's HEAD commit (not the synthetic merge ref), so the preview
+      # matches exactly what's in the PR and is deterministic if the branch is
+      # pushed again mid-run.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      # Workspace install from the repo root (deps are hoisted; app/ has no
+      # standalone node_modules). `expo prebuild` needs these.
+      - name: Install dependencies
+        run: npm ci
+
+      # Ruby + bundler (fastlane, CocoaPods 1.16.2). Set up before prebuild so
+      # `bundle exec pod install` is available; uses app/Gemfile + app/.ruby-version.
+      - uses: ruby/setup-ruby@v1
+        with:
+          working-directory: app
+          bundler-cache: true
+
+      # Secret -> file. Value is passed via env (never interpolated into the
+      # command) so it stays out of the logs. The plist must exist before
+      # prebuild: app.config.js resolves "./GoogleService-Info.plist".
+      - name: Write GoogleService-Info.plist
+        env:
+          GOOGLE_SERVICE_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+        run: |
+          if [ -z "$GOOGLE_SERVICE_INFO_PLIST_BASE64" ]; then
+            echo "::error::GOOGLE_SERVICE_INFO_PLIST_BASE64 secret is not set (fork PR? previews only run on same-repo branches)." >&2
+            exit 1
+          fi
+          printf '%s' "$GOOGLE_SERVICE_INFO_PLIST_BASE64" | base64 --decode > app/GoogleService-Info.plist
+
+      - name: Write signing + App Store Connect credentials
+        env:
+          IOS_DIST_CERT_P12_BASE64: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
+          ASC_API_KEY_JSON_BASE64: ${{ secrets.ASC_API_KEY_JSON_BASE64 }}
+        run: |
+          for var in IOS_DIST_CERT_P12_BASE64 ASC_API_KEY_JSON_BASE64; do
+            if [ -z "${!var}" ]; then
+              echo "::error::$var secret is not set (fork PR? previews only run on same-repo branches)." >&2
+              exit 1
+            fi
+          done
+          printf '%s' "$IOS_DIST_CERT_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/dist_cert.p12"
+          printf '%s' "$ASC_API_KEY_JSON_BASE64" | base64 --decode > "$RUNNER_TEMP/asc_api_key.json"
+
+      # Regenerate the native iOS project. Runs plugins/withAllowNonModularIncludes,
+      # which patches the Podfile — so pod install MUST come after this.
+      # --no-install: deps are already installed at the root and pods run below.
+      - name: Expo prebuild (iOS)
+        working-directory: app
+        run: npx expo prebuild --platform ios --no-install
+
+      - name: Install pods
+        working-directory: app
+        run: bash scripts/pod-install.sh
+
+      # The macos-26 image's Xcode ships without the iOS platform SDK, but the
+      # archive's "Any iOS Device" destination needs it. Download it, retrying
+      # since it intermittently fails on a cold runner.
+      - name: Install iOS platform SDK
+        run: |
+          n=0
+          until xcodebuild -downloadPlatform iOS; do
+            n=$((n + 1))
+            if [ "$n" -ge 3 ]; then
+              echo "::error::xcodebuild -downloadPlatform iOS failed after 3 attempts" >&2
+              exit 1
+            fi
+            echo "downloadPlatform attempt $n failed; retrying in 30s..."
+            sleep 30
+          done
+
+      - name: Build and upload preview to TestFlight
+        id: build
+        working-directory: app
+        timeout-minutes: 60
+        env:
+          ASC_API_KEY_PATH: ${{ runner.temp }}/asc_api_key.json
+          IOS_DIST_CERT_P12_PATH: ${{ runner.temp }}/dist_cert.p12
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          FASTLANE_APPLE_ID: ${{ secrets.FASTLANE_APPLE_ID }}
+          # TestFlight "What to Test" — makes this build identifiable as a preview.
+          PREVIEW_CHANGELOG: "PREVIEW PR #${{ github.event.pull_request.number }} - ${{ github.event.pull_request.head.ref }} @ ${{ github.event.pull_request.head.sha }}"
+        run: bundle exec fastlane ios preview
+
+      - name: Comment on the PR
+        if: success()
+        uses: actions/github-script@v7
+        env:
+          BUILD_NUMBER: ${{ steps.build.outputs.build_number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        with:
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const shortSha = (process.env.HEAD_SHA || '').substring(0, 7);
+            const buildNumber = process.env.BUILD_NUMBER;
+            const buildLabel = buildNumber ? `build \`${buildNumber}\`` : 'a new build';
+            const body = [
+              `📱 **TestFlight preview uploaded** for this PR (\`${shortSha}\`).`,
+              ``,
+              `Look for **PREVIEW PR #${prNumber}** in the **TestFlight** app — ${buildLabel}.`,
+              ``,
+              `- Open the **TestFlight** app on your device; the build appears after Apple processing (~5–15 min). Internal builds skip Beta App Review.`,
+              `- This is **not** a one-tap install link — you must be an internal tester for this app.`,
+              `- To rebuild from the latest commit: remove and re-apply the \`preview-build\` label.`,
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body,
+            });
