@@ -46,6 +46,45 @@ const WEEKDAYS: (keyof WeeklySchedule)[] = [
   'sunday',
 ];
 
+const DAY_SHORT: Record<string, { en: string; ja: string }> = {
+  monday: { en: 'Mon', ja: '月' },
+  tuesday: { en: 'Tue', ja: '火' },
+  wednesday: { en: 'Wed', ja: '水' },
+  thursday: { en: 'Thu', ja: '木' },
+  friday: { en: 'Fri', ja: '金' },
+  saturday: { en: 'Sat', ja: '土' },
+  sunday: { en: 'Sun', ja: '日' },
+};
+
+// Collapse consecutive days (Mon→Sun) sharing the same window / closed state.
+function groupSchedule(schedule: WeeklySchedule) {
+  const groups: { days: (keyof WeeklySchedule)[]; slot: WeeklySchedule['monday'] }[] = [];
+  for (const day of WEEKDAYS) {
+    const slot = schedule[day];
+    const last = groups[groups.length - 1];
+    const same =
+      !!last &&
+      ((last.slot === null && slot === null) ||
+        (!!last.slot && !!slot && last.slot.opens === slot.opens && last.slot.closes === slot.closes));
+    if (same) last.days.push(day);
+    else groups.push({ days: [day], slot });
+  }
+  return groups;
+}
+
+// One-line summary: "Open daily 10:00–22:00", "10:00–22:00, closed Wed", or
+// "Hours vary by day" when open days don't share a single window.
+function summarizeHours(schedule: WeeklySchedule, lang: 'en' | 'ja'): string {
+  const open = WEEKDAYS.filter((d) => schedule[d]);
+  const closed = WEEKDAYS.filter((d) => schedule[d] === null);
+  const windows = new Set(open.map((d) => `${schedule[d]!.opens}–${schedule[d]!.closes}`));
+  if (windows.size !== 1) return lang === 'ja' ? '曜日により異なります' : 'Hours vary by day';
+  const w = [...windows][0];
+  const days = closed.map((d) => DAY_SHORT[d][lang]).join(lang === 'ja' ? '・' : '/');
+  if (closed.length === 0) return lang === 'ja' ? `毎日 ${w}` : `Open daily ${w}`;
+  return lang === 'ja' ? `${w}（${days}休）` : `${w}, closed ${days}`;
+}
+
 function InfoRow({
   label,
   value,
@@ -110,6 +149,7 @@ export default function OnsenDetail() {
   const [onsen, setOnsen] = useState<OnsenWithId | null>(null);
   const [loading, setLoading] = useState(true);
   const [showOriginal, setShowOriginal] = useState(false);
+  const [showWeek, setShowWeek] = useState(false);
 
   const { challengeId, visit, loading: visitLoading } = useVisit(id);
 
@@ -196,6 +236,11 @@ export default function OnsenDetail() {
   const hoursExceptions = onsen.businessHours?.exceptions ?? [];
   const hoursConfidence = onsen.businessHours?.confidence;
   const lang: 'en' | 'ja' = i18n.language?.toLowerCase().startsWith('ja') ? 'ja' : 'en';
+  const tx = (en: string, ja: string) => (lang === 'ja' ? ja : en);
+  const dayShort = (day: keyof WeeklySchedule) => DAY_SHORT[day][lang];
+  const dayRange = (days: (keyof WeeklySchedule)[]) =>
+    days.length === 1 ? dayShort(days[0]) : `${dayShort(days[0])}–${dayShort(days[days.length - 1])}`;
+  const hoursSummary = schedule ? summarizeHours(schedule, lang) : '';
   const feedItem: VisitFeedItem | null = visit
     ? {
         onsenId: onsen.id,
@@ -285,20 +330,28 @@ export default function OnsenDetail() {
               {/* Base hours: the weekly grid when structured, else the raw text. */}
               {schedule ? (
                 <>
-                  <Text style={styles.hoursHeader}>{t('onsenDetail.labelHours')}</Text>
-                  {WEEKDAYS.map((day) => {
-                    const slot = schedule[day];
-                    return (
-                      <View key={day} style={styles.dayRow}>
+                  <InfoRow label={t('onsenDetail.labelHours')} value={hoursSummary} />
+                  <Pressable
+                    style={styles.hoursToggle}
+                    onPress={() => setShowWeek((v) => !v)}
+                    hitSlop={4}
+                  >
+                    <Text style={styles.hoursToggleText}>
+                      {showWeek ? tx('Hide weekly hours', '週間営業時間を隠す')
+                               : tx('Show weekly hours', '週間営業時間を表示')}
+                    </Text>
+                  </Pressable>
+                  {showWeek &&
+                    groupSchedule(schedule).map((g, i) => (
+                      <View key={i} style={styles.dayRow}>
                         <Text style={styles.dayLabel} selectable>
-                          {t(`onsenDetail.day.${day}`)}
+                          {dayRange(g.days)}
                         </Text>
                         <Text style={styles.dayValue} selectable>
-                          {slot ? `${slot.opens}–${slot.closes}` : t('onsenDetail.closed')}
+                          {g.slot ? `${g.slot.opens}–${g.slot.closes}` : t('onsenDetail.closed')}
                         </Text>
                       </View>
-                    );
-                  })}
+                    ))}
                 </>
               ) : (
                 <InfoRow label={t('onsenDetail.labelHours')} value={onsen.businessHours.raw} />
