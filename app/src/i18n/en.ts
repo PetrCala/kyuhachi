@@ -46,6 +46,8 @@ const en = {
   'map.locationError': 'Could not find your location. Please try again.',
   'map.simulatedLocation': 'Simulated location',
   'map.nearRouteToggle': 'Near route',
+  'onsenPreview.close': 'Close',
+  'onsenPreview.viewDetails': 'View details',
 
   // onsen list
   'onsenList.title': 'Onsen List',

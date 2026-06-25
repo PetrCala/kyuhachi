@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef, useCallback, useMemo, type ElementRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   ActivityIndicator,
   Alert,
   Animated,
+  Linking,
   Pressable,
   StyleSheet,
 } from 'react-native';
@@ -31,6 +32,7 @@ import { distanceToPolylineKm } from '@/lib/geo';
 import { useActiveChallengeProgress } from '@/hooks/useActiveChallengeProgress';
 import MapZoomControl from '@/components/MapZoomControl';
 import OnsenMarker from '@/components/OnsenMarker';
+import OnsenPreviewSheet from '@/components/OnsenPreviewSheet';
 import { colors, spacing, radii, typography, shadows } from '@/theme';
 
 type OnsenRow = OnsenDocument & { id: string };
@@ -83,10 +85,10 @@ export default function MapScreen() {
   const { visitedIds, activeRoute, loading: progressLoading } =
     useActiveChallengeProgress();
   const mapRef = useRef<MapView>(null);
-  // Per-onsen Marker handles so an arriving "Show on map" focus can pop the
-  // matching callout once the camera has settled on its pin.
-  const markerRefs = useRef<Record<string, ElementRef<typeof Marker> | null>>({});
   const [onsens, setOnsens] = useState<OnsenRow[]>([]);
+  // The onsen whose preview sheet is open; null keeps the sheet dismissed.
+  // Tapping a pin sets it (instead of navigating straight to detail).
+  const [selectedOnsen, setSelectedOnsen] = useState<OnsenRow | null>(null);
   const [onsensLoading, setOnsensLoading] = useState(true);
   // An explicit `routeId` param (a just-imported route, or "View route on map")
   // draws that specific route; otherwise the map draws the active challenge's
@@ -238,17 +240,30 @@ export default function MapScreen() {
     }
   }, [bumpControls, handleCameraSettle]);
 
-  // Stable across renders so the memoized OnsenMarkers never re-render or
-  // re-attach their refs just because this screen re-rendered (the zoom slider
-  // streams the camera altitude on every gesture frame).
-  const registerMarkerRef = useCallback(
-    (id: string, ref: ElementRef<typeof Marker> | null) => {
-      markerRefs.current[id] = ref;
-    },
-    []
-  );
+  // Tapping a pin opens its preview sheet rather than navigating away. Stable
+  // (reads the latest `onsens` via the setter's updater) so the memoized
+  // OnsenMarkers never re-render just because this screen re-rendered — the zoom
+  // slider streams the camera altitude on every gesture frame.
   const handleOnsenPress = useCallback((id: string) => {
-    router.push(`/onsens/${id}`);
+    setOnsens((current) => {
+      const target = current.find((o) => o.id === id) ?? null;
+      setSelectedOnsen(target);
+      return current;
+    });
+  }, []);
+
+  const closePreview = useCallback(() => setSelectedOnsen(null), []);
+
+  // Apple Maps directions, matching the detail screen's deep-link.
+  const handleGetDirections = useCallback((onsen: OnsenRow) => {
+    Linking.openURL(`https://maps.apple.com/?daddr=${onsen.lat},${onsen.lng}`);
+    setSelectedOnsen(null);
+  }, []);
+
+  // The "enlarge / navigate" action: dismiss the sheet and open full detail.
+  const handleViewDetails = useCallback((onsen: OnsenRow) => {
+    setSelectedOnsen(null);
+    router.push(`/onsens/${onsen.id}`);
   }, []);
 
   useEffect(() => {
@@ -339,11 +354,11 @@ export default function MapScreen() {
     mapRef.current?.animateToRegion(regionForBounds(route.bounds));
   }, [route]);
 
-  // Arriving from an onsen's "Show on map": center on that pin and pop its
-  // callout. `focusTs` is a per-tap nonce so tapping again re-focuses the same
-  // onsen (an unchanging id alone wouldn't re-fire the effect); the guard stops
-  // a re-run on unrelated re-renders or when returning to this tab. Runs after
-  // the route-framing effect above so a focused onsen wins the camera.
+  // Arriving from an onsen's "Show on map": center on that pin and open its
+  // preview sheet. `focusTs` is a per-tap nonce so tapping again re-focuses the
+  // same onsen (an unchanging id alone wouldn't re-fire the effect); the guard
+  // stops a re-run on unrelated re-renders or when returning to this tab. Runs
+  // after the route-framing effect above so a focused onsen wins the camera.
   const focusedTokenRef = useRef<string | null>(null);
   useEffect(() => {
     if (!focusOnsenId || !focusTs || focusedTokenRef.current === focusTs) return;
@@ -356,7 +371,8 @@ export default function MapScreen() {
       latitudeDelta: USER_LOCATION_DELTA,
       longitudeDelta: USER_LOCATION_DELTA,
     });
-    const timer = setTimeout(() => markerRefs.current[focusOnsenId]?.showCallout(), 650);
+    // Open the preview once the camera has settled on the pin.
+    const timer = setTimeout(() => setSelectedOnsen(target), 650);
     return () => clearTimeout(timer);
   }, [focusOnsenId, focusTs, onsens]);
 
@@ -392,12 +408,9 @@ export default function MapScreen() {
             id={onsen.id}
             lat={onsen.lat}
             lng={onsen.lng}
-            name={onsen.name}
-            areaName={onsen.areaName}
             // Visited onsens in the active challenge get a bath-water blue pin;
             // unvisited keep the default red pin.
             visited={visitedIds.has(onsen.id)}
-            registerRef={registerMarkerRef}
             onPress={handleOnsenPress}
           />
         ))}
@@ -494,6 +507,13 @@ export default function MapScreen() {
           <Ionicons name="locate" size={spacing[6]} color={colors.actionPrimary} />
         </Pressable>
       </Animated.View>
+      <OnsenPreviewSheet
+        onsen={selectedOnsen}
+        visited={selectedOnsen ? visitedIds.has(selectedOnsen.id) : false}
+        onGetDirections={handleGetDirections}
+        onViewDetails={handleViewDetails}
+        onClose={closePreview}
+      />
     </View>
   );
 }
