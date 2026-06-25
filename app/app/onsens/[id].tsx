@@ -46,6 +46,16 @@ const WEEKDAYS: (keyof WeeklySchedule)[] = [
   'sunday',
 ];
 
+const DAY_SHORT: Record<string, { en: string; ja: string }> = {
+  monday: { en: 'Mon', ja: '月' },
+  tuesday: { en: 'Tue', ja: '火' },
+  wednesday: { en: 'Wed', ja: '水' },
+  thursday: { en: 'Thu', ja: '木' },
+  friday: { en: 'Fri', ja: '金' },
+  saturday: { en: 'Sat', ja: '土' },
+  sunday: { en: 'Sun', ja: '日' },
+};
+
 function InfoRow({
   label,
   value,
@@ -196,6 +206,11 @@ export default function OnsenDetail() {
   const hoursExceptions = onsen.businessHours?.exceptions ?? [];
   const hoursConfidence = onsen.businessHours?.confidence;
   const lang: 'en' | 'ja' = i18n.language?.toLowerCase().startsWith('ja') ? 'ja' : 'en';
+  const tx = (en: string, ja: string) => (lang === 'ja' ? ja : en);
+  const dayShort = (day: keyof WeeklySchedule) => DAY_SHORT[day][lang];
+  const todayKey = WEEKDAYS[(new Date().getDay() + 6) % 7];
+  const todaySlot = schedule ? schedule[todayKey] : null;
+  const closedDays = schedule ? WEEKDAYS.filter((d) => schedule[d] === null) : [];
   const feedItem: VisitFeedItem | null = visit
     ? {
         onsenId: onsen.id,
@@ -282,34 +297,36 @@ export default function OnsenDetail() {
           )}
           {onsen.businessHours && (
             <>
-              {/* Base hours: the weekly grid when structured, else the raw text. */}
+              <Text style={styles.hoursHeader}>{t('onsenDetail.labelHours')}</Text>
+              {/* Headline status pill (today-aware), else the raw text. */}
               {schedule ? (
-                <>
-                  <Text style={styles.hoursHeader}>{t('onsenDetail.labelHours')}</Text>
-                  {WEEKDAYS.map((day) => {
-                    const slot = schedule[day];
-                    return (
-                      <View key={day} style={styles.dayRow}>
-                        <Text style={styles.dayLabel} selectable>
-                          {t(`onsenDetail.day.${day}`)}
-                        </Text>
-                        <Text style={styles.dayValue} selectable>
-                          {slot ? `${slot.opens}–${slot.closes}` : t('onsenDetail.closed')}
-                        </Text>
-                      </View>
-                    );
-                  })}
-                </>
+                <View style={[styles.statusPill, todaySlot ? styles.statusOpen : styles.statusClosed]}>
+                  <Text style={[styles.statusPillText, !todaySlot && styles.statusPillTextClosed]}>
+                    {todaySlot
+                      ? tx(`Open today · ${todaySlot.opens}–${todaySlot.closes}`,
+                           `本日営業 · ${todaySlot.opens}–${todaySlot.closes}`)
+                      : tx('Closed today', '本日休み')}
+                  </Text>
+                </View>
               ) : (
-                <InfoRow label={t('onsenDetail.labelHours')} value={onsen.businessHours.raw} />
+                <Text style={styles.hoursRaw} selectable>{onsen.businessHours.raw}</Text>
               )}
 
-              {/* Flagged exceptions / irregularities (display-only captions). */}
-              {hoursExceptions.map((ex, i) => (
-                <Text key={i} style={styles.hoursException} selectable>
-                  {`⚠ ${ex[lang] ?? ex.en}`}
-                </Text>
-              ))}
+              {/* Closed-day + exception chips. */}
+              {(closedDays.length > 0 || hoursExceptions.length > 0) && (
+                <View style={styles.tagRow}>
+                  {closedDays.map((d) => (
+                    <View key={d} style={styles.tagClosed}>
+                      <Text style={styles.tagClosedText}>{tx(`Closed ${dayShort(d)}`, `${dayShort(d)}休`)}</Text>
+                    </View>
+                  ))}
+                  {hoursExceptions.map((ex, i) => (
+                    <View key={`e${i}`} style={styles.tag}>
+                      <Text style={styles.tagText}>{ex[lang] ?? ex.en}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
               {hoursConfidence && hoursConfidence !== 'high' && (
                 <Text style={styles.hoursHint}>{t('onsenDetail.hoursVary')}</Text>
               )}
@@ -508,6 +525,56 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: typography.sizes.sm,
     color: colors.textPrimary,
+  },
+  statusPill: {
+    alignSelf: 'flex-start',
+    paddingVertical: spacing[1],
+    paddingHorizontal: spacing[3],
+    borderRadius: radii.full,
+    marginBottom: spacing[2],
+  },
+  statusOpen: {
+    backgroundColor: colors.actionPrimary,
+  },
+  statusClosed: {
+    backgroundColor: colors.backgroundSecondary,
+  },
+  statusPillText: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.medium,
+    color: colors.actionPrimaryText,
+  },
+  statusPillTextClosed: {
+    color: colors.textMuted,
+  },
+  tagRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  tag: {
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: radii.md,
+    paddingVertical: spacing[1],
+    paddingHorizontal: spacing[2],
+    marginRight: spacing[2],
+    marginBottom: spacing[2],
+  },
+  tagText: {
+    fontSize: typography.sizes.xs,
+    color: colors.textSecondary,
+  },
+  tagClosed: {
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: radii.md,
+    paddingVertical: spacing[1],
+    paddingHorizontal: spacing[2],
+    marginRight: spacing[2],
+    marginBottom: spacing[2],
+  },
+  tagClosedText: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.medium,
+    color: colors.textMuted,
   },
   hoursHeader: {
     fontSize: typography.sizes.sm,
