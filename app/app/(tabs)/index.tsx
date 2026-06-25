@@ -7,10 +7,14 @@ import {
   StyleSheet,
   ActivityIndicator,
   SafeAreaView,
+  AccessibilityInfo,
+  Animated,
+  Easing,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useActiveChallengeProgress } from '@/hooks/useActiveChallengeProgress';
+import { usePreferences } from '@/context/PreferencesContext';
 import { ProgressBar, buildTierMarkers } from '@/components/ProgressBar';
 import { VisitCard } from '@/components/VisitCard';
 import { TierClaimModal, type TierCelebration } from '@/components/TierClaimModal';
@@ -30,6 +34,9 @@ const HOME_WORDMARK = '九八';
 
 // How many of the most recent visits the home screen previews before "See all".
 const RECENT_VISITS_PREVIEW = 3;
+
+// Length of the hero count-up tween, kept in step with the bar fill.
+const COUNT_UP_DURATION = 800;
 
 export default function Home() {
   const { t, i18n } = useTranslation();
@@ -173,6 +180,74 @@ export default function Home() {
     seenRankRef.current = { challengeId, rankId: current };
   }, [currentRank, challengeId, ranks, loading, onsenMap, t]);
 
+  // Animate the hero number + bar fill when a recorded visit raises the eligible
+  // count — but only on a genuine increase during the session. Mirrors the
+  // seenRankRef/seenTierRef latches: the first observation per challengeId syncs
+  // silently (so launch and challenge switches never animate from the old value),
+  // and only a later increase tweens. Motion is gated by the animateProgress
+  // preference and the OS Reduce Motion setting.
+  const { animateProgress } = usePreferences();
+  const reduceMotionRef = useRef(false);
+  useEffect(() => {
+    let mounted = true;
+    AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+      if (mounted) reduceMotionRef.current = enabled;
+    });
+    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', (enabled) => {
+      reduceMotionRef.current = enabled;
+    });
+    return () => {
+      mounted = false;
+      sub.remove();
+    };
+  }, []);
+
+  // The integer shown in the hero string; driven by visitedAnim while counting up.
+  const [displayVisited, setDisplayVisited] = useState(eligibleVisitCount);
+  // Whether the bar should tween to its new fill for this particular change.
+  const [animateFill, setAnimateFill] = useState(false);
+  const visitedAnim = useRef(new Animated.Value(eligibleVisitCount)).current;
+  const seenVisitRef = useRef<{ challengeId: string | null; count: number | null }>({
+    challengeId: null,
+    count: null,
+  });
+
+  useEffect(() => {
+    const id = visitedAnim.addListener(({ value }) => setDisplayVisited(Math.round(value)));
+    return () => visitedAnim.removeListener(id);
+  }, [visitedAnim]);
+
+  useEffect(() => {
+    const prev = seenVisitRef.current;
+    if (prev.challengeId !== challengeId) {
+      // Switched challenge (or first observation) — show the final value at once.
+      seenVisitRef.current = { challengeId, count: eligibleVisitCount };
+      visitedAnim.setValue(eligibleVisitCount);
+      setDisplayVisited(eligibleVisitCount);
+      setAnimateFill(false);
+      return;
+    }
+    const increased = prev.count != null && eligibleVisitCount > prev.count;
+    if (increased && animateProgress && !reduceMotionRef.current) {
+      setAnimateFill(true);
+      visitedAnim.setValue(prev.count as number);
+      Animated.timing(visitedAnim, {
+        toValue: eligibleVisitCount,
+        duration: COUNT_UP_DURATION,
+        easing: Easing.out(Easing.cubic),
+        // Listener-driven numeric tween — the native driver can't surface the
+        // intermediate values we read to update the localized string.
+        useNativeDriver: false,
+      }).start();
+    } else {
+      // Decrease, no change, or motion off: land on the final value immediately.
+      setAnimateFill(false);
+      visitedAnim.setValue(eligibleVisitCount);
+      setDisplayVisited(eligibleVisitCount);
+    }
+    seenVisitRef.current = { challengeId, count: eligibleVisitCount };
+  }, [eligibleVisitCount, challengeId, animateProgress, visitedAnim]);
+
   function openRules() {
     if (!challenge) return;
     router.push({ pathname: '/challenge/rules', params: { typeId: challenge.typeId } });
@@ -240,7 +315,7 @@ export default function Home() {
           <View style={styles.heroSection}>
             <View style={styles.heroTopRow}>
               <Text style={styles.heroNumber}>
-                {t('home.progress', { visited: eligibleVisitCount, total: completionCount })}
+                {t('home.progress', { visited: displayVisited, total: completionCount })}
               </Text>
               <SpaportHeroButton />
             </View>
@@ -252,7 +327,12 @@ export default function Home() {
                 </Pressable>
               )}
             </View>
-            <ProgressBar value={eligibleVisitCount} total={completionCount} markers={markers} />
+            <ProgressBar
+              value={eligibleVisitCount}
+              total={completionCount}
+              markers={markers}
+              animate={animateFill}
+            />
             {claimable ? (
               <Pressable
                 style={[styles.claimButton, claiming && styles.claimButtonDisabled]}

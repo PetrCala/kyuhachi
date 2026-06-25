@@ -19,6 +19,7 @@ const RADIUS_KEY = 'settings.nearby.radiusKm';
 const ONSEN_MAP_PREVIEW_KEY = 'settings.onsen.mapPreview';
 const NEAR_ROUTE_RADIUS_KEY = 'settings.nearRoute.radiusKm';
 const STAMP_COLLECT_ANIM_KEY = 'settings.animations.stampCollect';
+const PROGRESS_ANIM_KEY = 'settings.animations.progress';
 
 interface PreferencesContextValue {
   /** Whether the onsen list shows the distance-sorted "Near you" section. */
@@ -40,6 +41,12 @@ interface PreferencesContextValue {
    * flourish. Default on.
    */
   animateStampCollect: boolean;
+  /**
+   * Whether the home progress hero counts up and the bar fills smoothly when a
+   * newly recorded visit raises the eligible-visit count. When off, the new
+   * number and fill appear at once. Default on.
+   */
+  animateProgress: boolean;
   /** False until the stored values have been read, so callers can avoid acting on defaults. */
   loaded: boolean;
   setShowNearby: (value: boolean) => void;
@@ -47,6 +54,7 @@ interface PreferencesContextValue {
   setShowOnsenMapPreview: (value: boolean) => void;
   setNearRouteRadiusKm: (value: number) => void;
   setAnimateStampCollect: (value: boolean) => void;
+  setAnimateProgress: (value: boolean) => void;
 }
 
 const PreferencesContext = createContext<PreferencesContextValue>({
@@ -55,12 +63,14 @@ const PreferencesContext = createContext<PreferencesContextValue>({
   showOnsenMapPreview: true,
   nearRouteRadiusKm: DEFAULT_NEAR_ROUTE_RADIUS_KM,
   animateStampCollect: true,
+  animateProgress: true,
   loaded: false,
   setShowNearby: () => {},
   setNearRadiusKm: () => {},
   setShowOnsenMapPreview: () => {},
   setNearRouteRadiusKm: () => {},
   setAnimateStampCollect: () => {},
+  setAnimateProgress: () => {},
 });
 
 export function PreferencesProvider({ children }: { children: React.ReactNode }) {
@@ -71,19 +81,21 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
     DEFAULT_NEAR_ROUTE_RADIUS_KM
   );
   const [animateStampCollect, setAnimateStampCollectState] = useState(true);
+  const [animateProgress, setAnimateProgressState] = useState(true);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [[, show], [, radius], [, mapPreview], [, routeRadius], [, stampAnim]] =
+        const [[, show], [, radius], [, mapPreview], [, routeRadius], [, stampAnim], [, progressAnim]] =
           await AsyncStorage.multiGet([
             SHOW_NEARBY_KEY,
             RADIUS_KEY,
             ONSEN_MAP_PREVIEW_KEY,
             NEAR_ROUTE_RADIUS_KEY,
             STAMP_COLLECT_ANIM_KEY,
+            PROGRESS_ANIM_KEY,
           ]);
         if (cancelled) return;
         if (show !== null) setShowNearbyState(show !== 'false');
@@ -93,6 +105,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
         const parsedRoute = routeRadius !== null ? Number(routeRadius) : NaN;
         if (Number.isFinite(parsedRoute)) setNearRouteRadiusKmState(parsedRoute);
         if (stampAnim !== null) setAnimateStampCollectState(stampAnim !== 'false');
+        if (progressAnim !== null) setAnimateProgressState(progressAnim !== 'false');
       } catch {
         // Storage unavailable — keep defaults.
       } finally {
@@ -129,6 +142,11 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
     AsyncStorage.setItem(STAMP_COLLECT_ANIM_KEY, value ? 'true' : 'false').catch(() => {});
   };
 
+  const setAnimateProgress = (value: boolean) => {
+    setAnimateProgressState(value);
+    AsyncStorage.setItem(PROGRESS_ANIM_KEY, value ? 'true' : 'false').catch(() => {});
+  };
+
   return (
     <PreferencesContext.Provider
       value={{
@@ -137,12 +155,14 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
         showOnsenMapPreview,
         nearRouteRadiusKm,
         animateStampCollect,
+        animateProgress,
         loaded,
         setShowNearby,
         setNearRadiusKm,
         setShowOnsenMapPreview,
         setNearRouteRadiusKm,
         setAnimateStampCollect,
+        setAnimateProgress,
       }}
     >
       {children}

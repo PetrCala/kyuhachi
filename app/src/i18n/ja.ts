@@ -295,6 +295,9 @@ const ja: Record<keyof typeof en, string> = {
   'preferences.stampCollectAnimation': 'スタンプ獲得',
   'preferences.stampCollectAnimationHint':
     '訪問を記録すると、スタンプが華やかに飛び込んでから獲得できます。オフにすると、スタンプはすぐに表示されます。',
+  'preferences.progressAnimation': '進捗のカウントアップ',
+  'preferences.progressAnimationHint':
+    '新しい訪問で件数が増えると、ホームの数字がカウントアップしてバーが滑らかに伸びます。オフにすると、新しい合計がすぐに表示されます。',
 
   // stamp-collection celebration (shown after recording a new visit)
   'stampClaim.title': '新しいスタンプ！',
