@@ -615,7 +615,7 @@ const en = {
   'onsenDetail.hideHours': 'Hide weekly hours',
   'onsenDetail.showOriginal': 'Show original text',
   'onsenDetail.hideOriginal': 'Hide original text',
-  'onsenDetail.hoursVary': 'Hours may vary — please confirm',
+  'onsenDetail.hoursVary': 'Hours can change seasonally — worth a quick call ahead.',
   'onsenDetail.today': 'Today',
   'onsenDetail.closedToday': 'Closed today',
   'onsenDetail.dayShort.monday': 'Mon',
