@@ -219,7 +219,7 @@ export default function OnsenPreviewSheet({
                   <Ionicons
                     name="checkmark-circle"
                     size={typography.sizes.md}
-                    color={colors.onsenVisited}
+                    color={colors.stampInk}
                   />
                   <Text style={styles.visitedText}>{t('onsenDetail.visited')}</Text>
                 </View>
@@ -369,7 +369,8 @@ const styles = StyleSheet.create({
   visitedText: {
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.semibold,
-    color: colors.onsenVisited,
+    // Dark seal ink — matches the "visited" stamp on the onsen detail screen.
+    color: colors.stampInk,
   },
   section: {
     paddingTop: spacing[2],
