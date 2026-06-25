@@ -26,7 +26,7 @@ interface VisitCardProps {
   /** When set, render an "Edit details" affordance in the header. */
   onEdit?: () => void;
   /** Present this as the onsen's own completion card: a tinted, elevated card
-   *  led by a celebratory "you've soaked here" header instead of a bare date. */
+   *  led by a "Visited" header with a prefecture stamp instead of a bare date. */
   completed?: boolean;
 }
 
@@ -48,6 +48,9 @@ export function VisitCard({
   const location = [areaName, prefecture].filter(Boolean).join(' · ');
   const dateLabel = formatVisitDate(visit.visitedAt.toDate(), new Date(), t, i18n.language);
   const visitedOn = visit.visitedAt.toDate().toLocaleDateString(i18n.language);
+  // First character of the prefecture, inked into the mini stamp (e.g. 大 for
+  // 大分県). Falls back to the onsen name's first character if no prefecture.
+  const sealMark = [...(prefecture || onsenName || '')][0] ?? '';
   const hasStats =
     rating != null ||
     transportMode != null ||
@@ -64,7 +67,7 @@ export function VisitCard({
         {completed ? (
           <>
             <View style={styles.completedSeal}>
-              <Ionicons name="checkmark-sharp" size={spacing[5]} color={colors.textInverted} />
+              <Text style={styles.completedSealMark}>{sealMark}</Text>
             </View>
             <View style={styles.headerText}>
               <Text style={styles.completedTitle}>{t('onsenDetail.visitedCardTitle')}</Text>
@@ -178,9 +181,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing[3],
     overflow: 'hidden',
   },
-  // Completion variant: a tinted, elevated card whose header celebrates the visit.
+  // Completion variant: a tinted, elevated card whose header marks the visit
+  // with a stamp, in the muted ink/gray of a stamp book.
   cardCompleted: {
-    borderColor: colors.onsenVisited,
+    borderColor: colors.stampFrame,
     backgroundColor: colors.backgroundSecondary,
   },
   header: {
@@ -195,10 +199,17 @@ const styles = StyleSheet.create({
   completedSeal: {
     width: spacing[8],
     height: spacing[8],
-    borderRadius: radii.full,
-    backgroundColor: colors.onsenVisited,
+    borderRadius: radii.sm,
+    borderWidth: 2,
+    borderColor: colors.stampInk,
+    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  completedSealMark: {
+    fontFamily: typography.fonts.brand,
+    fontSize: typography.sizes.lg,
+    color: colors.stampInk,
   },
   completedTitle: {
     fontSize: typography.sizes.md,
