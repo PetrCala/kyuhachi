@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ComponentProps } from 'react';
+import { useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
 import {
   Animated,
   Dimensions,
@@ -6,6 +6,7 @@ import {
   Image,
   Linking,
   Modal,
+  PanResponder,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -26,6 +27,10 @@ type OnsenRow = OnsenDocument & { id: string };
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const ENTER_DURATION = 260;
 const EXIT_DURATION = 200;
+// A downward drag on the handle/hero region past this distance (px) or faster
+// than this velocity flings the sheet away; anything less springs it back.
+const DISMISS_DRAG_PX = 80;
+const DISMISS_VELOCITY = 0.6;
 // Hero image height — the image-forward focal point of the sheet.
 const HERO_HEIGHT = 200;
 // Glyph size for the placeholder mark when an onsen has no photo; a layout
@@ -105,42 +110,77 @@ export default function OnsenPreviewSheet({
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const visible = onsen != null;
-  // 0 = dismissed (backdrop clear, sheet off-screen), 1 = presented.
-  const anim = useRef(new Animated.Value(0)).current;
+  // The sheet's vertical offset in pixels: 0 = resting (presented), SCREEN_HEIGHT
+  // = fully off-screen below. Driving the position directly (rather than a 0→1
+  // progress) lets the drag-to-dismiss gesture track the finger 1:1.
+  const sheetY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  // Backdrop dims in step with the sheet's travel, so a drag-down fades it too.
+  const backdropOpacity = sheetY.interpolate({
+    inputRange: [0, SCREEN_HEIGHT],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
   // Keep showing the last onsen while the sheet animates out, so content doesn't
   // blank before the slide-down finishes.
   const [shown, setShown] = useState<OnsenRow | null>(onsen);
 
+  // Latest onClose, read from inside the (stable) PanResponder without rebuilding it.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     if (!onsen) return;
     setShown(onsen);
-    anim.setValue(0);
-    Animated.timing(anim, {
-      toValue: 1,
+    sheetY.setValue(SCREEN_HEIGHT);
+    Animated.timing(sheetY, {
+      toValue: 0,
       duration: ENTER_DURATION,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start();
-  }, [onsen, anim]);
+  }, [onsen, sheetY]);
 
-  // Run the slide-down/​fade-out, then clear the retained onsen so the Modal can
-  // unmount its content.
+  // Run the slide-down, then clear the retained onsen so the Modal can unmount its
+  // content. Picks up from wherever the sheet currently sits — including a partial
+  // drag — so a fling continues smoothly into the dismissal.
   useEffect(() => {
     if (onsen || !shown) return;
-    Animated.timing(anim, {
-      toValue: 0,
+    Animated.timing(sheetY, {
+      toValue: SCREEN_HEIGHT,
       duration: EXIT_DURATION,
       easing: Easing.in(Easing.cubic),
       useNativeDriver: true,
     }).start(({ finished }) => {
       if (finished) setShown(null);
     });
-  }, [onsen, shown, anim]);
+  }, [onsen, shown, sheetY]);
 
-  const translateY = anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [SCREEN_HEIGHT, 0],
-  });
+  // Drag-to-dismiss, attached to the handle + hero region only. The scrollable
+  // info area below is a sibling and keeps its own gestures, so swiping the text
+  // scrolls it while a downward drag on the image (or handle) flings the whole
+  // sheet away. The responder claims only a clear downward drag, so taps fall
+  // through and the close button still works; releasing short of the threshold
+  // springs the sheet back to rest.
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_e, g) => g.dy > 4 && g.dy > Math.abs(g.dx),
+        onPanResponderMove: (_e, g) => {
+          if (g.dy > 0) sheetY.setValue(g.dy);
+        },
+        onPanResponderRelease: (_e, g) => {
+          if (g.dy > DISMISS_DRAG_PX || g.vy > DISMISS_VELOCITY) {
+            onCloseRef.current();
+          } else {
+            Animated.spring(sheetY, { toValue: 0, useNativeDriver: true, bounciness: 0 }).start();
+          }
+        },
+        onPanResponderTerminate: () => {
+          Animated.spring(sheetY, { toValue: 0, useNativeDriver: true, bounciness: 0 }).start();
+        },
+      }),
+    [sheetY]
+  );
 
   if (!shown) {
     return <Modal visible={false} transparent />;
@@ -156,7 +196,7 @@ export default function OnsenPreviewSheet({
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <View style={styles.root}>
-        <Animated.View style={[styles.backdrop, { opacity: anim }]}>
+        <Animated.View style={[styles.backdrop, { opacity: backdropOpacity }]}>
           <Pressable
             style={StyleSheet.absoluteFill}
             accessibilityRole="button"
@@ -169,37 +209,39 @@ export default function OnsenPreviewSheet({
           style={[
             styles.sheet,
             shadows.lg,
-            { paddingBottom: insets.bottom + spacing[4], transform: [{ translateY }] },
+            { paddingBottom: insets.bottom + spacing[4], transform: [{ translateY: sheetY }] },
           ]}
         >
-          <View style={styles.handle} />
+          <View {...panResponder.panHandlers}>
+            <View style={styles.handle} />
 
-          <View style={styles.hero}>
-            {shown.imageUrl ? (
-              <Image source={{ uri: shown.imageUrl }} style={styles.heroImage} resizeMode="cover" />
-            ) : (
-              <View style={styles.heroPlaceholder}>
-                <Ionicons
-                  name="image-outline"
-                  size={PLACEHOLDER_GLYPH}
-                  color={colors.textMuted}
-                  accessibilityLabel={t('onsenPreview.imagePlaceholder')}
-                />
-              </View>
-            )}
-            <View style={styles.heroScrim} pointerEvents="none" />
-            <Text style={styles.heroName} numberOfLines={2}>
-              {shown.name}
-            </Text>
-            <Pressable
-              style={[styles.closeButton, shadows.sm]}
-              onPress={onClose}
-              accessibilityRole="button"
-              accessibilityLabel={t('onsenPreview.close')}
-              hitSlop={spacing[2]}
-            >
-              <Ionicons name="close" size={typography.sizes.xl} color={colors.textPrimary} />
-            </Pressable>
+            <View style={styles.hero}>
+              {shown.imageUrl ? (
+                <Image source={{ uri: shown.imageUrl }} style={styles.heroImage} resizeMode="cover" />
+              ) : (
+                <View style={styles.heroPlaceholder}>
+                  <Ionicons
+                    name="image-outline"
+                    size={PLACEHOLDER_GLYPH}
+                    color={colors.textMuted}
+                    accessibilityLabel={t('onsenPreview.imagePlaceholder')}
+                  />
+                </View>
+              )}
+              <View style={styles.heroScrim} pointerEvents="none" />
+              <Text style={styles.heroName} numberOfLines={2}>
+                {shown.name}
+              </Text>
+              <Pressable
+                style={[styles.closeButton, shadows.sm]}
+                onPress={onClose}
+                accessibilityRole="button"
+                accessibilityLabel={t('onsenPreview.close')}
+                hitSlop={spacing[2]}
+              >
+                <Ionicons name="close" size={typography.sizes.xl} color={colors.textPrimary} />
+              </Pressable>
+            </View>
           </View>
 
           <ScrollView
@@ -216,12 +258,12 @@ export default function OnsenPreviewSheet({
               </Text>
               {visited && (
                 <View style={styles.visitedBadge}>
+                  <Text style={styles.visitedText}>{t('onsenPreview.visited')}</Text>
                   <Ionicons
                     name="checkmark-circle"
                     size={typography.sizes.md}
                     color={colors.stampInk}
                   />
-                  <Text style={styles.visitedText}>{t('onsenDetail.visited')}</Text>
                 </View>
               )}
             </View>

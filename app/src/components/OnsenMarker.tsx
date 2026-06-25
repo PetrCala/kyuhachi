@@ -10,8 +10,7 @@ interface OnsenMarkerProps {
   name: string;
   /** Area name — shown as the callout subtitle (Firestore data, untranslated). */
   areaName: string;
-  /** Visited in the active challenge → dark pin matching the visited seal ink;
-   *  otherwise default red. */
+  /** Visited in the active challenge → bath-water-blue pin; otherwise default red. */
   visited: boolean;
   /** Registers this marker's imperative handle with the parent (keyed by id) so an
    *  arriving "Show on map" focus can re-open this onsen's preview. Must be stable. */
@@ -58,9 +57,7 @@ function OnsenMarker({
       coordinate={{ latitude: lat, longitude: lng }}
       title={name}
       description={areaName}
-      // Visited pins use the dark seal ink (matches the "visited" stamp on the
-      // onsen detail screen), not the bath-water blue accent the charts use.
-      pinColor={visited ? colors.stampInk : undefined}
+      pinColor={visited ? colors.onsenVisited : undefined}
       // Suppress the native callout: a pin tap selects the onsen and opens the
       // preview half-sheet directly.
       onPress={handlePress}
