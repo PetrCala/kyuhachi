@@ -280,6 +280,7 @@ const ja: Record<keyof typeof en, string> = {
 
   // preferences
   'preferences.title': '設定',
+  'preferences.explain': '「{{label}}」の説明',
   'preferences.showNearby': '近くの温泉を表示',
   'preferences.showNearbyHint': '温泉一覧の上部に、現在地の近くにある温泉のセクションを表示します。',
   'preferences.radiusTitle': '距離（km）',
