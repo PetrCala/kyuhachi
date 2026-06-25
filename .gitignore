@@ -41,6 +41,9 @@ firebase/node_modules/
 functions/lib/
 functions/node_modules/
 
+# Generated legal pages (built from docs/legal/*.md by scripts/build-legal-html.mjs)
+firebase/public/
+
 # Credentials (never commit)
 app/GoogleService-Info.plist
 app/google-services.json
