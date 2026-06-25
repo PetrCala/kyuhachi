@@ -18,6 +18,7 @@ const SHOW_NEARBY_KEY = 'settings.nearby.show';
 const RADIUS_KEY = 'settings.nearby.radiusKm';
 const ONSEN_MAP_PREVIEW_KEY = 'settings.onsen.mapPreview';
 const NEAR_ROUTE_RADIUS_KEY = 'settings.nearRoute.radiusKm';
+const STAMP_COLLECT_ANIM_KEY = 'settings.animations.stampCollect';
 
 interface PreferencesContextValue {
   /** Whether the onsen list shows the distance-sorted "Near you" section. */
@@ -32,12 +33,20 @@ interface PreferencesContextValue {
   showOnsenMapPreview: boolean;
   /** Radius (km) for the map's "Near route" filter. */
   nearRouteRadiusKm: number;
+  /**
+   * Whether recording a new visit plays the celebratory stamp-collection
+   * animation (the seal flies in over a glow with sparkles). When off, the stamp
+   * still appears for the user to claim — it just shows up at once without the
+   * flourish. Default on.
+   */
+  animateStampCollect: boolean;
   /** False until the stored values have been read, so callers can avoid acting on defaults. */
   loaded: boolean;
   setShowNearby: (value: boolean) => void;
   setNearRadiusKm: (value: number) => void;
   setShowOnsenMapPreview: (value: boolean) => void;
   setNearRouteRadiusKm: (value: number) => void;
+  setAnimateStampCollect: (value: boolean) => void;
 }
 
 const PreferencesContext = createContext<PreferencesContextValue>({
@@ -45,11 +54,13 @@ const PreferencesContext = createContext<PreferencesContextValue>({
   nearRadiusKm: DEFAULT_NEAR_RADIUS_KM,
   showOnsenMapPreview: true,
   nearRouteRadiusKm: DEFAULT_NEAR_ROUTE_RADIUS_KM,
+  animateStampCollect: true,
   loaded: false,
   setShowNearby: () => {},
   setNearRadiusKm: () => {},
   setShowOnsenMapPreview: () => {},
   setNearRouteRadiusKm: () => {},
+  setAnimateStampCollect: () => {},
 });
 
 export function PreferencesProvider({ children }: { children: React.ReactNode }) {
@@ -59,18 +70,20 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
   const [nearRouteRadiusKm, setNearRouteRadiusKmState] = useState<number>(
     DEFAULT_NEAR_ROUTE_RADIUS_KM
   );
+  const [animateStampCollect, setAnimateStampCollectState] = useState(true);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [[, show], [, radius], [, mapPreview], [, routeRadius]] =
+        const [[, show], [, radius], [, mapPreview], [, routeRadius], [, stampAnim]] =
           await AsyncStorage.multiGet([
             SHOW_NEARBY_KEY,
             RADIUS_KEY,
             ONSEN_MAP_PREVIEW_KEY,
             NEAR_ROUTE_RADIUS_KEY,
+            STAMP_COLLECT_ANIM_KEY,
           ]);
         if (cancelled) return;
         if (show !== null) setShowNearbyState(show !== 'false');
@@ -79,6 +92,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
         if (mapPreview !== null) setShowOnsenMapPreviewState(mapPreview !== 'false');
         const parsedRoute = routeRadius !== null ? Number(routeRadius) : NaN;
         if (Number.isFinite(parsedRoute)) setNearRouteRadiusKmState(parsedRoute);
+        if (stampAnim !== null) setAnimateStampCollectState(stampAnim !== 'false');
       } catch {
         // Storage unavailable — keep defaults.
       } finally {
@@ -110,6 +124,11 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
     AsyncStorage.setItem(NEAR_ROUTE_RADIUS_KEY, String(value)).catch(() => {});
   };
 
+  const setAnimateStampCollect = (value: boolean) => {
+    setAnimateStampCollectState(value);
+    AsyncStorage.setItem(STAMP_COLLECT_ANIM_KEY, value ? 'true' : 'false').catch(() => {});
+  };
+
   return (
     <PreferencesContext.Provider
       value={{
@@ -117,11 +136,13 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
         nearRadiusKm,
         showOnsenMapPreview,
         nearRouteRadiusKm,
+        animateStampCollect,
         loaded,
         setShowNearby,
         setNearRadiusKm,
         setShowOnsenMapPreview,
         setNearRouteRadiusKm,
+        setAnimateStampCollect,
       }}
     >
       {children}

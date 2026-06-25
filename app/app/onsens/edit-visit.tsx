@@ -22,6 +22,8 @@ import {
   updateDoc,
   deleteDoc,
   serverTimestamp,
+  onSnapshot,
+  type FirebaseFirestoreTypes,
 } from '@react-native-firebase/firestore';
 import {
   ref,
@@ -37,6 +39,7 @@ import type {
   PerceivedHeat,
   CrowdLevel,
   VisitedWith,
+  OnsenDocument,
 } from '@kyuhachi/shared';
 import {
   COLLECTIONS,
@@ -48,6 +51,7 @@ import {
   EMPTY_VISIT_STRUCTURED_DATA,
 } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
+import { useStampCelebration } from '@/context/StampCelebrationContext';
 import { useVisit } from '@/hooks/useVisit';
 import { db, storage } from '@/firebase';
 import { firebaseErrorKey } from '@/lib/firebase-errors';
@@ -81,6 +85,7 @@ export default function EditVisit() {
   const { user } = useAuth();
   const { id, returnTo } = useLocalSearchParams<{ id: string; returnTo?: string }>();
   const { challengeId, visit, loading } = useVisit(id);
+  const { celebrateStamp } = useStampCelebration();
 
   // When the modal is opened from the record-a-visit list (returnTo='home'), a
   // successful Save or a Delete pops the whole flow — both the modal and the
@@ -97,6 +102,10 @@ export default function EditVisit() {
   // them. `originalPhotoUrls` remembers what the doc had so Save can delete the
   // Storage objects for any the user removed.
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  // The onsen's catalog fields, kept only to ink the seal on the stamp-collection
+  // celebration when a first visit is recorded. Served from Firestore's offline
+  // cache, so it's ready by save time without a network round-trip.
+  const [onsen, setOnsen] = useState<OnsenDocument | null>(null);
   const originalPhotoUrls = useRef<string[]>([]);
   const seeded = useRef(false);
   // Whether a visit doc ever existed here. In create mode it never does, so a
@@ -119,6 +128,19 @@ export default function EditVisit() {
     originalPhotoUrls.current = urls;
     setPhotos(urls.map((url) => ({ kind: 'existing', url })));
   }, [visit]);
+
+  // Track the onsen's catalog fields for the collection celebration's seal. The
+  // catalog is cached offline, so this resolves locally without a network wait.
+  useEffect(() => {
+    if (!id) return;
+    return onSnapshot(
+      doc(db, COLLECTIONS.ONSENS, id),
+      (snapshot: FirebaseFirestoreTypes.DocumentSnapshot) => {
+        setOnsen(snapshot.exists() ? (snapshot.data() as OnsenDocument) : null);
+      },
+      () => setOnsen(null)
+    );
+  }, [id]);
 
   // Leave the editor when there's nothing left to edit: no onsen id (the modal
   // was re-presented by navigation state restoration on reload), or the visit we
@@ -193,6 +215,17 @@ export default function EditVisit() {
           structuredData,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
+        });
+        // A brand-new visit earns a stamp: celebrate it. The reveal waits for
+        // this modal to dismiss (see StampCelebrationContext), so firing it
+        // before navigating away is intentional. Editing an existing visit
+        // (the branch above) records no new stamp and stays silent.
+        celebrateStamp({
+          onsenId: id,
+          prefecture: onsen?.prefecture ?? '',
+          areaName: onsen?.areaName ?? '',
+          name: onsen?.name ?? '',
+          dateMs: Date.now(),
         });
       }
       // Best-effort: drop the Storage objects for any pre-existing photo the user

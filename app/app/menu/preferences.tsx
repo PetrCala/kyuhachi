@@ -19,10 +19,12 @@ export default function Preferences() {
     nearRadiusKm,
     showOnsenMapPreview,
     nearRouteRadiusKm,
+    animateStampCollect,
     setShowNearby,
     setNearRadiusKm,
     setShowOnsenMapPreview,
     setNearRouteRadiusKm,
+    setAnimateStampCollect,
   } = usePreferences();
 
   return (
@@ -107,6 +109,19 @@ export default function Preferences() {
         </View>
       </View>
       <Text style={styles.hint}>{t('preferences.nearRouteRadiusHint', { km: nearRouteRadiusKm })}</Text>
+
+      <Text style={styles.sectionHeader}>{t('preferences.animationsHeader')}</Text>
+      <View style={styles.group}>
+        <View style={styles.row}>
+          <Text style={styles.rowLabel}>{t('preferences.stampCollectAnimation')}</Text>
+          <Switch
+            value={animateStampCollect}
+            onValueChange={setAnimateStampCollect}
+            trackColor={{ false: colors.separator, true: colors.actionPrimary }}
+          />
+        </View>
+      </View>
+      <Text style={styles.hint}>{t('preferences.stampCollectAnimationHint')}</Text>
     </ScrollView>
   );
 }

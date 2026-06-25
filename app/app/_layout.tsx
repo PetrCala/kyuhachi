@@ -5,6 +5,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, KleeOne_600SemiBold } from '@expo-google-fonts/klee-one';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { PreferencesProvider } from '@/context/PreferencesContext';
+import { StampCelebrationProvider } from '@/context/StampCelebrationContext';
 
 // Keep the native splash visible until the brand font has loaded, so the
 // 九八 mark never flashes in a fallback face.
@@ -63,13 +64,15 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <PreferencesProvider>
-        <NavigationController />
-        <Stack screenOptions={{ headerShown: false, headerBackButtonDisplayMode: 'minimal' }}>
-          <Stack.Screen
-            name="onsens/edit-visit"
-            options={{ presentation: 'modal', headerShown: true }}
-          />
-        </Stack>
+        <StampCelebrationProvider>
+          <NavigationController />
+          <Stack screenOptions={{ headerShown: false, headerBackButtonDisplayMode: 'minimal' }}>
+            <Stack.Screen
+              name="onsens/edit-visit"
+              options={{ presentation: 'modal', headerShown: true }}
+            />
+          </Stack>
+        </StampCelebrationProvider>
       </PreferencesProvider>
     </AuthProvider>
   );
