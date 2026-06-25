@@ -1,4 +1,4 @@
-import { memo, useCallback, type ElementRef } from 'react';
+import { memo, useCallback, useEffect, useState, type ElementRef } from 'react';
 import { Marker } from 'react-native-maps';
 import { colors } from '@/theme';
 
@@ -51,6 +51,20 @@ function OnsenMarker({
   );
   const handlePress = useCallback(() => onPress(id), [id, onPress]);
 
+  // Whether react-native-maps keeps redrawing this marker's native overlay.
+  // Left on (the default) for all ~155 pins, the constant per-marker redraws
+  // stall the iOS UI thread and make the map freeze intermittently. The pin only
+  // needs to redraw when its appearance changes — i.e. when `visited` flips its
+  // colour — so we pulse tracking on for a frame on mount and on each such
+  // change, then switch it back off so the marker stays static the rest of the
+  // time (including throughout pans and pinches).
+  const [tracksViewChanges, setTracksViewChanges] = useState(true);
+  useEffect(() => {
+    setTracksViewChanges(true);
+    const handle = requestAnimationFrame(() => setTracksViewChanges(false));
+    return () => cancelAnimationFrame(handle);
+  }, [visited]);
+
   return (
     <Marker
       ref={setRef}
@@ -58,6 +72,7 @@ function OnsenMarker({
       title={name}
       description={areaName}
       pinColor={visited ? colors.onsenVisited : undefined}
+      tracksViewChanges={tracksViewChanges}
       // Suppress the native callout: a pin tap selects the onsen and opens the
       // preview half-sheet directly.
       onPress={handlePress}
