@@ -280,6 +280,7 @@ const en = {
 
   // preferences
   'preferences.title': 'Preferences',
+  'preferences.explain': 'Explain “{{label}}”',
   'preferences.showNearby': 'Show nearby onsens',
   'preferences.showNearbyHint':
     'Shows a section at the top of the onsen list with springs near your current location.',

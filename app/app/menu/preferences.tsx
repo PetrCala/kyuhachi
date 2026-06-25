@@ -1,6 +1,8 @@
-import { ScrollView, View, Text, Pressable, Switch, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { ScrollView, View, Text, Pressable, Switch, StyleSheet, LayoutAnimation } from 'react-native';
 import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 import {
   usePreferences,
   NEAR_RADIUS_OPTIONS_KM,
@@ -9,8 +11,9 @@ import {
 import { colors, spacing, typography, radii, shadows } from '@/theme';
 
 /**
- * Preferences screen (pushed from the Menu tab). Currently just the "Near you"
- * onsen-list controls: a show/hide toggle and a radius picker.
+ * Preferences screen (pushed from the Menu tab). Each control shows only its
+ * label by default; the explanation lives behind a tappable ⓘ so the screen
+ * stays scannable while the help text is one tap away.
  */
 export default function Preferences() {
   const { t } = useTranslation();
@@ -33,110 +36,158 @@ export default function Preferences() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: t('preferences.title'), headerShown: true }} />
 
-      <View style={styles.group}>
-        <View style={styles.row}>
-          <Text style={styles.rowLabel}>{t('preferences.showNearby')}</Text>
-          <Switch
-            value={showNearby}
-            onValueChange={setShowNearby}
-            trackColor={{ false: colors.separator, true: colors.actionPrimary }}
-          />
-        </View>
-      </View>
-      <Text style={styles.hint}>{t('preferences.showNearbyHint')}</Text>
+      <ToggleRow
+        label={t('preferences.showNearby')}
+        hint={t('preferences.showNearbyHint')}
+        value={showNearby}
+        onValueChange={setShowNearby}
+      />
 
       {showNearby ? (
-        <>
-          <Text style={styles.sectionHeader}>{t('preferences.radiusTitle')}</Text>
-          <View style={styles.group}>
-            <View style={styles.segmentedRow}>
-              <View style={styles.segmented}>
-                {NEAR_RADIUS_OPTIONS_KM.map((km) => {
-                  const active = km === nearRadiusKm;
-                  return (
-                    <Pressable
-                      key={km}
-                      onPress={() => setNearRadiusKm(km)}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: active }}
-                      style={[styles.segment, active && styles.segmentActive, active && shadows.sm]}
-                    >
-                      <Text style={[styles.segmentLabel, active && styles.segmentLabelActive]}>
-                        {km}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-          </View>
-          <Text style={styles.hint}>{t('preferences.radiusHint', { km: nearRadiusKm })}</Text>
-        </>
+        <RadiusField
+          title={t('preferences.radiusTitle')}
+          hint={t('preferences.radiusHint', { km: nearRadiusKm })}
+          options={NEAR_RADIUS_OPTIONS_KM}
+          value={nearRadiusKm}
+          onSelect={setNearRadiusKm}
+        />
       ) : null}
 
       <Text style={styles.sectionHeader}>{t('preferences.onsenPageHeader')}</Text>
-      <View style={styles.group}>
-        <View style={styles.row}>
-          <Text style={styles.rowLabel}>{t('preferences.onsenMapPreview')}</Text>
-          <Switch
-            value={showOnsenMapPreview}
-            onValueChange={setShowOnsenMapPreview}
-            trackColor={{ false: colors.separator, true: colors.actionPrimary }}
-          />
-        </View>
-      </View>
-      <Text style={styles.hint}>{t('preferences.onsenMapPreviewHint')}</Text>
+      <ToggleRow
+        label={t('preferences.onsenMapPreview')}
+        hint={t('preferences.onsenMapPreviewHint')}
+        value={showOnsenMapPreview}
+        onValueChange={setShowOnsenMapPreview}
+      />
 
-      <Text style={styles.sectionHeader}>{t('preferences.nearRouteRadiusTitle')}</Text>
+      <RadiusField
+        title={t('preferences.nearRouteRadiusTitle')}
+        hint={t('preferences.nearRouteRadiusHint', { km: nearRouteRadiusKm })}
+        options={NEAR_ROUTE_RADIUS_OPTIONS_KM}
+        value={nearRouteRadiusKm}
+        onSelect={setNearRouteRadiusKm}
+      />
+
+      <Text style={styles.sectionHeader}>{t('preferences.animationsHeader')}</Text>
+      <ToggleRow
+        label={t('preferences.stampCollectAnimation')}
+        hint={t('preferences.stampCollectAnimationHint')}
+        value={animateStampCollect}
+        onValueChange={setAnimateStampCollect}
+      />
+      <ToggleRow
+        label={t('preferences.progressAnimation')}
+        hint={t('preferences.progressAnimationHint')}
+        value={animateProgress}
+        onValueChange={setAnimateProgress}
+      />
+    </ScrollView>
+  );
+}
+
+/** Small ⓘ button that expands/collapses a control's explanation. */
+function InfoToggle({ open, onPress, label }: { open: boolean; onPress: () => void; label: string }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      hitSlop={spacing[2]}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ expanded: open }}
+      style={styles.infoButton}
+    >
+      <Ionicons
+        name={open ? 'information-circle' : 'information-circle-outline'}
+        size={20}
+        color={open ? colors.textSecondary : colors.textMuted}
+      />
+    </Pressable>
+  );
+}
+
+/** A label + switch row whose hint reveals inside the card when ⓘ is tapped. */
+function ToggleRow({
+  label,
+  hint,
+  value,
+  onValueChange,
+}: {
+  label: string;
+  hint: string;
+  value: boolean;
+  onValueChange: (value: boolean) => void;
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const toggleHint = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setOpen((prev) => !prev);
+  };
+  return (
+    <View style={styles.group}>
+      <View style={styles.row}>
+        <Text style={styles.rowLabel}>{label}</Text>
+        <InfoToggle open={open} onPress={toggleHint} label={t('preferences.explain', { label })} />
+        <Switch
+          value={value}
+          onValueChange={onValueChange}
+          trackColor={{ false: colors.separator, true: colors.actionPrimary }}
+        />
+      </View>
+      {open ? <Text style={styles.cardHint}>{hint}</Text> : null}
+    </View>
+  );
+}
+
+/** A titled segmented radius picker whose hint reveals below it when ⓘ is tapped. */
+function RadiusField({
+  title,
+  hint,
+  options,
+  value,
+  onSelect,
+}: {
+  title: string;
+  hint: string;
+  options: readonly number[];
+  value: number;
+  onSelect: (km: number) => void;
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const toggleHint = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setOpen((prev) => !prev);
+  };
+  return (
+    <>
+      <View style={styles.fieldHeaderRow}>
+        <Text style={styles.fieldTitle}>{title}</Text>
+        <InfoToggle open={open} onPress={toggleHint} label={t('preferences.explain', { label: title })} />
+      </View>
       <View style={styles.group}>
         <View style={styles.segmentedRow}>
           <View style={styles.segmented}>
-            {NEAR_ROUTE_RADIUS_OPTIONS_KM.map((km) => {
-              const active = km === nearRouteRadiusKm;
+            {options.map((km) => {
+              const active = km === value;
               return (
                 <Pressable
                   key={km}
-                  onPress={() => setNearRouteRadiusKm(km)}
+                  onPress={() => onSelect(km)}
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
                   style={[styles.segment, active && styles.segmentActive, active && shadows.sm]}
                 >
-                  <Text style={[styles.segmentLabel, active && styles.segmentLabelActive]}>
-                    {km}
-                  </Text>
+                  <Text style={[styles.segmentLabel, active && styles.segmentLabelActive]}>{km}</Text>
                 </Pressable>
               );
             })}
           </View>
         </View>
       </View>
-      <Text style={styles.hint}>{t('preferences.nearRouteRadiusHint', { km: nearRouteRadiusKm })}</Text>
-
-      <Text style={styles.sectionHeader}>{t('preferences.animationsHeader')}</Text>
-      <View style={styles.group}>
-        <View style={styles.row}>
-          <Text style={styles.rowLabel}>{t('preferences.stampCollectAnimation')}</Text>
-          <Switch
-            value={animateStampCollect}
-            onValueChange={setAnimateStampCollect}
-            trackColor={{ false: colors.separator, true: colors.actionPrimary }}
-          />
-        </View>
-      </View>
-      <Text style={styles.hint}>{t('preferences.stampCollectAnimationHint')}</Text>
-
-      <View style={styles.group}>
-        <View style={styles.row}>
-          <Text style={styles.rowLabel}>{t('preferences.progressAnimation')}</Text>
-          <Switch
-            value={animateProgress}
-            onValueChange={setAnimateProgress}
-            trackColor={{ false: colors.separator, true: colors.actionPrimary }}
-          />
-        </View>
-      </View>
-      <Text style={styles.hint}>{t('preferences.progressAnimationHint')}</Text>
-    </ScrollView>
+      {open ? <Text style={styles.hint}>{hint}</Text> : null}
+    </>
   );
 }
 
@@ -164,6 +215,9 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     color: colors.textPrimary,
   },
+  infoButton: {
+    paddingHorizontal: spacing[2],
+  },
   sectionHeader: {
     fontSize: typography.sizes.sm,
     color: colors.textMuted,
@@ -171,11 +225,29 @@ const styles = StyleSheet.create({
     marginBottom: spacing[2],
     marginLeft: spacing[4],
   },
+  fieldHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing[6],
+    marginBottom: spacing[2],
+    marginHorizontal: spacing[4],
+  },
+  fieldTitle: {
+    flex: 1,
+    fontSize: typography.sizes.sm,
+    color: colors.textMuted,
+  },
   hint: {
     fontSize: typography.sizes.sm,
     color: colors.textMuted,
     marginTop: spacing[2],
     marginHorizontal: spacing[4],
+  },
+  cardHint: {
+    fontSize: typography.sizes.sm,
+    color: colors.textTertiary,
+    paddingHorizontal: spacing[4],
+    paddingBottom: spacing[3],
   },
   segmentedRow: {
     padding: spacing[3],
