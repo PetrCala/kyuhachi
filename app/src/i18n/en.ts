@@ -614,6 +614,9 @@ const en = {
   'onsenDetail.takePhoto': 'Take Photo',
   'onsenDetail.chooseFromLibrary': 'Choose from Library',
   'onsenDetail.uploading': 'Uploading...',
+  'onsenDetail.photoUploadFailedTitle': "Couldn't upload photos",
+  'onsenDetail.photoUploadFailedMessage':
+    "Your visit was saved, but some photos couldn't be uploaded. Edit the visit to try again.",
   'onsenDetail.cancel': 'Cancel',
   'onsenDetail.editTitle': 'Edit visit',
   'onsenDetail.recordTitle': 'Record a visit',

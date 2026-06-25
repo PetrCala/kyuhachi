@@ -23,6 +23,14 @@ const SPARKLE_DURATION = 1100;
 // One full pulse of the resting glow (out, then back).
 const GLOW_HALF_CYCLE = 1150;
 const SPARKLE_COUNT = 16;
+// The seal's vertical descent before it lands — height above the page and how
+// long the drop takes, accelerating in like a hand pressing down.
+const DROP_DISTANCE = STAMP_SIZE * 0.75;
+const DROP_DURATION = 240;
+// The brief squash on impact: the seal flattens by this fraction, then springs
+// back to true. Reads as the rubber stamp deforming as it hits the paper.
+const IMPACT_DURATION = 70;
+const IMPACT_SQUASH = 0.14;
 
 // Warm onsen-collection palette: brand amber, achievement gold, bath-water blue.
 const SPARKLE_COLORS = [colors.brandGlyph, colors.tierGold, colors.onsenVisited];
@@ -131,23 +139,24 @@ async function fireHaptic() {
 
 /**
  * The stamp-collection celebration: when the user records a new visit, the
- * earned seal flies in spinning, slams onto a glowing page, throws a sparkle
- * burst, and waits — held in the middle of the screen until the user taps
- * Collect to add it to their Spaport.
+ * earned seal drops straight onto a glowing page like a hand-pressed stamp,
+ * squashes on impact as the sparkles burst, and waits — held in the middle of
+ * the screen until the user taps Collect to add it to their Spaport.
  *
  * Motion is gated twice: the user's "stamp collection animation" preference and
  * the OS Reduce Motion setting. With either off, the stamp simply fades in at
- * once (no spin, glow pulse, or sparkles) and still waits to be claimed — the
+ * once (no drop, glow pulse, or sparkles) and still waits to be claimed — the
  * success haptic always fires, since that's feedback, not motion.
  */
 export function StampClaimModal({ reward, animationsEnabled, onDismiss }: StampClaimModalProps) {
   const { t } = useTranslation();
   const visible = reward != null;
 
-  // Backdrop + card opacity (timing); the seal's spin-and-slam entrance (spring);
-  // the resting glow pulse (loop); the one-shot sparkle burst.
+  // Backdrop + card opacity (timing); the seal's vertical descent (drop) and the
+  // impact squash; the resting glow pulse (loop); the one-shot sparkle burst.
   const fade = useRef(new Animated.Value(0)).current;
-  const pop = useRef(new Animated.Value(0)).current;
+  const drop = useRef(new Animated.Value(0)).current;
+  const squash = useRef(new Animated.Value(0)).current;
   const glow = useRef(new Animated.Value(0)).current;
   const burst = useRef(new Animated.Value(0)).current;
   // Whether the flourish is playing — gates the glow halo and sparkles out of the
@@ -165,7 +174,8 @@ export function StampClaimModal({ reward, animationsEnabled, onDismiss }: StampC
       setAnimating(animate);
 
       fade.setValue(0);
-      pop.setValue(animate ? 0 : 1);
+      drop.setValue(animate ? 0 : 1);
+      squash.setValue(0);
       glow.setValue(0);
       burst.setValue(0);
 
@@ -176,20 +186,46 @@ export function StampClaimModal({ reward, animationsEnabled, onDismiss }: StampC
         useNativeDriver: true,
       }).start();
 
-      if (animate) {
-        Animated.spring(pop, {
-          toValue: 1,
-          friction: 5,
-          tension: 70,
-          useNativeDriver: true,
-        }).start();
+      if (!animate) {
+        void fireHaptic();
+        return;
+      }
+
+      // The seal drops straight onto the page, accelerating in. Everything that
+      // sells the press — the ka-chunk haptic, the squash, the sparkle burst, and
+      // the resting glow — fires at the moment of impact, not before.
+      Animated.timing(drop, {
+        toValue: 1,
+        duration: DROP_DURATION,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (!finished || cancelled) return;
+
+        void fireHaptic();
+
         Animated.timing(burst, {
           toValue: 1,
           duration: SPARKLE_DURATION,
-          delay: ENTER_DURATION * 0.5,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }).start();
+
+        Animated.sequence([
+          Animated.timing(squash, {
+            toValue: 1,
+            duration: IMPACT_DURATION,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.spring(squash, {
+            toValue: 0,
+            friction: 4,
+            tension: 140,
+            useNativeDriver: true,
+          }),
+        ]).start();
+
         glowLoop = Animated.loop(
           Animated.sequence([
             Animated.timing(glow, {
@@ -207,16 +243,14 @@ export function StampClaimModal({ reward, animationsEnabled, onDismiss }: StampC
           ])
         );
         glowLoop.start();
-      }
-
-      void fireHaptic();
+      });
     });
 
     return () => {
       cancelled = true;
       glowLoop?.stop();
     };
-  }, [visible, animationsEnabled, fade, pop, glow, burst]);
+  }, [visible, animationsEnabled, fade, drop, squash, glow, burst]);
 
   function handleDismiss() {
     Animated.timing(fade, {
@@ -233,9 +267,10 @@ export function StampClaimModal({ reward, animationsEnabled, onDismiss }: StampC
     return <Modal visible={false} transparent />;
   }
 
-  const scale = pop.interpolate({ inputRange: [0, 1], outputRange: [0.2, 1] });
-  // A near-full spin as it drops in; spring overshoot adds a tiny settle wobble.
-  const rotate = pop.interpolate({ inputRange: [0, 1], outputRange: ['-200deg', '0deg'] });
+  const translateY = drop.interpolate({ inputRange: [0, 1], outputRange: [-DROP_DISTANCE, 0] });
+  // The impact squash: wider and shorter at the peak, then springs back to true.
+  const scaleX = squash.interpolate({ inputRange: [0, 1], outputRange: [1, 1 + IMPACT_SQUASH] });
+  const scaleY = squash.interpolate({ inputRange: [0, 1], outputRange: [1, 1 - IMPACT_SQUASH] });
   const glowOpacity = glow.interpolate({ inputRange: [0, 1], outputRange: [0.18, 0.5] });
   const glowScale = glow.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
 
@@ -263,7 +298,7 @@ export function StampClaimModal({ reward, animationsEnabled, onDismiss }: StampC
                 <Sparkles burst={burst} />
               </>
             ) : null}
-            <Animated.View style={{ transform: [{ scale }, { rotate }] }}>
+            <Animated.View style={{ transform: [{ translateY }, { scaleX }, { scaleY }] }}>
               <Stamp
                 size={STAMP_SIZE}
                 prefecture={reward.prefecture}
