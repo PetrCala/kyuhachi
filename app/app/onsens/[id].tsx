@@ -17,13 +17,11 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   doc,
-  setDoc,
   onSnapshot,
-  serverTimestamp,
   type FirebaseFirestoreTypes,
 } from '@react-native-firebase/firestore';
 import type { OnsenDocument, WeeklySchedule } from '@kyuhachi/shared';
-import { COLLECTIONS, SUBCOLLECTIONS, EMPTY_VISIT_STRUCTURED_DATA } from '@kyuhachi/shared';
+import { COLLECTIONS } from '@kyuhachi/shared';
 import type { VisitFeedItem } from '@/lib/visit-feed';
 import { VisitCard } from '@/components/VisitCard';
 import RecordVisitFab from '@/components/RecordVisitFab';
@@ -31,6 +29,7 @@ import { useVisit } from '@/hooks/useVisit';
 import { useAuth } from '@/context/AuthContext';
 import { usePreferences } from '@/context/PreferencesContext';
 import { db } from '@/firebase';
+import { createEmptyVisit } from '@/lib/visits';
 import { firebaseErrorKey } from '@/lib/firebase-errors';
 import { colors, spacing, typography, radii } from '@/theme';
 
@@ -139,25 +138,7 @@ export default function OnsenDetail() {
   // and surfaces here.
   function handleMarkVisited() {
     if (!user || !challengeId || !id) return;
-    setDoc(
-      doc(
-        db,
-        COLLECTIONS.USERS,
-        user.uid,
-        SUBCOLLECTIONS.CHALLENGES,
-        challengeId,
-        SUBCOLLECTIONS.VISITS,
-        id
-      ),
-      {
-        visitedAt: serverTimestamp(),
-        notes: null,
-        photoUrls: [],
-        structuredData: { ...EMPTY_VISIT_STRUCTURED_DATA },
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      }
-    ).catch((error) => {
+    createEmptyVisit(user.uid, challengeId, id).catch((error) => {
       Alert.alert(t('common.errorTitle'), t(firebaseErrorKey(error)));
     });
     router.push({ pathname: '/onsens/edit-visit', params: { id } });
