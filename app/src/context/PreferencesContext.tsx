@@ -44,7 +44,7 @@ interface PreferencesContextValue {
   /**
    * Whether the home progress hero counts up and the bar fills smoothly when a
    * newly recorded visit raises the eligible-visit count. When off, the new
-   * number and fill appear at once. Default on.
+   * number and fill appear at once. Default off.
    */
   animateProgress: boolean;
   /** False until the stored values have been read, so callers can avoid acting on defaults. */
@@ -63,7 +63,7 @@ const PreferencesContext = createContext<PreferencesContextValue>({
   showOnsenMapPreview: true,
   nearRouteRadiusKm: DEFAULT_NEAR_ROUTE_RADIUS_KM,
   animateStampCollect: true,
-  animateProgress: true,
+  animateProgress: false,
   loaded: false,
   setShowNearby: () => {},
   setNearRadiusKm: () => {},
@@ -81,7 +81,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
     DEFAULT_NEAR_ROUTE_RADIUS_KM
   );
   const [animateStampCollect, setAnimateStampCollectState] = useState(true);
-  const [animateProgress, setAnimateProgressState] = useState(true);
+  const [animateProgress, setAnimateProgressState] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
