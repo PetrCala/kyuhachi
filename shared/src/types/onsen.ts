@@ -66,6 +66,8 @@ export interface OnsenDocument {
   springQuality: string | null;
   websiteUrl: string | null;
   imageUrl: string | null;
+  /** BlurHash of imageUrl, shown as an instant placeholder while the photo loads. Published by the data repo alongside imageUrl. */
+  blurhash: string | null;
   /** false = deprecated; never deleted from Firestore */
   isActive: boolean;
   catalogVersion: number;

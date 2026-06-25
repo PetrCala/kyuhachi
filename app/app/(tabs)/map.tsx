@@ -8,6 +8,7 @@ import {
   Pressable,
   StyleSheet,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
@@ -242,6 +243,34 @@ export default function MapScreen() {
     }
   }, [bumpControls, handleCameraSettle]);
 
+  // Onsen ids whose photo we've already asked expo-image to prefetch, so panning
+  // back over the same pins doesn't re-issue fetches.
+  const prefetchedRef = useRef<Set<string>>(new Set());
+
+  // On a settled camera, warm the disk cache for photos of pins now in view so
+  // the preview sheet (and, via the shared cache, the detail screen) opens with
+  // the photo already loaded instead of waiting on a cold fetch. `region` comes
+  // straight from onRegionChangeComplete, which fires once per pan/zoom — so this
+  // is naturally debounced and never runs per gesture frame.
+  const handleRegionSettle = useCallback(
+    (region: Region) => {
+      handleCameraSettle();
+      const latMin = region.latitude - region.latitudeDelta / 2;
+      const latMax = region.latitude + region.latitudeDelta / 2;
+      const lngMin = region.longitude - region.longitudeDelta / 2;
+      const lngMax = region.longitude + region.longitudeDelta / 2;
+      const urls: string[] = [];
+      for (const o of onsens) {
+        if (!o.imageUrl || prefetchedRef.current.has(o.id)) continue;
+        if (o.lat < latMin || o.lat > latMax || o.lng < lngMin || o.lng > lngMax) continue;
+        prefetchedRef.current.add(o.id);
+        urls.push(o.imageUrl);
+      }
+      if (urls.length) void Image.prefetch(urls, { cachePolicy: 'memory-disk' });
+    },
+    [handleCameraSettle, onsens]
+  );
+
   // Stable across renders so the memoized OnsenMarkers never re-render or
   // re-attach their refs just because this screen re-rendered (the zoom slider
   // streams the camera altitude on every gesture frame).
@@ -402,7 +431,7 @@ export default function MapScreen() {
         // `onRegionChange` already fires throughout a drag, so the auto-hide
         // controls still wake without it.
         onPress={bumpControls}
-        onRegionChangeComplete={handleCameraSettle}
+        onRegionChangeComplete={handleRegionSettle}
       >
         {visibleOnsens.map((onsen) => (
           <OnsenMarker

@@ -223,6 +223,8 @@ export default function OnsenPreviewSheet({
                   contentFit="cover"
                   transition={200}
                   cachePolicy="memory-disk"
+                  placeholder={shown.blurhash ? { blurhash: shown.blurhash } : undefined}
+                  placeholderContentFit="cover"
                 />
               ) : (
                 <View style={styles.heroPlaceholder}>
