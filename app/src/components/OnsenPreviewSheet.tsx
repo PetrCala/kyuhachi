@@ -73,7 +73,6 @@ export default function OnsenPreviewSheet({
 }: OnsenPreviewSheetProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const visible = onsen != null;
   // The sheet's vertical offset in pixels: 0 = resting (presented), SCREEN_HEIGHT
   // = fully off-screen below. Driving the position directly (rather than a 0→1
   // progress) lets the drag-to-dismiss gesture track the finger 1:1.
@@ -157,7 +156,7 @@ export default function OnsenPreviewSheet({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
+    <Modal visible transparent animationType="none" onRequestClose={onClose}>
       <View style={styles.root}>
         <Animated.View style={[styles.backdrop, { opacity: backdropOpacity }]}>
           <Pressable
