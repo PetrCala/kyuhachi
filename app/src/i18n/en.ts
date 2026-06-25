@@ -47,6 +47,10 @@ const en = {
   'map.simulatedLocation': 'Simulated location',
   'map.nearRouteToggle': 'Near route',
 
+  // onsen map-marker preview callout (quick actions; other action labels reuse
+  // the onsenDetail.* keys)
+  'onsenPreview.details': 'Details',
+
   // onsen list
   'onsenList.title': 'Onsen List',
   'onsenList.searchPlaceholder': 'Search onsens...',

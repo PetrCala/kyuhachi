@@ -49,6 +49,10 @@ const ja: Record<keyof typeof en, string> = {
   'map.simulatedLocation': 'シミュレートされた位置',
   'map.nearRouteToggle': 'ルート付近',
 
+  // onsen map-marker preview callout (quick actions; other action labels reuse
+  // the onsenDetail.* keys)
+  'onsenPreview.details': '詳細',
+
   // onsen list
   'onsenList.title': '温泉一覧',
   'onsenList.searchPlaceholder': '温泉を検索…',

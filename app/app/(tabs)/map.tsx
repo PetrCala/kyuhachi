@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  Linking,
   Pressable,
   StyleSheet,
 } from 'react-native';
@@ -19,13 +20,16 @@ import {
   query,
   where,
   onSnapshot,
+  setDoc,
+  serverTimestamp,
   type FirebaseFirestoreTypes,
 } from '@react-native-firebase/firestore';
 import type { OnsenDocument, RouteDocument } from '@kyuhachi/shared';
-import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
+import { COLLECTIONS, SUBCOLLECTIONS, EMPTY_VISIT_STRUCTURED_DATA } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
 import { usePreferences } from '@/context/PreferencesContext';
 import { db } from '@/firebase';
+import { firebaseErrorKey } from '@/lib/firebase-errors';
 import { simulatedCoordinate } from '@/lib/dev-location';
 import { distanceToPolylineKm } from '@/lib/geo';
 import { useActiveChallengeProgress } from '@/hooks/useActiveChallengeProgress';
@@ -79,14 +83,19 @@ export default function MapScreen() {
     focusTs?: string;
   }>();
   // kyuhachiIds visited in the active challenge (drives the visited pin color),
-  // plus the active challenge's route — both kept live by the progress hook.
-  const { visitedIds, activeRoute, loading: progressLoading } =
+  // the active challenge's id (gates + targets the callout's one-tap check-in),
+  // plus the active challenge's route — all kept live by the progress hook.
+  const { visitedIds, challengeId, activeRoute, loading: progressLoading } =
     useActiveChallengeProgress();
   const mapRef = useRef<MapView>(null);
   // Per-onsen Marker handles so an arriving "Show on map" focus can pop the
   // matching callout once the camera has settled on its pin.
   const markerRefs = useRef<Record<string, ElementRef<typeof Marker> | null>>({});
   const [onsens, setOnsens] = useState<OnsenRow[]>([]);
+  // A live mirror of `onsens` the callout's stable "Directions" callback reads to
+  // look up coordinates by id — keeping that callback dependency-free (and so the
+  // ~155 memoized markers from re-rendering on every onsen snapshot).
+  const onsensRef = useRef<OnsenRow[]>([]);
   const [onsensLoading, setOnsensLoading] = useState(true);
   // An explicit `routeId` param (a just-imported route, or "View route on map")
   // draws that specific route; otherwise the map draws the active challenge's
@@ -247,17 +256,65 @@ export default function MapScreen() {
     },
     []
   );
-  const handleOnsenPress = useCallback((id: string) => {
+  // Callout action: open the onsen detail screen.
+  const handleDetails = useCallback((id: string) => {
     router.push(`/onsens/${id}`);
   }, []);
+
+  // Callout action: open Apple Maps with driving directions to the onsen. The
+  // coordinates are looked up by id from `onsensRef` (a live mirror of the onsen
+  // list) rather than the `onsens` state, so this callback stays stable across
+  // snapshots and the memoized markers don't re-render on every onsen update.
+  const handleDirections = useCallback((id: string) => {
+    const onsen = onsensRef.current.find((o) => o.id === id);
+    if (!onsen) return;
+    Linking.openURL(`https://maps.apple.com/?daddr=${onsen.lat},${onsen.lng}`);
+  }, []);
+
+  // Callout action: one-tap check-in. Mirrors the onsen detail screen's quick
+  // check-in — a setDoc of an empty visit (already counts toward the challenge)
+  // that hits the local cache synchronously, so the pin flips to visited
+  // instantly and offline. A server-side rejection rolls the write back and
+  // surfaces here. Guarded on an active challenge (the action is hidden without
+  // one) and a signed-in user.
+  const handleMarkVisited = useCallback(
+    (id: string) => {
+      if (!user || !challengeId) return;
+      setDoc(
+        doc(
+          db,
+          COLLECTIONS.USERS,
+          user.uid,
+          SUBCOLLECTIONS.CHALLENGES,
+          challengeId,
+          SUBCOLLECTIONS.VISITS,
+          id
+        ),
+        {
+          visitedAt: serverTimestamp(),
+          notes: null,
+          photoUrls: [],
+          structuredData: { ...EMPTY_VISIT_STRUCTURED_DATA },
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        }
+      ).catch((error) => {
+        Alert.alert(t('common.errorTitle'), t(firebaseErrorKey(error)));
+      });
+    },
+    [user, challengeId, t]
+  );
 
   useEffect(() => {
     const unsubscribe = onSnapshot(
       query(collection(db, COLLECTIONS.ONSENS), where('isActive', '==', true)),
       (snapshot: FirebaseFirestoreTypes.QuerySnapshot) => {
-        setOnsens(
-          snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as OnsenDocument) }))
-        );
+        const rows = snapshot.docs.map((d) => ({
+          id: d.id,
+          ...(d.data() as OnsenDocument),
+        }));
+        onsensRef.current = rows;
+        setOnsens(rows);
         setOnsensLoading(false);
       },
       () => setOnsensLoading(false)
@@ -397,8 +454,13 @@ export default function MapScreen() {
             // Visited onsens in the active challenge get a bath-water blue pin;
             // unvisited keep the default red pin.
             visited={visitedIds.has(onsen.id)}
+            // Gates the callout's "Mark visited" action (and the "Visited ✓"
+            // state) — both only make sense inside an active challenge.
+            inChallenge={!!challengeId}
             registerRef={registerMarkerRef}
-            onPress={handleOnsenPress}
+            onDirections={handleDirections}
+            onMarkVisited={handleMarkVisited}
+            onDetails={handleDetails}
           />
         ))}
         {route && (
