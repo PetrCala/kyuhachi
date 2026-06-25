@@ -314,11 +314,19 @@ export default function OnsenDetail() {
                 <InfoRow label={t('onsenDetail.labelHours')} value={onsen.businessHours.raw} />
               )}
 
-              {/* Flagged exceptions / irregularities (display-only captions). */}
+              {/* Schedule exceptions / irregularities — factual notes, not warnings. */}
               {hoursExceptions.map((ex, i) => (
-                <Text key={i} style={styles.hoursException} selectable>
-                  {`⚠ ${ex[lang] ?? ex.en}`}
-                </Text>
+                <View key={i} style={styles.hoursExceptionRow}>
+                  <Ionicons
+                    name="calendar-outline"
+                    size={typography.sizes.sm}
+                    color={colors.textMuted}
+                    style={styles.hoursExceptionIcon}
+                  />
+                  <Text style={styles.hoursException} selectable>
+                    {ex[lang] ?? ex.en}
+                  </Text>
+                </View>
               ))}
               {hoursConfidence && hoursConfidence !== 'high' && (
                 <Text style={styles.hoursHint}>{t('onsenDetail.hoursVary')}</Text>
@@ -537,11 +545,20 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginBottom: spacing[1],
   },
-  hoursException: {
-    fontSize: typography.sizes.sm,
-    color: colors.textPrimary,
-    lineHeight: 20,
+  hoursExceptionRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing[2],
     paddingVertical: spacing[1] / 2,
+  },
+  hoursExceptionIcon: {
+    marginTop: spacing[1] / 2,
+  },
+  hoursException: {
+    flex: 1,
+    fontSize: typography.sizes.sm,
+    color: colors.textSecondary,
+    lineHeight: 20,
   },
   hoursHint: {
     fontSize: typography.sizes.xs,

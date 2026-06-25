@@ -603,7 +603,7 @@ const ja: Record<keyof typeof en, string> = {
   'onsenDetail.hideHours': '週間営業時間を隠す',
   'onsenDetail.showOriginal': '元の表記を表示',
   'onsenDetail.hideOriginal': '元の表記を隠す',
-  'onsenDetail.hoursVary': '営業時間が変わる場合があります — 要確認',
+  'onsenDetail.hoursVary': '季節によって営業時間が変わることがあります。事前に電話で確認すると安心です。',
   'onsenDetail.today': '本日',
   'onsenDetail.closedToday': '本日休み',
   'onsenDetail.dayShort.monday': '月',
