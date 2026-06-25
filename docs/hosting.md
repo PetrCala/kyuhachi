@@ -10,7 +10,7 @@ Hosting on the **default Firebase domain** (no custom domain):
 | `/terms` | https://kyuhachi-fddcc.web.app/terms |
 
 The same site is also reachable at `https://kyuhachi-fddcc.firebaseapp.com/...`.
-The app's About screen (`app/app/more/about.tsx`) links the Privacy/Terms rows
+The app's About screen (`app/app/menu/about.tsx`) links the Privacy/Terms rows
 to the `/privacy` and `/terms` URLs above.
 
 ## Source of truth → published HTML

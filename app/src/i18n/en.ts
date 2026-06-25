@@ -30,7 +30,7 @@ const en = {
   'tabs.home': 'Home',
   'tabs.map': 'Map',
   'tabs.onsens': 'Onsens',
-  'tabs.more': 'More',
+  'tabs.menu': 'Menu',
 
   // home
   'home.title': 'Kyuhachi',
@@ -251,16 +251,18 @@ const en = {
   'visits.durationMinutes': '{{count}} min',
   'visits.wouldReturn': 'Would return',
 
-  // more (settings tab)
-  'more.title': 'More',
-  'more.challenges': 'Challenges',
-  'more.routes': 'Routes',
-  'more.preferences': 'Preferences',
-  'more.stats': 'Stats',
-  'more.account': 'Account',
-  'more.signOut': 'Sign out',
-  'more.language': 'Language',
-  'more.about': 'About',
+  // menu (settings tab)
+  'menu.title': 'Menu',
+  'menu.sectionChallenge': 'Your challenge',
+  'menu.sectionApp': 'App',
+  'menu.challenges': 'Challenges',
+  'menu.routes': 'Routes',
+  'menu.preferences': 'Preferences',
+  'menu.stats': 'Stats',
+  'menu.account': 'Account',
+  'menu.signOut': 'Sign out',
+  'menu.language': 'Language',
+  'menu.about': 'About',
 
   // preferences
   'preferences.title': 'Preferences',

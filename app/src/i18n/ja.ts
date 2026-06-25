@@ -32,7 +32,7 @@ const ja: Record<keyof typeof en, string> = {
   'tabs.home': 'ホーム',
   'tabs.map': '地図',
   'tabs.onsens': '温泉',
-  'tabs.more': 'その他',
+  'tabs.menu': 'メニュー',
 
   // home
   'home.title': 'Kyuhachi',
@@ -252,16 +252,18 @@ const ja: Record<keyof typeof en, string> = {
   'visits.durationMinutes': '{{count}}分',
   'visits.wouldReturn': 'また行きたい',
 
-  // more (settings tab)
-  'more.title': 'その他',
-  'more.challenges': 'チャレンジ',
-  'more.routes': 'ルート',
-  'more.preferences': '設定',
-  'more.stats': '統計',
-  'more.account': 'アカウント',
-  'more.signOut': 'サインアウト',
-  'more.language': '言語',
-  'more.about': 'アプリについて',
+  // menu (settings tab)
+  'menu.title': 'メニュー',
+  'menu.sectionChallenge': 'あなたのチャレンジ',
+  'menu.sectionApp': 'アプリ',
+  'menu.challenges': 'チャレンジ',
+  'menu.routes': 'ルート',
+  'menu.preferences': '設定',
+  'menu.stats': '統計',
+  'menu.account': 'アカウント',
+  'menu.signOut': 'サインアウト',
+  'menu.language': '言語',
+  'menu.about': 'アプリについて',
 
   // preferences
   'preferences.title': '設定',
