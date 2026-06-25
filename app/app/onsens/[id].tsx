@@ -46,6 +46,42 @@ const WEEKDAYS: (keyof WeeklySchedule)[] = [
   'sunday',
 ];
 
+const DAY_SHORT: Record<string, { en: string; ja: string }> = {
+  monday: { en: 'Mon', ja: '月' },
+  tuesday: { en: 'Tue', ja: '火' },
+  wednesday: { en: 'Wed', ja: '水' },
+  thursday: { en: 'Thu', ja: '木' },
+  friday: { en: 'Fri', ja: '金' },
+  saturday: { en: 'Sat', ja: '土' },
+  sunday: { en: 'Sun', ja: '日' },
+};
+
+const DAY_LETTER: Record<string, { en: string; ja: string }> = {
+  monday: { en: 'M', ja: '月' },
+  tuesday: { en: 'T', ja: '火' },
+  wednesday: { en: 'W', ja: '水' },
+  thursday: { en: 'T', ja: '木' },
+  friday: { en: 'F', ja: '金' },
+  saturday: { en: 'S', ja: '土' },
+  sunday: { en: 'S', ja: '日' },
+};
+
+// Collapse consecutive days (Mon→Sun) sharing the same window / closed state.
+function groupSchedule(schedule: WeeklySchedule) {
+  const groups: { days: (keyof WeeklySchedule)[]; slot: WeeklySchedule['monday'] }[] = [];
+  for (const day of WEEKDAYS) {
+    const slot = schedule[day];
+    const last = groups[groups.length - 1];
+    const same =
+      !!last &&
+      ((last.slot === null && slot === null) ||
+        (!!last.slot && !!slot && last.slot.opens === slot.opens && last.slot.closes === slot.closes));
+    if (same) last.days.push(day);
+    else groups.push({ days: [day], slot });
+  }
+  return groups;
+}
+
 function InfoRow({
   label,
   value,
@@ -196,6 +232,14 @@ export default function OnsenDetail() {
   const hoursExceptions = onsen.businessHours?.exceptions ?? [];
   const hoursConfidence = onsen.businessHours?.confidence;
   const lang: 'en' | 'ja' = i18n.language?.toLowerCase().startsWith('ja') ? 'ja' : 'en';
+  const dayShort = (day: keyof WeeklySchedule) => DAY_SHORT[day][lang];
+  const dayRange = (days: (keyof WeeklySchedule)[]) =>
+    days.length === 1 ? dayShort(days[0]) : `${dayShort(days[0])}–${dayShort(days[days.length - 1])}`;
+  const todayKey = WEEKDAYS[(new Date().getDay() + 6) % 7];
+  const openWindows = schedule
+    ? new Set(WEEKDAYS.filter((d) => schedule[d]).map((d) => `${schedule[d]!.opens}–${schedule[d]!.closes}`))
+    : new Set<string>();
+  const uniformWindow = openWindows.size === 1 ? [...openWindows][0] : null;
   const feedItem: VisitFeedItem | null = visit
     ? {
         onsenId: onsen.id,
@@ -286,19 +330,41 @@ export default function OnsenDetail() {
               {schedule ? (
                 <>
                   <Text style={styles.hoursHeader}>{t('onsenDetail.labelHours')}</Text>
-                  {WEEKDAYS.map((day) => {
-                    const slot = schedule[day];
-                    return (
-                      <View key={day} style={styles.dayRow}>
+                  <View style={styles.chipStrip}>
+                    {WEEKDAYS.map((day) => {
+                      const closed = schedule[day] === null;
+                      return (
+                        <View
+                          key={day}
+                          style={[
+                            styles.chip,
+                            closed ? styles.chipClosed : styles.chipOpen,
+                            day === todayKey && styles.chipToday,
+                          ]}
+                        >
+                          <Text style={[styles.chipText, closed && styles.chipTextClosed]}>
+                            {DAY_LETTER[day][lang]}
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                  {uniformWindow ? (
+                    <Text style={styles.chipHours} selectable>
+                      {uniformWindow}
+                    </Text>
+                  ) : (
+                    groupSchedule(schedule).map((g, i) => (
+                      <View key={i} style={styles.dayRow}>
                         <Text style={styles.dayLabel} selectable>
-                          {t(`onsenDetail.day.${day}`)}
+                          {dayRange(g.days)}
                         </Text>
                         <Text style={styles.dayValue} selectable>
-                          {slot ? `${slot.opens}–${slot.closes}` : t('onsenDetail.closed')}
+                          {g.slot ? `${g.slot.opens}–${g.slot.closes}` : t('onsenDetail.closed')}
                         </Text>
                       </View>
-                    );
-                  })}
+                    ))
+                  )}
                 </>
               ) : (
                 <InfoRow label={t('onsenDetail.labelHours')} value={onsen.businessHours.raw} />
@@ -508,6 +574,42 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: typography.sizes.sm,
     color: colors.textPrimary,
+  },
+  chipStrip: {
+    flexDirection: 'row',
+    marginVertical: spacing[1],
+  },
+  chip: {
+    width: 34,
+    height: 34,
+    borderRadius: radii.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing[1],
+  },
+  chipOpen: {
+    backgroundColor: colors.actionPrimary,
+  },
+  chipClosed: {
+    backgroundColor: colors.backgroundSecondary,
+  },
+  chipToday: {
+    borderWidth: 2,
+    borderColor: colors.textPrimary,
+  },
+  chipText: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.medium,
+    color: colors.actionPrimaryText,
+  },
+  chipTextClosed: {
+    color: colors.textMuted,
+    textDecorationLine: 'line-through',
+  },
+  chipHours: {
+    fontSize: typography.sizes.sm,
+    color: colors.textPrimary,
+    paddingVertical: spacing[1],
   },
   hoursHeader: {
     fontSize: typography.sizes.sm,
