@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useStats } from '@/hooks/useStats';
-import { formatDate } from '@/lib/stats-format';
+import { formatDate, formatMonthYear } from '@/lib/stats-format';
 import { HorizontalBars, LineChart, type BarItem, type LinePoint, seriesColor } from '@/components/charts';
 import {
   StatScreenFrame,
@@ -43,6 +43,8 @@ export default function StatsTimeline() {
               <CardBlock>
                 <LineChart
                   points={timeline.cumulative.map<LinePoint>((p) => ({ x: p.ms, y: p.count }))}
+                  xTickFormat={(ms) => formatMonthYear(ms, i18n.language)}
+                  yTickFormat={(n) => String(n)}
                 />
               </CardBlock>
             </Section>
