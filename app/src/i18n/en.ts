@@ -299,6 +299,9 @@ const en = {
   'preferences.progressAnimation': 'Progress count-up',
   'preferences.progressAnimationHint':
     'When a new visit raises your count, the home number counts up and the bar fills smoothly. Turn this off to have the new total appear at once.',
+  'preferences.passportAnimation': 'Spaport reveal',
+  'preferences.passportAnimationHint':
+    'Opening your Spaport lands its stamps one by one, and your newest stamp gets an ink-press flourish. Turn this off to have the page appear at once.',
 
   // stamp-collection celebration (shown after recording a new visit)
   'stampClaim.title': 'New stamp!',

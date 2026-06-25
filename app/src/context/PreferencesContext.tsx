@@ -20,6 +20,7 @@ const ONSEN_MAP_PREVIEW_KEY = 'settings.onsen.mapPreview';
 const NEAR_ROUTE_RADIUS_KEY = 'settings.nearRoute.radiusKm';
 const STAMP_COLLECT_ANIM_KEY = 'settings.animations.stampCollect';
 const PROGRESS_ANIM_KEY = 'settings.animations.progress';
+const PASSPORT_ANIM_KEY = 'settings.animations.passport';
 
 interface PreferencesContextValue {
   /** Whether the onsen list shows the distance-sorted "Near you" section. */
@@ -47,6 +48,12 @@ interface PreferencesContextValue {
    * number and fill appear at once. Default on.
    */
   animateProgress: boolean;
+  /**
+   * Whether opening the Spaport (passport) animates its stamps into view — filled
+   * stamps land in a gentle stagger and the most-recent one gets a one-time
+   * ink-press emphasis. When off, the page appears at once. Default on.
+   */
+  animatePassport: boolean;
   /** False until the stored values have been read, so callers can avoid acting on defaults. */
   loaded: boolean;
   setShowNearby: (value: boolean) => void;
@@ -55,6 +62,7 @@ interface PreferencesContextValue {
   setNearRouteRadiusKm: (value: number) => void;
   setAnimateStampCollect: (value: boolean) => void;
   setAnimateProgress: (value: boolean) => void;
+  setAnimatePassport: (value: boolean) => void;
 }
 
 const PreferencesContext = createContext<PreferencesContextValue>({
@@ -64,6 +72,7 @@ const PreferencesContext = createContext<PreferencesContextValue>({
   nearRouteRadiusKm: DEFAULT_NEAR_ROUTE_RADIUS_KM,
   animateStampCollect: true,
   animateProgress: true,
+  animatePassport: true,
   loaded: false,
   setShowNearby: () => {},
   setNearRadiusKm: () => {},
@@ -71,6 +80,7 @@ const PreferencesContext = createContext<PreferencesContextValue>({
   setNearRouteRadiusKm: () => {},
   setAnimateStampCollect: () => {},
   setAnimateProgress: () => {},
+  setAnimatePassport: () => {},
 });
 
 export function PreferencesProvider({ children }: { children: React.ReactNode }) {
@@ -82,21 +92,30 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
   );
   const [animateStampCollect, setAnimateStampCollectState] = useState(true);
   const [animateProgress, setAnimateProgressState] = useState(true);
+  const [animatePassport, setAnimatePassportState] = useState(true);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [[, show], [, radius], [, mapPreview], [, routeRadius], [, stampAnim], [, progressAnim]] =
-          await AsyncStorage.multiGet([
-            SHOW_NEARBY_KEY,
-            RADIUS_KEY,
-            ONSEN_MAP_PREVIEW_KEY,
-            NEAR_ROUTE_RADIUS_KEY,
-            STAMP_COLLECT_ANIM_KEY,
-            PROGRESS_ANIM_KEY,
-          ]);
+        const [
+          [, show],
+          [, radius],
+          [, mapPreview],
+          [, routeRadius],
+          [, stampAnim],
+          [, progressAnim],
+          [, passportAnim],
+        ] = await AsyncStorage.multiGet([
+          SHOW_NEARBY_KEY,
+          RADIUS_KEY,
+          ONSEN_MAP_PREVIEW_KEY,
+          NEAR_ROUTE_RADIUS_KEY,
+          STAMP_COLLECT_ANIM_KEY,
+          PROGRESS_ANIM_KEY,
+          PASSPORT_ANIM_KEY,
+        ]);
         if (cancelled) return;
         if (show !== null) setShowNearbyState(show !== 'false');
         const parsed = radius !== null ? Number(radius) : NaN;
@@ -106,6 +125,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
         if (Number.isFinite(parsedRoute)) setNearRouteRadiusKmState(parsedRoute);
         if (stampAnim !== null) setAnimateStampCollectState(stampAnim !== 'false');
         if (progressAnim !== null) setAnimateProgressState(progressAnim !== 'false');
+        if (passportAnim !== null) setAnimatePassportState(passportAnim !== 'false');
       } catch {
         // Storage unavailable — keep defaults.
       } finally {
@@ -147,6 +167,11 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
     AsyncStorage.setItem(PROGRESS_ANIM_KEY, value ? 'true' : 'false').catch(() => {});
   };
 
+  const setAnimatePassport = (value: boolean) => {
+    setAnimatePassportState(value);
+    AsyncStorage.setItem(PASSPORT_ANIM_KEY, value ? 'true' : 'false').catch(() => {});
+  };
+
   return (
     <PreferencesContext.Provider
       value={{
@@ -156,6 +181,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
         nearRouteRadiusKm,
         animateStampCollect,
         animateProgress,
+        animatePassport,
         loaded,
         setShowNearby,
         setNearRadiusKm,
@@ -163,6 +189,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
         setNearRouteRadiusKm,
         setAnimateStampCollect,
         setAnimateProgress,
+        setAnimatePassport,
       }}
     >
       {children}

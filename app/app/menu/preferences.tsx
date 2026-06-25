@@ -21,12 +21,14 @@ export default function Preferences() {
     nearRouteRadiusKm,
     animateStampCollect,
     animateProgress,
+    animatePassport,
     setShowNearby,
     setNearRadiusKm,
     setShowOnsenMapPreview,
     setNearRouteRadiusKm,
     setAnimateStampCollect,
     setAnimateProgress,
+    setAnimatePassport,
   } = usePreferences();
 
   return (
@@ -136,6 +138,18 @@ export default function Preferences() {
         </View>
       </View>
       <Text style={styles.hint}>{t('preferences.progressAnimationHint')}</Text>
+
+      <View style={styles.group}>
+        <View style={styles.row}>
+          <Text style={styles.rowLabel}>{t('preferences.passportAnimation')}</Text>
+          <Switch
+            value={animatePassport}
+            onValueChange={setAnimatePassport}
+            trackColor={{ false: colors.separator, true: colors.actionPrimary }}
+          />
+        </View>
+      </View>
+      <Text style={styles.hint}>{t('preferences.passportAnimationHint')}</Text>
     </ScrollView>
   );
 }

@@ -298,6 +298,9 @@ const ja: Record<keyof typeof en, string> = {
   'preferences.progressAnimation': '進捗のカウントアップ',
   'preferences.progressAnimationHint':
     '新しい訪問で件数が増えると、ホームの数字がカウントアップしてバーが滑らかに伸びます。オフにすると、新しい合計がすぐに表示されます。',
+  'preferences.passportAnimation': 'スパポートの演出',
+  'preferences.passportAnimationHint':
+    'スパポートを開くと、スタンプが一つずつ押されていき、最新のスタンプには判子を押すような演出が加わります。オフにすると、ページがすぐに表示されます。',
 
   // stamp-collection celebration (shown after recording a new visit)
   'stampClaim.title': '新しいスタンプ！',
