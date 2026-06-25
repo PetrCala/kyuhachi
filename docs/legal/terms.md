@@ -1,9 +1,3 @@
-<!--
-  SCAFFOLD — review before publishing. This is a plain-language starting point,
-  not legal advice. Confirm the governing-law clause and the contact address
-  before relying on it.
--->
-
 # Terms of Service
 
 **Last updated: 25 June 2026**
@@ -63,9 +57,10 @@ terminate access if these terms are breached.
 
 ## Governing law
 
-These terms are governed by the laws of [JURISDICTION — to be confirmed].
+These terms are governed by the laws of the Czech Republic, without regard to
+its conflict-of-laws rules.
 
 ## Contact
 
-Questions about these terms: **support@kyuhachi.app**, or open an issue at
+Questions about these terms can be raised by opening an issue at
 <https://github.com/PetrCala/kyuhachi/issues>.
