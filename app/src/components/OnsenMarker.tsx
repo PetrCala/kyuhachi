@@ -13,9 +13,10 @@ interface OnsenMarkerProps {
   /** Visited in the active challenge → bath-water-blue pin; otherwise default red. */
   visited: boolean;
   /** Registers this marker's imperative handle with the parent (keyed by id) so an
-   *  arriving "Show on map" focus can pop the matching callout. Must be stable. */
+   *  arriving "Show on map" focus can re-open this onsen's preview. Must be stable. */
   registerRef: (id: string, ref: ElementRef<typeof Marker> | null) => void;
-  /** Opens the onsen detail screen when its callout is tapped. Must be stable. */
+  /** Selects this onsen — opening its preview half-sheet — when the pin is
+   *  tapped. Must be stable. */
   onPress: (id: string) => void;
 }
 
@@ -26,6 +27,11 @@ interface OnsenMarkerProps {
  * Only the markers whose own props actually change (e.g. `visited` flips after a
  * check-in, or the pin is filtered out) re-render. Props are kept primitive and
  * the two callbacks stable so React.memo's shallow comparison holds.
+ *
+ * Tapping the pin selects the onsen — the map screen opens an image-forward
+ * preview half-sheet — rather than popping the native callout. `title`/
+ * `description` are kept for VoiceOver/accessibility but the callout itself is
+ * suppressed so the tap goes straight to the sheet.
  */
 function OnsenMarker({
   id,
@@ -43,7 +49,7 @@ function OnsenMarker({
     (ref: ElementRef<typeof Marker> | null) => registerRef(id, ref),
     [id, registerRef]
   );
-  const handleCalloutPress = useCallback(() => onPress(id), [id, onPress]);
+  const handlePress = useCallback(() => onPress(id), [id, onPress]);
 
   return (
     <Marker
@@ -52,7 +58,10 @@ function OnsenMarker({
       title={name}
       description={areaName}
       pinColor={visited ? colors.onsenVisited : undefined}
-      onCalloutPress={handleCalloutPress}
+      // Suppress the native callout: a pin tap selects the onsen and opens the
+      // preview half-sheet directly.
+      onPress={handlePress}
+      stopPropagation
     />
   );
 }

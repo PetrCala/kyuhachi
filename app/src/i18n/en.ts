@@ -47,6 +47,12 @@ const en = {
   'map.simulatedLocation': 'Simulated location',
   'map.nearRouteToggle': 'Near route',
 
+  // onsen preview (map marker → image-forward half-sheet)
+  'onsenPreview.areaPrefecture': '{{area}} ・ {{prefecture}}',
+  'onsenPreview.imagePlaceholder': 'No photo available',
+  'onsenPreview.viewFullDetails': 'View full details',
+  'onsenPreview.close': 'Close',
+
   // onsen list
   'onsenList.title': 'Onsen List',
   'onsenList.searchPlaceholder': 'Search onsens...',
