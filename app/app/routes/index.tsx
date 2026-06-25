@@ -153,24 +153,30 @@ export default function RoutesList() {
     router.push({ pathname: '/map', params: { routeId } });
   }
 
-  // Tapping a route is the one gesture: it uses the route in the active
-  // challenge (if any), plays its SVG preview, then lands on the map showing it.
-  // The select is an optimistic, offline-safe write fired in parallel so it
-  // never blocks the preview; it's skipped when the route is already the active
-  // one. The draw is skippable (tap the overlay) so browsing isn't forced to
-  // wait out the animation.
-  function selectAndPreview(routeId: string, route: { name: string; points: { lat: number; lng: number }[] }) {
-    if (drawing) return; // a preview is already playing
-    if (challengeId && routeId !== activeRouteId) void applyChallengeRoute(routeId);
+  // Play a route's SVG preview, then land on the map showing it. Shared by
+  // tapping a route and finishing a single-file import. The draw is skippable
+  // (tap the overlay) so it never forces a wait. Degenerate tracks have nothing
+  // to draw, so they skip straight to the map.
+  function previewThenOpen(routeId: string, route: { name: string; points: { lat: number; lng: number }[] }) {
     pendingRouteId.current = routeId;
     navigated.current = false;
-    // Degenerate tracks have nothing to draw — skip straight to the map.
     if (route.points.length < 2) {
       goToMap();
       return;
     }
     setDrawing({ name: route.name, points: route.points });
     dwellTimer.current = setTimeout(goToMap, ROUTE_DRAW_DWELL_MS);
+  }
+
+  // Tapping a route is the one gesture: it uses the route in the active
+  // challenge (if any), plays its SVG preview, then lands on the map showing it.
+  // The select is an optimistic, offline-safe write fired in parallel so it
+  // never blocks the preview; it's skipped when the route is already the active
+  // one.
+  function selectAndPreview(routeId: string, route: { name: string; points: { lat: number; lng: number }[] }) {
+    if (drawing) return; // a preview is already playing
+    if (challengeId && routeId !== activeRouteId) void applyChallengeRoute(routeId);
+    previewThenOpen(routeId, route);
   }
 
   // Attach this route to the active challenge (or detach it). Used by tapping
@@ -247,14 +253,14 @@ export default function RoutesList() {
       let imported = 0;
       let unsupported = 0;
       let failed = 0;
-      let firstRouteId: string | null = null;
+      let firstOk: Extract<ImportOutcome, { status: 'ok' }> | null = null;
       let lastFailure: ImportFailure | null = null;
       for (let i = 0; i < assets.length; i++) {
         setImportProgress({ done: i + 1, total: assets.length });
         const outcome = await importOne(assets[i]);
         if (outcome.status === 'ok') {
           imported++;
-          if (!firstRouteId) firstRouteId = outcome.routeId;
+          if (!firstOk) firstOk = outcome;
         } else {
           if (outcome.status === 'unsupported') unsupported++;
           else failed++;
@@ -262,10 +268,11 @@ export default function RoutesList() {
         }
       }
 
-      // Single file behaves exactly as before: open it, or explain the failure.
+      // Single file keeps its payoff: play the same draw preview as a tap, then
+      // land on the map — or explain the failure.
       if (assets.length === 1) {
-        if (firstRouteId) {
-          router.push({ pathname: '/map', params: { routeId: firstRouteId } });
+        if (firstOk) {
+          previewThenOpen(firstOk.routeId, { name: firstOk.name, points: firstOk.points });
         } else if (lastFailure) {
           Alert.alert(t('routes.importErrorTitle'), failureMessage(lastFailure));
         }
