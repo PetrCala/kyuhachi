@@ -212,7 +212,7 @@ const en = {
   'stats.experience.subRatingsTitle': 'Ratings breakdown',
   'stats.experience.topPick': 'Top: {{name}}',
   'stats.experience.timeTitle': 'Time in the water',
-  'stats.experience.totalSoak': 'Total',
+  'stats.experience.totalTime': 'Total',
   'stats.experience.perVisit': 'Per visit',
   'stats.experience.favorites': 'Would return',
   'stats.experience.wouldReturn_one': '{{count}} onsen',
@@ -284,7 +284,7 @@ const en = {
   'about.versionWithBuild': 'Version {{version}} ({{build}})',
   'about.aboutHeader': 'About the challenge',
   'about.aboutBody':
-    'The 九州八十八湯 challenge invites you to soak in 88 of Kyushu’s historic hot springs, drawn from an official pool of eligible onsens. Kyuhachi helps you track your visits, follow routes, and earn each tier along the way.',
+    'The 九州八十八湯 challenge invites you to visit 88 of Kyushu’s historic hot springs, drawn from an official pool of eligible onsens. Kyuhachi helps you track your visits, follow routes, and earn each tier along the way.',
   'about.linksHeader': 'Links',
   'about.github': 'GitHub',
   'about.dataSource': 'Onsen data (88onsen.com)',

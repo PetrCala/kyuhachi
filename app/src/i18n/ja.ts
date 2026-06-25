@@ -213,7 +213,7 @@ const ja: Record<keyof typeof en, string> = {
   'stats.experience.subRatingsTitle': '評価の内訳',
   'stats.experience.topPick': '最高：{{name}}',
   'stats.experience.timeTitle': '入浴時間',
-  'stats.experience.totalSoak': '合計',
+  'stats.experience.totalTime': '合計',
   'stats.experience.perVisit': '1回あたり',
   'stats.experience.favorites': 'また行きたい',
   'stats.experience.wouldReturn_one': '{{count}}湯',

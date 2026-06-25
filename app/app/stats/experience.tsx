@@ -132,7 +132,7 @@ export default function StatsExperience() {
               <Section title={t('stats.experience.timeTitle')}>
                 {experience.time.coverage.reported > 0 && (
                   <StatRow
-                    label={t('stats.experience.totalSoak')}
+                    label={t('stats.experience.totalTime')}
                     value={fmtDuration(experience.time.totalMinutes, t)}
                   />
                 )}

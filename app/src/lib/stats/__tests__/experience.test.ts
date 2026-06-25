@@ -72,7 +72,7 @@ describe('computeExperience', () => {
     expect(value.top).toEqual({ onsenId: 'A', name: 'A-onsen', value: 9 });
   });
 
-  it('counts favourites and totals soak time', () => {
+  it('counts favourites and totals time in the water', () => {
     expect(r.favorites).toEqual({ count: 1, coverage: { reported: 2, total: 3 } });
     expect(r.time.totalMinutes).toBe(90);
     expect(r.time.avgMinutes).toBe(45);
