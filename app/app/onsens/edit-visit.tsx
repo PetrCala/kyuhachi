@@ -58,6 +58,7 @@ import { firebaseErrorKey } from '@/lib/firebase-errors';
 import { RatingStars } from '@/components/visit/RatingStars';
 import { OptionChips, type ChipOption } from '@/components/visit/OptionChips';
 import { BoolChips } from '@/components/visit/BoolChips';
+import { LoadingOverlay } from '@/components/LoadingOverlay';
 import { colors, spacing, typography, radii } from '@/theme';
 
 const MAX_PHOTOS = 6;
@@ -651,6 +652,10 @@ export default function EditVisit() {
             </Pressable>
           )}
         </ScrollView>
+        {/* Blocks the form for the brief save window so the user knows work is in
+            flight and isn't tempted to tap away (or catch the Remove button as the
+            just-created visit's snapshot lands). */}
+        <LoadingOverlay visible={saving} label={t('onsenDetail.savingVisit')} />
       </KeyboardAvoidingView>
     </>
   );

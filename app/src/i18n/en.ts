@@ -607,6 +607,7 @@ const en = {
   'onsenDetail.labelInteractionRating': 'Interaction',
   'onsenDetail.saveButton': 'Save',
   'onsenDetail.saving': 'Saving...',
+  'onsenDetail.savingVisit': 'Saving your visit...',
   'onsenDetail.notesPlaceholder': 'How was your visit?',
   'onsenDetail.waterTempPlaceholder': 'e.g. 42°C',
   'onsenDetail.durationPlaceholder': 'minutes',
