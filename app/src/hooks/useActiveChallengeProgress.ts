@@ -390,10 +390,12 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
     return highestEligibleTier(tiers, progress);
   }, [challenge, tiers, visits, baseMode, eligibleVisitCount]);
 
+  // Opens the unified Routes screen. Attaching a route to the challenge now
+  // happens there via each route's ⋯ menu, not by tapping — so this no longer
+  // needs to pass the challenge id.
   const selectRoute = useCallback(() => {
-    if (!challengeId) return;
-    router.push({ pathname: '/routes', params: { selectFor: challengeId } });
-  }, [challengeId]);
+    router.push('/routes');
+  }, []);
 
   const clearRoute = useCallback(async () => {
     if (!user || !challengeId) return;

@@ -422,10 +422,9 @@ const ja: Record<keyof typeof en, string> = {
 
   // routes (import + management)
   'routes.title': 'ルート',
-  'routes.selectTitle': 'ルートを選択',
-  'routes.selectHint': 'チャレンジで使うルートをタップしてください。',
   'routes.errorAttach': 'チャレンジのルート更新に失敗しました',
   'routes.drawingRoute': 'ルートを描いています…',
+  'routes.tapToSkip': 'タップでスキップ',
   'routes.import': 'ルートを取り込む',
   'routes.importing': '取り込み中…',
   'routes.empty': 'ルートはまだありません。.gpx、.kml、.tcx ファイルを取り込んで始めましょう。',
@@ -434,6 +433,8 @@ const ja: Record<keyof typeof en, string> = {
   'routes.moreActions': 'その他の操作',
   'routes.reorderHint': 'ハンドルをドラッグしてルートを並べ替えできます。',
   'routes.dragHandle': 'ドラッグして並べ替え',
+  'routes.useInChallenge': 'チャレンジで使う',
+  'routes.removeFromChallenge': 'チャレンジから外す',
   'routes.rename': '名前を変更',
   'routes.renameTitle': 'ルート名を変更',
   'routes.renameMessage': '新しいルート名を入力してください。',

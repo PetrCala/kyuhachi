@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
@@ -35,8 +35,10 @@ import {
   RouteImportError,
 } from '@/lib/route-import';
 import { compareRoutes, routeOrderUpdates } from '@/lib/route-order';
+import { challengeRouteAction } from '@/lib/route-challenge';
 import { firebaseErrorKey } from '@/lib/firebase-errors';
-import RowActionsButton from '@/components/RowActionsButton';
+import { useActiveChallengeRoute } from '@/hooks/useActiveChallengeRoute';
+import RowActionsButton, { type RowAction } from '@/components/RowActionsButton';
 import RouteDrawLoader from '@/components/RouteDrawLoader';
 import DraggableList, { type DragRowState } from '@/components/DraggableList';
 import { colors, spacing, typography, radii, shadows } from '@/theme';
@@ -64,7 +66,7 @@ const ROUTE_DRAW_DWELL_MS = 1250;
 // Card geometry (fixed, not part of the spacing scale): a uniform row height is
 // what lets the drag-reorder math map a finger offset to a slot index. The card
 // fills the top of each slot; the leftover (ROW_HEIGHT − CARD_HEIGHT) is the gap
-// below it, sized to match the select-mode list's marginBottom (spacing[3]).
+// below it.
 const CARD_HEIGHT = 76;
 const ROW_HEIGHT = CARD_HEIGHT + spacing[3];
 const HANDLE_ICON_SIZE = 24;
@@ -72,11 +74,9 @@ const HANDLE_ICON_SIZE = 24;
 export default function RoutesList() {
   const { t } = useTranslation();
   const { user } = useAuth();
-  // When opened with `selectFor`, the screen acts as a route picker for that
-  // challenge: tapping a route sets it as the challenge's activeRouteId and
-  // returns, instead of opening it on the map.
-  const { selectFor } = useLocalSearchParams<{ selectFor?: string }>();
-  const selectMode = !!selectFor;
+  // The active/default challenge and its attached route, so each route's ⋯ menu
+  // can offer "Use in challenge" / "Remove from challenge".
+  const { challengeId, activeRouteId } = useActiveChallengeRoute();
   const [routes, setRoutes] = useState<RouteRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
@@ -86,14 +86,21 @@ export default function RoutesList() {
     done: number;
     total: number;
   } | null>(null);
-  const [selecting, setSelecting] = useState(false);
   // Locks the surrounding ScrollView while a route is being dragged so the page
   // doesn't scroll out from under the gesture.
   const [dragging, setDragging] = useState(false);
+  // The route whose SVG preview is currently playing (tap-to-open). Null = none.
   const [drawing, setDrawing] = useState<{
     name: string;
     points: { lat: number; lng: number }[];
   } | null>(null);
+  // Tap-to-preview plumbing: the pending route to open, a run-once guard so the
+  // dwell timer and a skip tap can't both navigate, and the dwell timer handle.
+  const pendingRouteId = useRef<string | null>(null);
+  const navigated = useRef(false);
+  const dwellTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Guards the ⋯-menu attach/remove write against a double-fire.
+  const attaching = useRef(false);
 
   // Live subscription to the user's imported routes.
   useEffect(() => {
@@ -123,41 +130,62 @@ export default function RoutesList() {
     );
   }, [routes]);
 
-  // Attach the active route on the challenge this picker was opened for, then
-  // open it on the map. Cosmetic only — never touches completion logic.
-  // Clearing a route lives on the challenge's route section, not here.
-  async function setChallengeRoute(
-    routeId: string,
-    route?: { name: string; points: { lat: number; lng: number }[] }
-  ) {
-    // Re-entrancy guard: the write below goes through App Check + the network,
-    // so it isn't instant. Without this, a second tap (or an import that also
-    // selects) queues a second navigation that fires once the screen is gone.
-    if (!user || !selectFor || selecting) return;
-    setSelecting(true);
-    // Show the route drawing itself in while the (optimistic, usually fast) write
-    // resolves. Hold a minimum beat so the animation actually plays.
-    const showDraw = !!route && route.points.length >= 2;
-    if (showDraw && route) setDrawing(route);
-    const minDwell = showDraw
-      ? new Promise<void>((resolve) => setTimeout(resolve, ROUTE_DRAW_DWELL_MS))
-      : Promise.resolve();
+  // Clear the dwell timer if the screen unmounts mid-preview.
+  useEffect(() => {
+    return () => {
+      if (dwellTimer.current) clearTimeout(dwellTimer.current);
+    };
+  }, []);
+
+  // Open the pending route on the map. Run-once: whichever fires first — the
+  // dwell timer or a skip tap on the overlay — navigates; the other is a no-op.
+  function goToMap() {
+    if (navigated.current) return;
+    const routeId = pendingRouteId.current;
+    if (!routeId) return;
+    navigated.current = true;
+    if (dwellTimer.current) {
+      clearTimeout(dwellTimer.current);
+      dwellTimer.current = null;
+    }
+    setDrawing(null);
+    // `push` (not `replace`): this is the routes list, not a transient picker —
+    // Back should return here. The routeId param renders the route immediately.
+    router.push({ pathname: '/map', params: { routeId } });
+  }
+
+  // Tapping a route plays its SVG preview, then lands on the map showing it. No
+  // challenge write — attaching lives in the ⋯ menu now. The draw is skippable
+  // (tap the overlay) so browsing isn't forced to wait out the animation.
+  function previewThenMap(routeId: string, route: { name: string; points: { lat: number; lng: number }[] }) {
+    if (drawing) return; // a preview is already playing
+    pendingRouteId.current = routeId;
+    navigated.current = false;
+    // Degenerate tracks have nothing to draw — skip straight to the map.
+    if (route.points.length < 2) {
+      goToMap();
+      return;
+    }
+    setDrawing({ name: route.name, points: route.points });
+    dwellTimer.current = setTimeout(goToMap, ROUTE_DRAW_DWELL_MS);
+  }
+
+  // Attach this route to the active challenge (or detach it), from the ⋯ menu.
+  // Cosmetic only — never touches completion logic. Silent on success (the live
+  // challenge subscription flips the menu label); the offline cache reflects it
+  // immediately.
+  async function applyChallengeRoute(nextActiveRouteId: string | null) {
+    if (!user || !challengeId || attaching.current) return;
+    attaching.current = true;
     try {
       await updateDoc(
-        doc(db, COLLECTIONS.USERS, user.uid, SUBCOLLECTIONS.CHALLENGES, selectFor),
-        { activeRouteId: routeId, updatedAt: serverTimestamp() }
+        doc(db, COLLECTIONS.USERS, user.uid, SUBCOLLECTIONS.CHALLENGES, challengeId),
+        { activeRouteId: nextActiveRouteId, updatedAt: serverTimestamp() }
       );
-      await minDwell;
-      // Land on the map showing the route the user just attached — the natural
-      // payoff (and, for a fresh import, confirmation it parsed into a sensible
-      // track). `replace` (not `back`) so this picker doesn't linger in the
-      // stack behind the map tab; the routeId param renders it immediately.
-      router.replace({ pathname: '/map', params: { routeId } });
     } catch (error) {
-      setDrawing(null);
       Alert.alert(t('routes.errorAttach'), t(firebaseErrorKey(error)));
     } finally {
-      setSelecting(false);
+      attaching.current = false;
     }
   }
 
@@ -196,36 +224,22 @@ export default function RoutesList() {
     return t('routes.importErrorParse');
   }
 
-  // Pick file(s) and import them. Select mode attaches exactly one route to the
-  // challenge; normal mode allows bulk selection. A single file keeps its
-  // original payoff (open it on the map, or show the exact reason it failed);
-  // several files stay on the list — the live query already shows the new
-  // routes — and report a tally.
+  // Pick file(s) and import them (bulk selection allowed). A single file keeps
+  // its payoff — open it on the map, or show the exact reason it failed; several
+  // files stay on the list (the live query already shows the new routes) and
+  // report a tally.
   async function handleImport() {
     if (!user || importing) return;
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: '*/*',
         copyToCacheDirectory: true,
-        multiple: !selectMode,
+        multiple: true,
       });
       if (result.canceled) return;
       const assets = result.assets;
 
       setImporting(true);
-
-      if (selectMode) {
-        const outcome = await importOne(assets[0]);
-        if (outcome.status === 'ok') {
-          await setChallengeRoute(outcome.routeId, {
-            name: outcome.name,
-            points: outcome.points,
-          });
-        } else {
-          Alert.alert(t('routes.importErrorTitle'), failureMessage(outcome));
-        }
-        return;
-      }
 
       let imported = 0;
       let unsupported = 0;
@@ -351,37 +365,46 @@ export default function RoutesList() {
     return t('routes.metaPointsOnly', { points: data.pointCount });
   }
 
-  // One card surface, used in both modes. `drag` is present only in manage mode:
-  // it carries the grab handle's gesture props and whether this row is in hand.
-  function renderCard({ id, data }: RouteRow, drag?: DragRowState) {
+  // One route card. `drag` carries the grab handle's gesture props and whether
+  // this row is the one in hand.
+  function renderCard({ id, data }: RouteRow, drag: DragRowState) {
+    // The challenge action heads the ⋯ sheet, but only when there's an active
+    // challenge to attach to. The ⋯ trigger is a separate hit target from the
+    // card's tap (preview→map), so neither competes with the other.
+    const challengeAction = challengeRouteAction(id, challengeId, activeRouteId);
+    const actions: RowAction[] = [
+      ...(challengeAction
+        ? [
+            {
+              label: t(challengeAction.labelKey),
+              onPress: () => applyChallengeRoute(challengeAction.nextActiveRouteId),
+            },
+          ]
+        : []),
+      { label: t('routes.rename'), onPress: () => promptRename(id, data.name) },
+      {
+        label: t('routes.delete'),
+        destructive: true,
+        onPress: () => confirmDelete(id, data.name),
+      },
+    ];
     return (
       <View
         key={id}
-        style={[
-          styles.card,
-          !drag && styles.cardSpaced,
-          drag?.isActive && styles.cardActive,
-          drag?.isActive && shadows.md,
-        ]}
+        style={[styles.card, drag.isActive && styles.cardActive, drag.isActive && shadows.md]}
       >
-        {drag && (
-          <View
-            style={styles.dragHandle}
-            accessibilityRole="button"
-            accessibilityLabel={t('routes.dragHandle')}
-            {...drag.dragHandleProps}
-          >
-            <Ionicons name="reorder-three" size={HANDLE_ICON_SIZE} color={colors.textTertiary} />
-          </View>
-        )}
+        <View
+          style={styles.dragHandle}
+          accessibilityRole="button"
+          accessibilityLabel={t('routes.dragHandle')}
+          {...drag.dragHandleProps}
+        >
+          <Ionicons name="reorder-three" size={HANDLE_ICON_SIZE} color={colors.textTertiary} />
+        </View>
         <Pressable
           style={styles.cardMain}
-          disabled={selecting}
-          onPress={() =>
-            selectMode
-              ? setChallengeRoute(id, { name: data.name, points: data.points })
-              : router.push({ pathname: '/map', params: { routeId: id } })
-          }
+          disabled={drawing != null}
+          onPress={() => previewThenMap(id, { name: data.name, points: data.points })}
         >
           <Text style={styles.cardName} numberOfLines={1}>
             {data.name}
@@ -390,27 +413,17 @@ export default function RoutesList() {
             {metaLine(data)}
           </Text>
         </Pressable>
-        {/* Rename/delete are available in both modes: the ⋯ trigger is a separate
-            hit target from the row's select/open Pressable, so it never competes
-            with the primary tap. */}
         <RowActionsButton
           accessibilityLabel={t('routes.moreActions')}
           title={data.name}
           cancelLabel={t('routes.cancel')}
-          actions={[
-            { label: t('routes.rename'), onPress: () => promptRename(id, data.name) },
-            {
-              label: t('routes.delete'),
-              destructive: true,
-              onPress: () => confirmDelete(id, data.name),
-            },
-          ]}
+          actions={actions}
         />
       </View>
     );
   }
 
-  const title = selectMode ? t('routes.selectTitle') : t('routes.title');
+  const title = t('routes.title');
 
   if (loading) {
     return (
@@ -431,18 +444,10 @@ export default function RoutesList() {
         contentContainerStyle={styles.content}
         scrollEnabled={!dragging}
       >
-        {selectMode ? (
-          <Text style={styles.selectHint}>{t('routes.selectHint')}</Text>
-        ) : (
-          sorted.length > 1 && <Text style={styles.reorderHint}>{t('routes.reorderHint')}</Text>
-        )}
+        {sorted.length > 1 && <Text style={styles.reorderHint}>{t('routes.reorderHint')}</Text>}
 
         {sorted.length === 0 ? (
           <Text style={styles.empty}>{t('routes.empty')}</Text>
-        ) : selectMode ? (
-          // Picker: tap-to-select, no reordering (the picker is transient and a
-          // challenge takes exactly one route).
-          sorted.map((row) => renderCard(row))
         ) : (
           <DraggableList
             items={sorted}
@@ -455,9 +460,9 @@ export default function RoutesList() {
         )}
 
         <Pressable
-          style={[styles.importButton, (importing || selecting) && styles.importButtonDisabled]}
+          style={[styles.importButton, importing && styles.importButtonDisabled]}
           onPress={handleImport}
-          disabled={importing || selecting}
+          disabled={importing}
         >
           <Text style={styles.importButtonText}>
             {!importing
@@ -471,7 +476,9 @@ export default function RoutesList() {
           </Text>
         </Pressable>
       </ScrollView>
-      {drawing && <RouteDrawLoader name={drawing.name} points={drawing.points} />}
+      {drawing && (
+        <RouteDrawLoader name={drawing.name} points={drawing.points} onSkip={goToMap} />
+      )}
     </>
   );
 }
@@ -491,11 +498,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[4],
     paddingBottom: spacing[8],
-  },
-  selectHint: {
-    fontSize: typography.sizes.sm,
-    color: colors.textMuted,
-    marginBottom: spacing[4],
   },
   reorderHint: {
     fontSize: typography.sizes.sm,
@@ -532,11 +534,6 @@ const styles = StyleSheet.create({
     // Fixed height (not vertical padding) so every drag slot is uniform; the
     // single-line name + meta sit comfortably within it.
     height: CARD_HEIGHT,
-  },
-  // Gap between cards in the select-mode flow list. In manage mode the spacing
-  // is built into ROW_HEIGHT instead (the empty strip below each card).
-  cardSpaced: {
-    marginBottom: spacing[3],
   },
   // The row currently under the finger: lift it off the page.
   cardActive: {
