@@ -184,42 +184,33 @@ export default function EditVisit() {
     // the visit non-null before we navigate away.
     seeded.current = true;
     setSaving(true);
+    const isCreate = !visit;
+    const structuredData = {
+      ...details,
+      waterTemp: details.waterTemp?.trim() ? details.waterTemp : null,
+      duration: durationText ? Number(durationText) : null,
+    };
+    // Photos already on the visit are uploaded; freshly-picked ones aren't. The
+    // doc is written now with just the uploaded URLs so the save — and the stamp
+    // — lands instantly off Firestore's offline cache, with no Storage round-trip
+    // on the critical path. Any new photos upload in the background (see
+    // finalizeVisitPhotos) and patch onto the doc once they finish.
+    const existingUrls = photos.flatMap((p) => (p.kind === 'existing' ? [p.url] : []));
     try {
-      // Upload freshly-picked photos in order, then write the doc. With no new
-      // photos this stays a single, offline-capable write.
-      const photoUrls: string[] = [];
-      for (let i = 0; i < photos.length; i++) {
-        const photo = photos[i];
-        photoUrls.push(
-          photo.kind === 'existing' ? photo.url : await uploadPhotoFile(photo.uri, i)
-        );
-      }
-      const structuredData = {
-        ...details,
-        waterTemp: details.waterTemp?.trim() ? details.waterTemp : null,
-        duration: durationText ? Number(durationText) : null,
-      };
-      if (visit) {
-        await updateDoc(docRef, {
-          notes: notes.trim() || null,
-          photoUrls,
-          structuredData,
-          updatedAt: serverTimestamp(),
-        });
-      } else {
+      if (isCreate) {
         // First save records the visit — the only place a visit is created.
         await setDoc(docRef, {
           visitedAt: serverTimestamp(),
           notes: notes.trim() || null,
-          photoUrls,
+          photoUrls: existingUrls,
           structuredData,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
-        // A brand-new visit earns a stamp: celebrate it. The reveal waits for
-        // this modal to dismiss (see StampCelebrationContext), so firing it
-        // before navigating away is intentional. Editing an existing visit
-        // (the branch above) records no new stamp and stays silent.
+        // A brand-new visit earns a stamp: celebrate it. The reveal waits for this
+        // modal to dismiss (see StampCelebrationContext), so firing it before
+        // navigating away is intentional. Editing an existing visit records no new
+        // stamp and stays silent.
         celebrateStamp({
           onsenId: id,
           prefecture: onsen?.prefecture ?? '',
@@ -227,19 +218,59 @@ export default function EditVisit() {
           name: onsen?.name ?? '',
           dateMs: Date.now(),
         });
+      } else {
+        await updateDoc(docRef, {
+          notes: notes.trim() || null,
+          photoUrls: existingUrls,
+          structuredData,
+          updatedAt: serverTimestamp(),
+        });
+      }
+    } catch (error) {
+      setSaving(false);
+      Alert.alert(t('common.errorTitle'), t(firebaseErrorKey(error)));
+      return;
+    }
+    // The visit is saved — leave the editor at once rather than holding the user
+    // on a disabled button while photos upload. The upload runs detached from this
+    // now-unmounting screen, then patches the doc and sweeps removed files.
+    void finalizeVisitPhotos(docRef, existingUrls);
+    if (dismissToHome) router.dismissAll();
+    else router.back();
+  }
+
+  // Finishes the photo side of a save after the editor has navigated away: uploads
+  // any freshly-picked photos, writes the final ordered photo list, then drops the
+  // Storage objects for any removed originals. Runs detached from the (unmounting)
+  // screen, so it never touches React state — a failure surfaces as a single alert
+  // and the visit keeps whatever photos did upload. With no new photos the
+  // synchronous save already wrote the URLs, leaving only the removed-file sweep.
+  async function finalizeVisitPhotos(
+    docRef: FirebaseFirestoreTypes.DocumentReference,
+    existingUrls: string[]
+  ) {
+    try {
+      let finalUrls = existingUrls;
+      if (photos.some((p) => p.kind === 'new')) {
+        const urls: string[] = [];
+        for (let i = 0; i < photos.length; i++) {
+          const photo = photos[i];
+          urls.push(photo.kind === 'existing' ? photo.url : await uploadPhotoFile(photo.uri, i));
+        }
+        finalUrls = urls;
+        await updateDoc(docRef, { photoUrls: finalUrls, updatedAt: serverTimestamp() });
       }
       // Best-effort: drop the Storage objects for any pre-existing photo the user
       // removed. (onVisitDeleted sweeps by prefix if the whole visit is deleted.)
-      const kept = new Set(photoUrls);
+      const kept = new Set(finalUrls);
       for (const url of originalPhotoUrls.current) {
         if (!kept.has(url)) deleteObject(refFromURL(storage, url)).catch(() => {});
       }
-      if (dismissToHome) router.dismissAll();
-      else router.back();
-    } catch (error) {
-      Alert.alert(t('common.errorTitle'), t(firebaseErrorKey(error)));
-    } finally {
-      setSaving(false);
+    } catch {
+      Alert.alert(
+        t('onsenDetail.photoUploadFailedTitle'),
+        t('onsenDetail.photoUploadFailedMessage')
+      );
     }
   }
 

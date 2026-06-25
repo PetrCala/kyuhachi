@@ -599,6 +599,9 @@ const ja: Record<keyof typeof en, string> = {
   'onsenDetail.takePhoto': '写真を撮る',
   'onsenDetail.chooseFromLibrary': 'ライブラリから選択',
   'onsenDetail.uploading': 'アップロード中...',
+  'onsenDetail.photoUploadFailedTitle': '写真をアップロードできませんでした',
+  'onsenDetail.photoUploadFailedMessage':
+    '訪問は保存されましたが、一部の写真をアップロードできませんでした。訪問を編集して再度お試しください。',
   'onsenDetail.cancel': 'キャンセル',
   'onsenDetail.editTitle': '訪問を編集',
   'onsenDetail.recordTitle': '訪問を記録',
