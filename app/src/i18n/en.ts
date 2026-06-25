@@ -278,27 +278,26 @@ const en = {
   'account.signOut': 'Sign out',
   'account.deleteAccount': 'Delete account',
 
-  // preferences
+  // preferences (grouped sections — one footnote per group, rows label-only)
   'preferences.title': 'Preferences',
+  'preferences.listHeader': 'Onsen list',
   'preferences.showNearby': 'Show nearby onsens',
-  'preferences.showNearbyHint':
-    'Shows a section at the top of the onsen list with springs near your current location.',
   'preferences.radiusTitle': 'Distance (km)',
-  'preferences.radiusHint': 'Onsens within {{km}} km of you appear in the “Near you” section.',
+  'preferences.listFootnote':
+    'Adds a “Near you” section to the top of the onsen list with the springs closest to you, and sets how far out it reaches.',
   'preferences.onsenPageHeader': 'Onsen pages',
   'preferences.onsenMapPreview': 'Show map preview',
-  'preferences.onsenMapPreviewHint':
-    'Each onsen page shows a tappable map preview. Turn this off to use a compact map button in the top-right corner instead.',
+  'preferences.onsenPagesFootnote':
+    'How an onsen page links to the map: an inline tappable preview, or a compact map button in the top-right corner.',
+  'preferences.mapHeader': 'Map',
   'preferences.nearRouteRadiusTitle': 'Near-route distance (km)',
-  'preferences.nearRouteRadiusHint':
-    'When “Near route” is on, the map hides onsens farther than {{km}} km from the selected route.',
+  'preferences.mapFootnote':
+    'When the “Near route” filter is on, the map hides onsens farther than this from the selected route.',
   'preferences.animationsHeader': 'Animations',
   'preferences.stampCollectAnimation': 'Stamp collection',
-  'preferences.stampCollectAnimationHint':
-    'Recording a visit makes its stamp fly in with a flourish before you collect it. Turn this off to have the stamp appear at once.',
   'preferences.progressAnimation': 'Progress count-up',
-  'preferences.progressAnimationHint':
-    'When a new visit raises your count, the home number counts up and the bar fills smoothly. Turn this off to have the new total appear at once.',
+  'preferences.animationsFootnote':
+    'The celebratory flourishes shown when you record a visit — the stamp flying in, the home count counting up. Turn them off for instant, still results.',
 
   // stamp-collection celebration (shown after recording a new visit)
   'stampClaim.title': 'New stamp!',

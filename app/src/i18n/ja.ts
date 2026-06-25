@@ -278,26 +278,26 @@ const ja: Record<keyof typeof en, string> = {
   'account.signOut': 'サインアウト',
   'account.deleteAccount': 'アカウントを削除',
 
-  // preferences
+  // preferences (grouped sections — one footnote per group, rows label-only)
   'preferences.title': '設定',
+  'preferences.listHeader': '温泉一覧',
   'preferences.showNearby': '近くの温泉を表示',
-  'preferences.showNearbyHint': '温泉一覧の上部に、現在地の近くにある温泉のセクションを表示します。',
   'preferences.radiusTitle': '距離（km）',
-  'preferences.radiusHint': '現在地から{{km}}km以内の温泉が「近くの温泉」に表示されます。',
+  'preferences.listFootnote':
+    '温泉一覧の上部に、現在地に近い温泉をまとめた「近くの温泉」セクションを表示し、その範囲を設定します。',
   'preferences.onsenPageHeader': '温泉ページ',
   'preferences.onsenMapPreview': '地図プレビューを表示',
-  'preferences.onsenMapPreviewHint':
-    '温泉ページにタップできる地図プレビューを表示します。オフにすると、代わりに右上にコンパクトな地図ボタンを表示します。',
+  'preferences.onsenPagesFootnote':
+    '温泉ページから地図への表示方法です。ページ内のタップできるプレビュー、または右上のコンパクトな地図ボタンを選べます。',
+  'preferences.mapHeader': '地図',
   'preferences.nearRouteRadiusTitle': 'ルート付近の距離（km）',
-  'preferences.nearRouteRadiusHint':
-    '「ルート付近」をオンにすると、選択中のルートから{{km}}kmより離れた温泉を地図上で非表示にします。',
+  'preferences.mapFootnote':
+    '「ルート付近」フィルターがオンのとき、選択中のルートからこの距離より離れた温泉を地図上で非表示にします。',
   'preferences.animationsHeader': 'アニメーション',
   'preferences.stampCollectAnimation': 'スタンプ獲得',
-  'preferences.stampCollectAnimationHint':
-    '訪問を記録すると、スタンプが華やかに飛び込んでから獲得できます。オフにすると、スタンプはすぐに表示されます。',
   'preferences.progressAnimation': '進捗のカウントアップ',
-  'preferences.progressAnimationHint':
-    '新しい訪問で件数が増えると、ホームの数字がカウントアップしてバーが滑らかに伸びます。オフにすると、新しい合計がすぐに表示されます。',
+  'preferences.animationsFootnote':
+    '訪問を記録したときに表示される演出です。スタンプが飛び込み、ホームの数字がカウントアップします。オフにすると、すぐに結果が表示されます。',
 
   // stamp-collection celebration (shown after recording a new visit)
   'stampClaim.title': '新しいスタンプ！',
