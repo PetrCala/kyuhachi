@@ -592,6 +592,7 @@ const ja: Record<keyof typeof en, string> = {
   'onsenDetail.labelInteractionRating': '交流',
   'onsenDetail.saveButton': '保存',
   'onsenDetail.saving': '保存中...',
+  'onsenDetail.savingVisit': '訪問を保存しています...',
   'onsenDetail.notesPlaceholder': '訪問の感想を書きましょう',
   'onsenDetail.waterTempPlaceholder': '例: 42°C',
   'onsenDetail.durationPlaceholder': '分',
