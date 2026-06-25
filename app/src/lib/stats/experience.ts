@@ -2,7 +2,7 @@
  * Experience stats — the rich, opt-in self-reported data (ratings, facilities,
  * bath, crowd, company, locals, photos).
  *
- * Computed over ALL visits (a review is about the soak, not eligibility). Every
+ * Computed over ALL visits (a review is about the visit, not eligibility). Every
  * derived value carries a {@link Coverage} so the screen can show an honest
  * "based on N of M visits" and collapse to an empty state when sparse.
  * Superlatives ("best for …") are drawn only from visits whose onsen info has
