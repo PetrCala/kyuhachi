@@ -261,6 +261,7 @@ const en = {
   'menu.stats': 'Stats',
   'menu.account': 'Account',
   'menu.signOut': 'Sign out',
+  'menu.deleteAccount': 'Delete account',
   'menu.language': 'Language',
   'menu.about': 'About',
 
@@ -299,6 +300,26 @@ const en = {
     'Onsen information is sourced from 88onsen.com. Built with Expo, React Native, and Firebase. The 九 / 八 brand mark is set in Klee One.',
   'about.copyright': '© 2026 Petr Cala',
   'about.madeWith': 'Made with ♨ in Kyushu',
+
+  // delete account (More → Account → Delete account)
+  'deleteAccount.title': 'Delete account',
+  'deleteAccount.heading': 'Delete your account',
+  'deleteAccount.body': 'Deleting your account permanently removes:',
+  'deleteAccount.bullet1': 'Your profile and sign-in',
+  'deleteAccount.bullet2': 'All your challenges and recorded visits',
+  'deleteAccount.bullet3': 'Your visit photos and imported routes',
+  'deleteAccount.irreversible': 'This is immediate and cannot be undone.',
+  'deleteAccount.passwordLabel': 'Confirm your password',
+  'deleteAccount.passwordPlaceholder': 'Password',
+  'deleteAccount.passwordHint': 'For your security, enter your password to confirm.',
+  'deleteAccount.appleHint': 'You’ll be asked to confirm with Apple before your account is deleted.',
+  'deleteAccount.button': 'Delete account',
+  'deleteAccount.confirmTitle': 'Delete account?',
+  'deleteAccount.confirmMessage':
+    'This permanently deletes your account and all your challenges, visits, photos, and routes. This cannot be undone.',
+  'deleteAccount.confirm': 'Delete',
+  'deleteAccount.cancel': 'Cancel',
+  'deleteAccount.errorTitle': 'Couldn’t delete account',
 
   // challenge progress
   'challengeProgress.title': 'Challenge Progress',

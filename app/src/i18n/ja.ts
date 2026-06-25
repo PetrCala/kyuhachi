@@ -262,6 +262,7 @@ const ja: Record<keyof typeof en, string> = {
   'menu.stats': '統計',
   'menu.account': 'アカウント',
   'menu.signOut': 'サインアウト',
+  'menu.deleteAccount': 'アカウントを削除',
   'menu.language': '言語',
   'menu.about': 'アプリについて',
 
@@ -299,6 +300,26 @@ const ja: Record<keyof typeof en, string> = {
     '温泉情報は88onsen.comを参照しています。Expo、React Native、Firebaseで構築しています。九／八のブランドマークはKlee Oneで表示しています。',
   'about.copyright': '© 2026 Petr Cala',
   'about.madeWith': '九州で♨とともに作りました',
+
+  // delete account (More → Account → Delete account)
+  'deleteAccount.title': 'アカウントを削除',
+  'deleteAccount.heading': 'アカウントを削除する',
+  'deleteAccount.body': 'アカウントを削除すると、次のデータが完全に削除されます:',
+  'deleteAccount.bullet1': 'プロフィールとサインイン情報',
+  'deleteAccount.bullet2': 'すべてのチャレンジと記録した訪問',
+  'deleteAccount.bullet3': '訪問の写真とインポートしたルート',
+  'deleteAccount.irreversible': 'この操作はすぐに反映され、元に戻すことはできません。',
+  'deleteAccount.passwordLabel': 'パスワードを確認',
+  'deleteAccount.passwordPlaceholder': 'パスワード',
+  'deleteAccount.passwordHint': 'セキュリティのため、パスワードを入力して確認してください。',
+  'deleteAccount.appleHint': 'アカウントを削除する前に、Appleでの確認を求められます。',
+  'deleteAccount.button': 'アカウントを削除',
+  'deleteAccount.confirmTitle': 'アカウントを削除しますか？',
+  'deleteAccount.confirmMessage':
+    'アカウントと、すべてのチャレンジ・訪問・写真・ルートが完全に削除されます。この操作は元に戻せません。',
+  'deleteAccount.confirm': '削除',
+  'deleteAccount.cancel': 'キャンセル',
+  'deleteAccount.errorTitle': 'アカウントを削除できませんでした',
 
   // challenge progress
   'challengeProgress.title': 'チャレンジ進捗',
