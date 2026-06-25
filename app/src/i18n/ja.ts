@@ -49,6 +49,11 @@ const ja: Record<keyof typeof en, string> = {
   'map.simulatedLocation': 'シミュレートされた位置',
   'map.nearRouteToggle': 'ルート付近',
 
+  // onsen preview (the floating peek card shown when a map pin is tapped)
+  'onsenPreview.openLabel': '{{name}}を開く',
+  'onsenPreview.visited': '訪問済み',
+  'onsenPreview.dismiss': 'プレビューを閉じる',
+
   // onsen list
   'onsenList.title': '温泉一覧',
   'onsenList.searchPlaceholder': '温泉を検索…',

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo, type ElementRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT, type Region } from 'react-native-maps';
@@ -31,6 +32,7 @@ import { distanceToPolylineKm } from '@/lib/geo';
 import { useActiveChallengeProgress } from '@/hooks/useActiveChallengeProgress';
 import MapZoomControl from '@/components/MapZoomControl';
 import OnsenMarker from '@/components/OnsenMarker';
+import OnsenPeekCard from '@/components/OnsenPeekCard';
 import { colors, spacing, radii, typography, shadows } from '@/theme';
 
 type OnsenRow = OnsenDocument & { id: string };
@@ -50,6 +52,11 @@ const USER_LOCATION_DELTA = 0.05;
  *  takes. They reappear on any map touch or when a control is used. */
 const CONTROLS_HIDE_DELAY = 2500;
 const CONTROLS_FADE_DURATION = 250;
+
+/** Vertical room the floating peek card occupies above the bottom safe area
+ *  (its content height plus its own top/bottom gaps), used to lift the recenter
+ *  button clear of the card while it's shown so the two never overlap. */
+const PEEK_CARD_CLEARANCE = spacing[12] + spacing[10];
 
 /** Rough Apple Maps camera altitude (metres) that frames a given latitude span,
  *  used to seed the zoom slider's knob before the map reports its real camera.
@@ -73,6 +80,7 @@ export default function MapScreen() {
   const { user } = useAuth();
   const { nearRouteRadiusKm } = usePreferences();
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const { routeId: paramRouteId, focusOnsenId, focusTs } = useLocalSearchParams<{
     routeId?: string;
     focusOnsenId?: string;
@@ -83,9 +91,6 @@ export default function MapScreen() {
   const { visitedIds, activeRoute, loading: progressLoading } =
     useActiveChallengeProgress();
   const mapRef = useRef<MapView>(null);
-  // Per-onsen Marker handles so an arriving "Show on map" focus can pop the
-  // matching callout once the camera has settled on its pin.
-  const markerRefs = useRef<Record<string, ElementRef<typeof Marker> | null>>({});
   const [onsens, setOnsens] = useState<OnsenRow[]>([]);
   const [onsensLoading, setOnsensLoading] = useState(true);
   // An explicit `routeId` param (a just-imported route, or "View route on map")
@@ -105,6 +110,10 @@ export default function MapScreen() {
   // Live camera altitude (Apple Maps), read after each gesture settles so the
   // zoom slider's knob tracks pinch as well as its own drags.
   const [altitude, setAltitude] = useState<number | undefined>(undefined);
+  // The onsen whose floating peek card is shown (Apple-Maps-style place card),
+  // or null when none is selected. Tapping a pin selects; tapping empty map,
+  // the × on the card, or opening the detail clears it.
+  const [selectedOnsenId, setSelectedOnsenId] = useState<string | null>(null);
 
   // The on-map controls auto-hide together after a spell of no interaction and
   // reappear on any map touch or control use. `controlsVisible` drives both their
@@ -238,18 +247,31 @@ export default function MapScreen() {
     }
   }, [bumpControls, handleCameraSettle]);
 
-  // Stable across renders so the memoized OnsenMarkers never re-render or
-  // re-attach their refs just because this screen re-rendered (the zoom slider
-  // streams the camera altitude on every gesture frame).
-  const registerMarkerRef = useCallback(
-    (id: string, ref: ElementRef<typeof Marker> | null) => {
-      markerRefs.current[id] = ref;
+  // Tapping a pin selects it — the floating peek card pops (or swaps to it if one
+  // is already showing). Keep the controls awake so the recenter/zoom slots don't
+  // fade behind the card.
+  const handleOnsenSelect = useCallback(
+    (id: string) => {
+      bumpControls();
+      setSelectedOnsenId(id);
     },
-    []
+    [bumpControls]
   );
-  const handleOnsenPress = useCallback((id: string) => {
+  // Tapping the card body (the "enlarge" action) opens the detail screen. Clear
+  // the selection so the card is gone when the user returns to this tab.
+  const handlePeekOpen = useCallback((id: string) => {
+    setSelectedOnsenId(null);
     router.push(`/onsens/${id}`);
   }, []);
+  // The card's × — close it without navigating.
+  const handlePeekDismiss = useCallback(() => setSelectedOnsenId(null), []);
+  // Map background tap: wake the controls (existing behavior) and dismiss any
+  // open peek card, matching Apple/Google Maps where tapping the map clears the
+  // place card.
+  const handleMapPress = useCallback(() => {
+    bumpControls();
+    setSelectedOnsenId(null);
+  }, [bumpControls]);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(
@@ -308,6 +330,32 @@ export default function MapScreen() {
     );
   }, [onsens, route, nearRouteOnly, nearRouteRadiusKm]);
 
+  // The onsen behind the floating peek card, resolved from the live list by the
+  // selected id (null when nothing is selected, or if the selected onsen left the
+  // list — e.g. filtered out by "Near route" — in which case the card dismisses).
+  const selectedOnsen = useMemo(() => {
+    if (!selectedOnsenId) return null;
+    const o = onsens.find((row) => row.id === selectedOnsenId);
+    if (!o) return null;
+    return {
+      id: o.id,
+      name: o.name,
+      areaName: o.areaName,
+      prefecture: o.prefecture,
+      admissionFee: o.admissionFee,
+      imageUrl: o.imageUrl,
+    };
+  }, [selectedOnsenId, onsens]);
+
+  // If the selected onsen is filtered off the map (the "Near route" filter hides
+  // it), close its card so it never floats over an absent pin.
+  useEffect(() => {
+    if (!selectedOnsenId) return;
+    if (!visibleOnsens.some((o) => o.id === selectedOnsenId)) {
+      setSelectedOnsenId(null);
+    }
+  }, [selectedOnsenId, visibleOnsens]);
+
   // The drawn route's points in the shape <Polyline> wants. Memoized so the
   // screen's per-frame re-renders don't rebuild this array (and with it the
   // whole native polyline overlay) on every gesture frame — a fresh array each
@@ -339,11 +387,12 @@ export default function MapScreen() {
     mapRef.current?.animateToRegion(regionForBounds(route.bounds));
   }, [route]);
 
-  // Arriving from an onsen's "Show on map": center on that pin and pop its
-  // callout. `focusTs` is a per-tap nonce so tapping again re-focuses the same
-  // onsen (an unchanging id alone wouldn't re-fire the effect); the guard stops
-  // a re-run on unrelated re-renders or when returning to this tab. Runs after
-  // the route-framing effect above so a focused onsen wins the camera.
+  // Arriving from an onsen's "Show on map": center on that pin, then pop its
+  // floating peek card once the camera settles. `focusTs` is a per-tap nonce so
+  // tapping again re-focuses the same onsen (an unchanging id alone wouldn't
+  // re-fire the effect); the guard stops a re-run on unrelated re-renders or when
+  // returning to this tab. Runs after the route-framing effect above so a focused
+  // onsen wins the camera.
   const focusedTokenRef = useRef<string | null>(null);
   useEffect(() => {
     if (!focusOnsenId || !focusTs || focusedTokenRef.current === focusTs) return;
@@ -356,9 +405,12 @@ export default function MapScreen() {
       latitudeDelta: USER_LOCATION_DELTA,
       longitudeDelta: USER_LOCATION_DELTA,
     });
-    const timer = setTimeout(() => markerRefs.current[focusOnsenId]?.showCallout(), 650);
+    // Open the card after the camera animation lands, so it slides up over the
+    // freshly centered pin rather than mid-pan. Wake the controls too.
+    bumpControls();
+    const timer = setTimeout(() => setSelectedOnsenId(focusOnsenId), 650);
     return () => clearTimeout(timer);
-  }, [focusOnsenId, focusTs, onsens]);
+  }, [focusOnsenId, focusTs, onsens, bumpControls]);
 
   if (loading) {
     return (
@@ -382,8 +434,9 @@ export default function MapScreen() {
         // own pan gesture recognizer, which fights the map's built-in scroll and
         // can leave the map un-pannable (frozen) while overlay buttons still tap.
         // `onRegionChange` already fires throughout a drag, so the auto-hide
-        // controls still wake without it.
-        onPress={bumpControls}
+        // controls still wake without it. A background tap also dismisses any
+        // open peek card.
+        onPress={handleMapPress}
         onRegionChangeComplete={handleCameraSettle}
       >
         {visibleOnsens.map((onsen) => (
@@ -393,12 +446,10 @@ export default function MapScreen() {
             lat={onsen.lat}
             lng={onsen.lng}
             name={onsen.name}
-            areaName={onsen.areaName}
             // Visited onsens in the active challenge get a bath-water blue pin;
             // unvisited keep the default red pin.
             visited={visitedIds.has(onsen.id)}
-            registerRef={registerMarkerRef}
-            onPress={handleOnsenPress}
+            onSelect={handleOnsenSelect}
           />
         ))}
         {route && (
@@ -479,7 +530,14 @@ export default function MapScreen() {
         />
       </Animated.View>
       <Animated.View
-        style={[styles.recenterSlot, { opacity: controlsOpacity }]}
+        style={[
+          styles.recenterSlot,
+          // Lift the recenter button clear of the floating peek card while it's
+          // shown, so the two never overlap (Apple-Maps-style: controls ride just
+          // above the place card).
+          selectedOnsen && { bottom: spacing[6] + PEEK_CARD_CLEARANCE + insets.bottom },
+          { opacity: controlsOpacity },
+        ]}
         pointerEvents={controlsVisible ? 'box-none' : 'none'}
       >
         <Pressable
@@ -494,6 +552,12 @@ export default function MapScreen() {
           <Ionicons name="locate" size={spacing[6]} color={colors.actionPrimary} />
         </Pressable>
       </Animated.View>
+      <OnsenPeekCard
+        onsen={selectedOnsen}
+        visited={selectedOnsen ? visitedIds.has(selectedOnsen.id) : false}
+        onOpen={handlePeekOpen}
+        onDismiss={handlePeekDismiss}
+      />
     </View>
   );
 }

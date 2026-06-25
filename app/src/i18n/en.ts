@@ -47,6 +47,11 @@ const en = {
   'map.simulatedLocation': 'Simulated location',
   'map.nearRouteToggle': 'Near route',
 
+  // onsen preview (the floating peek card shown when a map pin is tapped)
+  'onsenPreview.openLabel': 'Open {{name}}',
+  'onsenPreview.visited': 'Visited',
+  'onsenPreview.dismiss': 'Close preview',
+
   // onsen list
   'onsenList.title': 'Onsen List',
   'onsenList.searchPlaceholder': 'Search onsens...',
