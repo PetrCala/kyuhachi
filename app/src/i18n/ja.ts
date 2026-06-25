@@ -48,6 +48,9 @@ const ja: Record<keyof typeof en, string> = {
   'map.locationError': '現在地を取得できませんでした。もう一度お試しください。',
   'map.simulatedLocation': 'シミュレートされた位置',
   'map.nearRouteToggle': 'ルート付近',
+  // marker callout preview (the rich balloon over an onsen pin)
+  'map.previewVisited': '訪問済み',
+  'map.previewViewDetails': '詳細を見る',
 
   // onsen list
   'onsenList.title': '温泉一覧',

@@ -46,6 +46,9 @@ const en = {
   'map.locationError': 'Could not find your location. Please try again.',
   'map.simulatedLocation': 'Simulated location',
   'map.nearRouteToggle': 'Near route',
+  // marker callout preview (the rich balloon over an onsen pin)
+  'map.previewVisited': 'Visited',
+  'map.previewViewDetails': 'View details',
 
   // onsen list
   'onsenList.title': 'Onsen List',

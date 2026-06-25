@@ -394,6 +394,9 @@ export default function MapScreen() {
             lng={onsen.lng}
             name={onsen.name}
             areaName={onsen.areaName}
+            prefecture={onsen.prefecture}
+            admissionFee={onsen.admissionFee}
+            imageUrl={onsen.imageUrl}
             // Visited onsens in the active challenge get a bath-water blue pin;
             // unvisited keep the default red pin.
             visited={visitedIds.has(onsen.id)}
