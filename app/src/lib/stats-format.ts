@@ -38,3 +38,26 @@ export function formatDate(ms: number, language: string): string {
 export function formatMonthYear(ms: number, language: string): string {
   return new Date(ms).toLocaleDateString(language, { year: 'numeric', month: 'short' });
 }
+
+const DAY_MS = 86_400_000;
+
+/**
+ * A localized date formatter for a time axis, whose granularity adapts to the
+ * spanned range so ticks stay readable and distinct: day-level for short spans
+ * (≤ ~3 months, e.g. "Jun 24"), bare month when the whole range sits in one
+ * calendar year (e.g. "Jun"), and month + year once it crosses years
+ * (e.g. "Jun 2026"). Built once from the range, then applied per tick.
+ */
+export function axisDateFormatter(
+  language: string,
+  startMs: number,
+  endMs: number
+): (ms: number) => string {
+  const days = (endMs - startMs) / DAY_MS;
+  const sameYear = new Date(startMs).getFullYear() === new Date(endMs).getFullYear();
+  let options: Intl.DateTimeFormatOptions;
+  if (days <= 92) options = { month: 'short', day: 'numeric' };
+  else if (sameYear) options = { month: 'short' };
+  else options = { year: 'numeric', month: 'short' };
+  return (ms) => new Date(ms).toLocaleDateString(language, options);
+}
