@@ -53,8 +53,13 @@ We do not share your personal data with third parties except:
 ## Data retention and deletion
 
 Your data is retained while your account exists. You can delete individual
-visits and challenges within the app. To delete your account and all associated
-data, contact us via the link below and we will remove it.
+visits and challenges within the app.
+
+You can delete your entire account at any time from within the app, under
+**Menu → Account → Delete account**. Deleting your account is immediate and
+permanent: it removes your profile, all of your challenges and recorded visits,
+your visit photos, and your imported routes. This cannot be undone. If you would
+rather we delete your account for you, contact us via the link below.
 
 ## Children
 

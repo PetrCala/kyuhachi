@@ -147,7 +147,14 @@ export default function Menu() {
             </Text>
           </View>
         ) : null}
-        <Row icon="log-out-outline" label={t('menu.signOut')} onPress={() => signOut(auth)} destructive last />
+        <Row icon="log-out-outline" label={t('menu.signOut')} onPress={() => signOut(auth)} destructive />
+        <Row
+          icon="trash-outline"
+          label={t('menu.deleteAccount')}
+          onPress={() => router.push('/menu/delete-account')}
+          destructive
+          last
+        />
       </View>
 
       {/* Dev-only entry; never rendered in App Store builds, so the labels are an
