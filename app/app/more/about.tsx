@@ -12,9 +12,11 @@ type IconName = ComponentProps<typeof Ionicons>['name'];
 const GITHUB_URL = 'https://github.com/PetrCala/kyuhachi';
 const ISSUES_URL = 'https://github.com/PetrCala/kyuhachi/issues';
 const DATA_SOURCE_URL = 'https://www.88onsen.com';
-// TODO: replace with the hosted policy URLs before App Store submission.
-const PRIVACY_URL = 'https://kyuhachi.app/privacy';
-const TERMS_URL = 'https://kyuhachi.app/terms';
+// Source docs live at docs/legal/{privacy,terms}.md. These point at the
+// GitHub-rendered copies for now; swap to the Firebase Hosting URLs once the
+// policy pages are deployed (see the hosting task).
+const PRIVACY_URL = 'https://github.com/PetrCala/kyuhachi/blob/master/docs/legal/privacy.md';
+const TERMS_URL = 'https://github.com/PetrCala/kyuhachi/blob/master/docs/legal/terms.md';
 
 // 九 (kyu) over 八 (hachi), set in Klee One — the app's visual identity. Mirrors
 // the sign-in brand mark; not a translatable string.
