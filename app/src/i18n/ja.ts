@@ -291,6 +291,16 @@ const ja: Record<keyof typeof en, string> = {
   'preferences.nearRouteRadiusTitle': 'ルート付近の距離（km）',
   'preferences.nearRouteRadiusHint':
     '「ルート付近」をオンにすると、選択中のルートから{{km}}kmより離れた温泉を地図上で非表示にします。',
+  'preferences.animationsHeader': 'アニメーション',
+  'preferences.stampCollectAnimation': 'スタンプ獲得',
+  'preferences.stampCollectAnimationHint':
+    '訪問を記録すると、スタンプが華やかに飛び込んでから獲得できます。オフにすると、スタンプはすぐに表示されます。',
+
+  // stamp-collection celebration (shown after recording a new visit)
+  'stampClaim.title': '新しいスタンプ！',
+  'stampClaim.caption': 'スパポートに新しい御湯印を。',
+  'stampClaim.collect': '獲得する',
+  'stampClaim.a11yLabel': '新しいスタンプを獲得',
 
   // about (More → About)
   'about.title': 'アプリについて',

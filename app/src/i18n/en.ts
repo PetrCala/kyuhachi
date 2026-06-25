@@ -292,6 +292,16 @@ const en = {
   'preferences.nearRouteRadiusTitle': 'Near-route distance (km)',
   'preferences.nearRouteRadiusHint':
     'When “Near route” is on, the map hides onsens farther than {{km}} km from the selected route.',
+  'preferences.animationsHeader': 'Animations',
+  'preferences.stampCollectAnimation': 'Stamp collection',
+  'preferences.stampCollectAnimationHint':
+    'Recording a visit makes its stamp fly in with a flourish before you collect it. Turn this off to have the stamp appear at once.',
+
+  // stamp-collection celebration (shown after recording a new visit)
+  'stampClaim.title': 'New stamp!',
+  'stampClaim.caption': 'A fresh seal for your Spaport.',
+  'stampClaim.collect': 'Collect',
+  'stampClaim.a11yLabel': 'New stamp collected',
 
   // about (More → About)
   'about.title': 'About',
