@@ -46,16 +46,6 @@ const WEEKDAYS: (keyof WeeklySchedule)[] = [
   'sunday',
 ];
 
-const DAY_SHORT: Record<string, { en: string; ja: string }> = {
-  monday: { en: 'Mon', ja: '月' },
-  tuesday: { en: 'Tue', ja: '火' },
-  wednesday: { en: 'Wed', ja: '水' },
-  thursday: { en: 'Thu', ja: '木' },
-  friday: { en: 'Fri', ja: '金' },
-  saturday: { en: 'Sat', ja: '土' },
-  sunday: { en: 'Sun', ja: '日' },
-};
-
 // Collapse consecutive days (Mon→Sun) sharing the same window / closed state.
 function groupSchedule(schedule: WeeklySchedule) {
   const groups: { days: (keyof WeeklySchedule)[]; slot: WeeklySchedule['monday'] }[] = [];
@@ -223,13 +213,14 @@ export default function OnsenDetail() {
   const hoursExceptions = onsen.businessHours?.exceptions ?? [];
   const hoursConfidence = onsen.businessHours?.confidence;
   const lang: 'en' | 'ja' = i18n.language?.toLowerCase().startsWith('ja') ? 'ja' : 'en';
-  const tx = (en: string, ja: string) => (lang === 'ja' ? ja : en);
-  const dayShort = (day: keyof WeeklySchedule) => DAY_SHORT[day][lang];
+  const dayShort = (day: keyof WeeklySchedule) => t(`onsenDetail.dayShort.${day}`);
   const dayRange = (days: (keyof WeeklySchedule)[]) =>
     days.length === 1 ? dayShort(days[0]) : `${dayShort(days[0])}–${dayShort(days[days.length - 1])}`;
   const todayKey = WEEKDAYS[(new Date().getDay() + 6) % 7];
   const todaySlot = schedule ? schedule[todayKey] : null;
-  const todayLabel = todaySlot ? `${todaySlot.opens}–${todaySlot.closes}` : tx('Closed today', '本日休み');
+  const todayLabel = todaySlot
+    ? `${todaySlot.opens}–${todaySlot.closes}`
+    : t('onsenDetail.closedToday');
   const feedItem: VisitFeedItem | null = visit
     ? {
         onsenId: onsen.id,
@@ -325,7 +316,7 @@ export default function OnsenDetail() {
                     accessibilityRole="button"
                     hitSlop={4}
                   >
-                    <Text style={styles.infoLabel}>{tx('Today', '本日')}</Text>
+                    <Text style={styles.infoLabel}>{t('onsenDetail.today')}</Text>
                     <Text style={[styles.infoValue, styles.hoursTodayValue]} selectable>
                       {todayLabel}
                     </Text>
