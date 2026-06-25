@@ -591,6 +591,7 @@ const ja: Record<keyof typeof en, string> = {
   'onsenDetail.uploading': 'アップロード中...',
   'onsenDetail.cancel': 'キャンセル',
   'onsenDetail.editTitle': '訪問を編集',
+  'onsenDetail.recordTitle': '訪問を記録',
   'onsenDetail.editDetails': '詳細を編集',
   'onsenDetail.removeVisit': '訪問記録を削除',
   'onsenDetail.removing': '削除中...',

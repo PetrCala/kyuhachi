@@ -8,7 +8,6 @@ import {
   StyleSheet,
   Linking,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,11 +25,8 @@ import type { VisitFeedItem } from '@/lib/visit-feed';
 import { VisitCard } from '@/components/VisitCard';
 import RecordVisitFab from '@/components/RecordVisitFab';
 import { useVisit } from '@/hooks/useVisit';
-import { useAuth } from '@/context/AuthContext';
 import { usePreferences } from '@/context/PreferencesContext';
 import { db } from '@/firebase';
-import { createEmptyVisit } from '@/lib/visits';
-import { firebaseErrorKey } from '@/lib/firebase-errors';
 import { colors, spacing, typography, radii } from '@/theme';
 
 type OnsenWithId = OnsenDocument & { id: string };
@@ -116,7 +112,6 @@ function InfoRow({
 export default function OnsenDetail() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
-  const { user } = useAuth();
   // Whether onsen pages embed a tappable map preview (default) or instead show a
   // compact map icon in the header. Both routes focus this onsen on the Map tab.
   const { showOnsenMapPreview } = usePreferences();
@@ -146,18 +141,11 @@ export default function OnsenDetail() {
     return unsubscribe;
   }, [id]);
 
-  // Quick one-tap check-in. Creates the visit with empty details (which already
-  // counts toward the challenge), then opens the edit modal so the user can fill
-  // in details right away. The write hits the local cache synchronously and the
-  // visit listener reflects it immediately, so we navigate without awaiting the
-  // server round-trip — this keeps the flow instant and works offline. A
-  // server-side rejection rolls the write back (the edit modal self-dismisses)
-  // and surfaces here.
-  function handleMarkVisited() {
-    if (!user || !challengeId || !id) return;
-    createEmptyVisit(user.uid, challengeId, id).catch((error) => {
-      Alert.alert(t('common.errorTitle'), t(firebaseErrorKey(error)));
-    });
+  // Opens the visit editor. The visit isn't created until the user saves there,
+  // so reaching the editor — or tapping the button by accident — records nothing
+  // on its own.
+  function openVisitEditor() {
+    if (!id) return;
     router.push({ pathname: '/onsens/edit-visit', params: { id } });
   }
 
@@ -420,7 +408,7 @@ export default function OnsenDetail() {
         <RecordVisitFab
           style={[styles.fab, { bottom: spacing[6] + insets.bottom }]}
           accessibilityLabel={t('onsenDetail.markVisited')}
-          onPress={handleMarkVisited}
+          onPress={openVisitEditor}
         />
       )}
     </View>
