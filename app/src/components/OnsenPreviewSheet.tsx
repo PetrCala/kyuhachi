@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ComponentProps } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
@@ -17,6 +17,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import type { OnsenDocument } from '@kyuhachi/shared';
+import { OnsenInfoRow } from '@/components/OnsenInfoRow';
+import { OnsenHours } from '@/components/OnsenHours';
 import { colors, radii, shadows, spacing, typography } from '@/theme';
 
 type OnsenRow = OnsenDocument & { id: string };
@@ -46,44 +48,6 @@ interface OnsenPreviewSheetProps {
   onClose: () => void;
   /** Open the full onsen detail screen for the given id (the "enlarge" action). */
   onViewDetails: (id: string) => void;
-}
-
-/** A labelled value row mirroring the onsen detail screen's InfoRow layout. The
- *  optional inline action renders a tappable icon after the value (e.g. directions). */
-function InfoRow({
-  label,
-  value,
-  action,
-}: {
-  label: string;
-  value: string;
-  action?: {
-    icon: ComponentProps<typeof Ionicons>['name'];
-    onPress: () => void;
-    accessibilityLabel: string;
-  };
-}) {
-  return (
-    <View style={styles.infoRow}>
-      <Text style={styles.infoLabel} selectable>
-        {label}
-      </Text>
-      <Text style={styles.infoValue} selectable>
-        {value}
-        {action && (
-          <Text
-            onPress={action.onPress}
-            accessibilityRole="button"
-            accessibilityLabel={action.accessibilityLabel}
-            suppressHighlighting
-          >
-            {'  '}
-            <Ionicons name={action.icon} size={typography.sizes.md} color={colors.actionPrimary} />
-          </Text>
-        )}
-      </Text>
-    </View>
-  );
 }
 
 /**
@@ -186,7 +150,6 @@ export default function OnsenPreviewSheet({
     return <Modal visible={false} transparent />;
   }
 
-  const schedule = shown.businessHours;
   const directionsAction = {
     icon: 'navigate' as const,
     onPress: () => Linking.openURL(`https://maps.apple.com/?daddr=${shown.lat},${shown.lng}`),
@@ -269,23 +232,21 @@ export default function OnsenPreviewSheet({
             </View>
 
             <View style={styles.section}>
-              <InfoRow
+              <OnsenInfoRow
                 label={t('onsenDetail.labelAddress')}
                 value={shown.address}
                 action={directionsAction}
               />
               {shown.admissionFee && (
-                <InfoRow label={t('onsenDetail.labelFee')} value={shown.admissionFee} />
+                <OnsenInfoRow label={t('onsenDetail.labelFee')} value={shown.admissionFee} />
               )}
               {shown.springQuality && (
-                <InfoRow
+                <OnsenInfoRow
                   label={t('onsenDetail.labelSpringQuality')}
                   value={shown.springQuality}
                 />
               )}
-              {schedule && (
-                <InfoRow label={t('onsenDetail.labelHours')} value={schedule.raw} />
-              )}
+              {shown.businessHours && <OnsenHours hours={shown.businessHours} />}
             </View>
           </ScrollView>
 
@@ -416,22 +377,6 @@ const styles = StyleSheet.create({
   },
   section: {
     paddingTop: spacing[2],
-  },
-  infoRow: {
-    flexDirection: 'row',
-    paddingVertical: spacing[2],
-  },
-  infoLabel: {
-    width: spacing[12] + spacing[8],
-    fontSize: typography.sizes.sm,
-    color: colors.textMuted,
-    flexShrink: 0,
-  },
-  infoValue: {
-    flex: 1,
-    fontSize: typography.sizes.sm,
-    color: colors.textPrimary,
-    lineHeight: typography.sizes.xl,
   },
   cta: {
     flexDirection: 'row',
