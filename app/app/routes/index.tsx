@@ -35,7 +35,6 @@ import {
   RouteImportError,
 } from '@/lib/route-import';
 import { compareRoutes, routeOrderUpdates } from '@/lib/route-order';
-import { challengeRouteAction } from '@/lib/route-challenge';
 import { firebaseErrorKey } from '@/lib/firebase-errors';
 import { useActiveChallengeRoute } from '@/hooks/useActiveChallengeRoute';
 import RowActionsButton, { type RowAction } from '@/components/RowActionsButton';
@@ -154,11 +153,15 @@ export default function RoutesList() {
     router.push({ pathname: '/map', params: { routeId } });
   }
 
-  // Tapping a route plays its SVG preview, then lands on the map showing it. No
-  // challenge write — attaching lives in the ⋯ menu now. The draw is skippable
-  // (tap the overlay) so browsing isn't forced to wait out the animation.
-  function previewThenMap(routeId: string, route: { name: string; points: { lat: number; lng: number }[] }) {
+  // Tapping a route is the one gesture: it uses the route in the active
+  // challenge (if any), plays its SVG preview, then lands on the map showing it.
+  // The select is an optimistic, offline-safe write fired in parallel so it
+  // never blocks the preview; it's skipped when the route is already the active
+  // one. The draw is skippable (tap the overlay) so browsing isn't forced to
+  // wait out the animation.
+  function selectAndPreview(routeId: string, route: { name: string; points: { lat: number; lng: number }[] }) {
     if (drawing) return; // a preview is already playing
+    if (challengeId && routeId !== activeRouteId) void applyChallengeRoute(routeId);
     pendingRouteId.current = routeId;
     navigated.current = false;
     // Degenerate tracks have nothing to draw — skip straight to the map.
@@ -170,10 +173,10 @@ export default function RoutesList() {
     dwellTimer.current = setTimeout(goToMap, ROUTE_DRAW_DWELL_MS);
   }
 
-  // Attach this route to the active challenge (or detach it), from the ⋯ menu.
-  // Cosmetic only — never touches completion logic. Silent on success (the live
-  // challenge subscription flips the menu label); the offline cache reflects it
-  // immediately.
+  // Attach this route to the active challenge (or detach it). Used by tapping
+  // (attach) and the active route's ⋯ "Remove from challenge" (detach). Cosmetic
+  // only — never touches completion logic. Silent on success (the live challenge
+  // subscription flips the badge/menu); the offline cache reflects it immediately.
   async function applyChallengeRoute(nextActiveRouteId: string | null) {
     if (!user || !challengeId || attaching.current) return;
     attaching.current = true;
@@ -368,18 +371,13 @@ export default function RoutesList() {
   // One route card. `drag` carries the grab handle's gesture props and whether
   // this row is the one in hand.
   function renderCard({ id, data }: RouteRow, drag: DragRowState) {
-    // The challenge action heads the ⋯ sheet, but only when there's an active
-    // challenge to attach to. The ⋯ trigger is a separate hit target from the
-    // card's tap (preview→map), so neither competes with the other.
-    const challengeAction = challengeRouteAction(id, challengeId, activeRouteId);
+    // The route in use by the active challenge gets the "Active" badge and a
+    // ⋯ action to remove it. Selecting a route is done by tapping it, so there's
+    // no "use in challenge" action — only the detach for the one already in use.
+    const isActiveRoute = challengeId != null && id === activeRouteId;
     const actions: RowAction[] = [
-      ...(challengeAction
-        ? [
-            {
-              label: t(challengeAction.labelKey),
-              onPress: () => applyChallengeRoute(challengeAction.nextActiveRouteId),
-            },
-          ]
+      ...(isActiveRoute
+        ? [{ label: t('routes.removeFromChallenge'), onPress: () => applyChallengeRoute(null) }]
         : []),
       { label: t('routes.rename'), onPress: () => promptRename(id, data.name) },
       {
@@ -404,7 +402,7 @@ export default function RoutesList() {
         <Pressable
           style={styles.cardMain}
           disabled={drawing != null}
-          onPress={() => previewThenMap(id, { name: data.name, points: data.points })}
+          onPress={() => selectAndPreview(id, { name: data.name, points: data.points })}
         >
           <Text style={styles.cardName} numberOfLines={1}>
             {data.name}
@@ -413,6 +411,7 @@ export default function RoutesList() {
             {metaLine(data)}
           </Text>
         </Pressable>
+        {isActiveRoute && <Text style={styles.activeBadge}>{t('routes.activeBadge')}</Text>}
         <RowActionsButton
           accessibilityLabel={t('routes.moreActions')}
           title={data.name}
@@ -444,6 +443,9 @@ export default function RoutesList() {
         contentContainerStyle={styles.content}
         scrollEnabled={!dragging}
       >
+        {challengeId != null && sorted.length > 0 && (
+          <Text style={styles.tapHint}>{t('routes.tapHint')}</Text>
+        )}
         {sorted.length > 1 && <Text style={styles.reorderHint}>{t('routes.reorderHint')}</Text>}
 
         {sorted.length === 0 ? (
@@ -498,6 +500,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[4],
     paddingBottom: spacing[8],
+  },
+  tapHint: {
+    fontSize: typography.sizes.sm,
+    color: colors.textMuted,
+    marginBottom: spacing[2],
   },
   reorderHint: {
     fontSize: typography.sizes.sm,
@@ -558,5 +565,18 @@ const styles = StyleSheet.create({
   cardMeta: {
     fontSize: typography.sizes.sm,
     color: colors.textMuted,
+  },
+  // "Active" pill on the route in use by the active challenge — mirrors the
+  // default-challenge badge in the challenge list.
+  activeBadge: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.semibold,
+    color: colors.actionPrimaryText,
+    backgroundColor: colors.actionPrimary,
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
+    borderRadius: radii.full,
+    overflow: 'hidden',
+    marginRight: spacing[2],
   },
 });
