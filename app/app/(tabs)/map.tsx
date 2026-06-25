@@ -30,6 +30,7 @@ import { simulatedCoordinate } from '@/lib/dev-location';
 import { distanceToPolylineKm } from '@/lib/geo';
 import { useActiveChallengeProgress } from '@/hooks/useActiveChallengeProgress';
 import MapZoomControl from '@/components/MapZoomControl';
+import OnsenMarker from '@/components/OnsenMarker';
 import { colors, spacing, radii, typography, shadows } from '@/theme';
 
 type OnsenRow = OnsenDocument & { id: string };
@@ -231,6 +232,19 @@ export default function MapScreen() {
     }
   }, [bumpControls, handleCameraSettle]);
 
+  // Stable across renders so the memoized OnsenMarkers never re-render or
+  // re-attach their refs just because this screen re-rendered (the zoom slider
+  // streams the camera altitude on every gesture frame).
+  const registerMarkerRef = useCallback(
+    (id: string, ref: ElementRef<typeof Marker> | null) => {
+      markerRefs.current[id] = ref;
+    },
+    []
+  );
+  const handleOnsenPress = useCallback((id: string) => {
+    router.push(`/onsens/${id}`);
+  }, []);
+
   useEffect(() => {
     const unsubscribe = onSnapshot(
       query(collection(db, COLLECTIONS.ONSENS), where('isActive', '==', true)),
@@ -357,18 +371,18 @@ export default function MapScreen() {
         onRegionChangeComplete={handleCameraSettle}
       >
         {visibleOnsens.map((onsen) => (
-          <Marker
+          <OnsenMarker
             key={onsen.id}
-            ref={(r) => {
-              markerRefs.current[onsen.id] = r;
-            }}
-            coordinate={{ latitude: onsen.lat, longitude: onsen.lng }}
-            title={onsen.name}
-            description={onsen.areaName}
+            id={onsen.id}
+            lat={onsen.lat}
+            lng={onsen.lng}
+            name={onsen.name}
+            areaName={onsen.areaName}
             // Visited onsens in the active challenge get a bath-water blue pin;
             // unvisited keep the default red pin.
-            pinColor={visitedIds.has(onsen.id) ? colors.onsenVisited : undefined}
-            onCalloutPress={() => router.push(`/onsens/${onsen.id}`)}
+            visited={visitedIds.has(onsen.id)}
+            registerRef={registerMarkerRef}
+            onPress={handleOnsenPress}
           />
         ))}
         {route && (
