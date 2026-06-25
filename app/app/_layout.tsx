@@ -10,6 +10,12 @@ import { PreferencesProvider } from '@/context/PreferencesContext';
 // 九八 mark never flashes in a fallback face.
 SplashScreen.preventAutoHideAsync();
 
+// Floor on how briefly the splash may appear. The app loads fast, so without
+// this the splash can flash by before the user registers it. Hold it for at
+// least this long so the 九八 mark reads as intentional, not a glitch.
+const MIN_SPLASH_DURATION_MS = 600;
+const splashShownAt = Date.now();
+
 function NavigationController() {
   const { user, isLoading } = useAuth();
   const segments = useSegments();
@@ -41,7 +47,11 @@ export default function RootLayout() {
   const ready = fontsLoaded && languageLoaded;
 
   useEffect(() => {
-    if (ready) SplashScreen.hideAsync();
+    if (!ready) return;
+    const elapsed = Date.now() - splashShownAt;
+    const remaining = Math.max(0, MIN_SPLASH_DURATION_MS - elapsed);
+    const timer = setTimeout(() => SplashScreen.hideAsync(), remaining);
+    return () => clearTimeout(timer);
   }, [ready]);
 
   if (!ready) return null;
