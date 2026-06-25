@@ -316,7 +316,7 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
 
   const rows = useMemo<OnsenRow[]>(() => {
     if (!challenge) return [];
-    // Grouping/order (unvisited first, by prefecture, then name) is applied by OnsenList.
+    // Grouping/order (unvisited first, by prefecture, then area, then name) is applied by OnsenList.
     return challenge.snapshotEligibleOnsenIds.map((id) => {
       const info = onsenMap.get(id);
       return {
