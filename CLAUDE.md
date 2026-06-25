@@ -2,168 +2,94 @@
 
 ## What this project is
 
-An iOS-first mobile app for the 九州八十八湯 (Kyushu 88 hot springs) challenge. Small audience, low maintenance budget, production-quality.
+An **iOS-first Expo app** for the 九州八十八湯 (Kyushu 88 onsen) challenge. Small
+audience, low maintenance budget, production-quality. The architecture plan and
+current phase/status live in [docs/implementation-plan.md](docs/implementation-plan.md)
+— read it for where things stand, not this file.
 
-**Current repo state:** Phases 0–3 complete. Ready for Phase 4 (Stats and App Store submission).
+## Two-repo split
 
-Full implementation plan: [docs/implementation-plan.md](docs/implementation-plan.md)
+- **This repo:** the app + Firebase Functions + shared TypeScript types + firebase
+  config + CI/CD.
+- **Separate private data repo (`kyuhachi-data`):** the scraper, onsen id map, and
+  catalog publisher. It owns and assigns every `kyuhachiId` and publishes the onsen
+  catalog to Firestore. The app never sees upstream ids — it reads only the published
+  catalog. Don't move catalog/id or trail-optimization/scheduling logic into this repo.
 
----
-
-## Current phase: Phase 4 — Stats and App Store submission
-
-Phases 0–3 are complete. **Phase 3 delivered:** the challenge rules/tiers screen, the challenge-type picker + swipeable tier carousel, multiple challenges (create/list/switch/delete), and imported routes (`.gpx`/`.kml`/`.tcx` → simplified track in Firestore → map polyline → optional `activeRouteId` on a challenge).
-
-Phase 4 scope:
-
-- [ ] Stats (progress over time, per-area/prefecture breakdown, transport mix, tier progress)
-- [ ] App Store / TestFlight submission (EAS Build + EAS Submit)
-
----
-
-## Locked stack decisions
-
-Do not challenge these without explicit instruction.
+## Locked stack decisions (do not challenge without instruction)
 
 | Concern | Choice |
 |---|---|
 | Framework | Expo managed workflow (EAS Build, not bare) |
-| Navigation | Expo Router v3+ |
+| Navigation | Expo Router |
 | Firebase SDK | `@react-native-firebase` (not the JS SDK) |
-| Map | `react-native-maps` with Apple Maps provider |
+| Map | `react-native-maps`, Apple Maps provider |
 | Backend | Firebase Functions v2, Node 20, TypeScript |
 | Auth | Sign in with Apple + email/password. No anonymous mode. |
-| CI/CD | GitHub Actions + EAS Build + EAS Submit → TestFlight |
+| CI/CD | GitHub Actions → EAS Build + EAS Submit → TestFlight |
 | Testing | Jest + React Native Testing Library + Firebase Emulator Suite |
-| Platform | iOS only for now. Do not optimize for Android. |
+| Platform | iOS only. Don't optimize for Android. |
 
----
+## Locked architectural decisions (do not challenge without instruction)
 
-## Locked architectural decisions
+Each is backed by an ADR in [docs/adr/](docs/adr/).
 
-- **Stable IDs:** Every onsen has a `kyuhachiId` (UUID) that never changes. Upstream IDs from 88onsen.com are unstable and live only in the separate data repo. The app never sees upstream IDs.
-- **Challenge model:** The challenge is "visit any 88 onsens from the official eligible pool (~155)." It is NOT a fixed list of specific onsens. `eligibleOnsenIds` in `challenge_types` defines the pool; `snapshotEligibleOnsenIds` on the user's challenge is frozen at creation. Completion = unique eligible visits ≥ 88.
-- **Challenge snapshots:** `snapshotEligibleOnsenIds` is frozen at challenge creation. Catalog changes never mutate existing challenges.
-- **Onsen documents are never deleted.** Deprecated onsens get `isActive: false`.
-- **No direct write path through Functions for standard user operations** in Phase 1. Firestore rules enforce ownership. Functions are for triggers and admin operations only.
-- **Offline-first:** Firestore offline persistence enabled from day one. This is not optional.
-- **Routes:** Externally-authored GPS tracks the user **imports** from `.gpx`/`.kml`/`.tcx` files (not built in-app, not lists of onsens). Parsed on import to a simplified coordinate track + metadata and stored in Firestore (the raw file is not kept). Independent from challenges. A challenge has an optional `activeRouteId` (freely switchable); completion logic ignores it.
-- **Tiers:** Bronze/silver/gold. Conditions involve transport restrictions, time frame, and visit count. Exact thresholds TBD — do not hardcode them. Load from `challenge_types` in Firestore. Transport is user-reported per visit (`structuredData.transportMode`: `foot`/`bicycle`/`public`/`car`).
+- **Stable ids.** Every onsen has a `kyuhachiId` (UUID) that never changes; upstream
+  88onsen ids live only in the data repo and the app never sees them.
+- **Challenge model.** "Visit any 88 onsens from the official eligible pool" — not a
+  fixed list. The pool is defined in `challenge_types`; completion = unique eligible
+  visits ≥ 88.
+- **Challenge snapshots are frozen at creation.** Catalog changes never mutate
+  existing challenges.
+- **Onsen documents are never deleted** — deprecated onsens get `isActive: false`.
+- **Offline-first.** Firestore offline persistence is on from day one; not optional.
+- **Firestore rules enforce ownership.** Standard user operations write Firestore
+  directly; Functions are for triggers and admin only, never a write proxy.
+- **Routes are imported, not authored.** Users import external GPS tracks
+  (`.gpx`/`.kml`/`.tcx`) → a simplified track in Firestore. Independent of challenges;
+  a challenge's optional `activeRouteId` never affects completion.
+- **Tiers (bronze/silver/gold)** load their thresholds from `challenge_types` — never
+  hardcode them. Transport is user-reported per visit.
 
----
+## Conventions (enforced)
 
-## Repo structure (target)
+- **Styling.** Vanilla RN `StyleSheet.create()` + design tokens from `app/src/theme/`
+  only — no color/spacing/font/radius literals, no inline style objects, no component
+  library, no CSS-in-JS. Dark mode is deferred. Full rules + token reference:
+  [docs/styling-guide.md](docs/styling-guide.md).
+- **i18n.** No hardcoded user-facing strings — use `t()`. Every key exists in both
+  `app/src/i18n/en.ts` and `ja.ts` (`ja` is typed against `en`, so drift is a compile
+  error). Don't translate Firestore content — Japanese onsen data is shown as-is.
+- **Types first.** No feature code before its types exist in `shared/src/types/`;
+  Firestore reads/writes are always typed there, never `as any`.
+
+## Structure
 
 ```
-/
-├── app/          # Expo React Native app
-├── functions/    # Firebase Functions (Node 20, TypeScript)
-├── shared/       # Shared TypeScript types (app + functions)
-├── firebase/     # Firestore rules, indexes, storage rules, emulator config
-├── docs/         # ADRs, specs, implementation plan
-├── .github/      # CI/CD workflows
-├── _archive/     # Old Python prototype (do not touch, do not delete)
-└── CLAUDE.md     # This file
+app/        Expo app (screens, components, theme, i18n)
+functions/  Firebase Functions (Node 20, TypeScript)
+shared/     Shared TypeScript types (app + functions)
+firebase/   Firestore rules, indexes, emulator config
+docs/       ADRs, specs, implementation plan, guides
+_archive/   Old Python prototype — reference only; never import, never delete
 ```
 
----
+## Skills
+
+Common tasks have slash commands (e.g. `/new-screen`, `/check-styles`,
+`/check-types`, `/check-offline`, `/pr-checklist`) — the operational entry points,
+documented in [docs/skills.md](docs/skills.md). Prefer them over ad-hoc work.
 
 ## What NOT to do
 
-- Do not write any code before the relevant types in `shared/src/types/` exist.
-- Do not write Firestore rules without running them against the emulator test suite.
-- Do not import from `_archive/`. It is reference material only.
-- Do not suggest Android-specific workarounds or enterprise-scale infrastructure.
-- Do not add error handling for scenarios that cannot happen.
-- Do not scaffold broad parallel systems — implement complete vertical slices.
-- Do not move trail optimization/scheduling logic into the app. It belongs in the separate data repo.
+- Don't write code before the relevant `shared/src/types/` exist.
+- Don't change Firestore rules without running them against the emulator suite.
+- Don't import from `_archive/` — it is reference material only.
+- Don't add Android workarounds, dark-mode branching, or a UI component library.
+- Don't add error handling for impossible states, or scaffold broad parallel systems —
+  ship complete vertical slices.
 
----
+## Delivering changes
 
-## Two-repo split
-
-**This repo:** app + functions + shared types + firebase config + CI/CD.
-
-**Separate private data repo (not this repo):** Python scraper, onsen ID mapping, catalog publisher to Firestore. The data repo is responsible for assigning and maintaining `kyuhachiId` values and publishing the onsen catalog to Firebase.
-
----
-
-## Styling
-
-### Rules (enforceable)
-
-1. **No color literals outside `src/theme/colors.ts`.** Every color in a component file must come from `colors.*`. No hex codes, no `'white'`, no `'black'`.
-2. **No raw spacing numbers.** Every `padding`, `margin`, and `gap` must use `spacing[N]` from `src/theme/spacing.ts`.
-3. **No raw `fontSize` or `fontWeight` literals.** Use `typography.sizes.*` and `typography.weights.*`.
-4. **No raw `borderRadius` literals.** Use `radii.*` from `src/theme/radii.ts`.
-5. **Always use `StyleSheet.create()`.** Never pass inline style objects `style={{ ... }}` with literal values. The only exception is values that are genuinely computed at runtime (e.g. dynamic widths from layout events).
-6. **`StyleSheet.create()` goes at the bottom of the file**, after the component. Never declare it inside the component function body.
-7. **No component library.** Vanilla RN `StyleSheet` + theme tokens only. Do not add `@rneui`, `tamagui`, `gluestack`, `nativewind`, or any other UI or CSS-in-JS library.
-8. **Dark mode is deferred.** Do not add `useColorScheme()` or any light/dark branching in Phase 1–2.
-
-### Token location
-
-All tokens live in `app/src/theme/`:
-
-| File | Contents |
-|---|---|
-| `colors.ts` | Raw palette + semantic color aliases |
-| `spacing.ts` | Spacing scale (4pt base grid, keys 1–12) |
-| `typography.ts` | Font sizes (`sizes.*`) and weights (`weights.*`) |
-| `radii.ts` | Border radii (`sm` / `md` / `lg` / `xl` / `full`) |
-| `shadows.ts` | iOS shadow presets (`sm` / `md` / `lg`) |
-| `index.ts` | Barrel re-export |
-
-Import from screens and components:
-
-```typescript
-import { colors, spacing, typography, radii, shadows } from '../src/theme';
-```
-
-(Adjust the relative path depth as needed.)
-
-### Style organization
-
-- Each file owns its own `StyleSheet.create()`. Never share a stylesheet across files.
-- Style key names use camelCase, named by role: `container`, `title`, `primaryButton`, `inputField`.
-- Shadows are applied via spread: `style={[styles.card, shadows.md]}`.
-
----
-
-## Internationalization
-
-### i18n rules (enforceable)
-
-1. **No hardcoded user-facing strings in component files.** Every label, placeholder, title, button text, and error message must use `t('key')` from `useTranslation()`. The only exception is Firestore data (onsen names, addresses, etc.) which stays untranslated.
-2. **Every key must exist in both `en.ts` and `ja.ts`.** `ja.ts` is typed as `Record<keyof typeof en, string>` — a missing or extra key is a compile error.
-3. **Key naming:** `screenName.keyRole` format (e.g. `signIn.emailPlaceholder`, `onsenDetail.labelAddress`). Screen prefixes match the file name. Use `common.*` only for strings genuinely shared across 3+ screens.
-4. **No i18n abstractions beyond `useTranslation()`.** No wrapper hooks, no custom `<T>` component. Call `t()` directly.
-5. **Do not translate Firestore content.** Onsen data is in Japanese and displayed as-is.
-
-### Translation file location
-
-All translation files live in `app/src/i18n/`:
-
-| File | Contents |
-|---|---|
-| `en.ts` | English translations (fallback language) |
-| `ja.ts` | Japanese translations (typed as `typeof en`) |
-| `index.ts` | `i18next` config + `expo-localization` device detection |
-
-Import in screens:
-
-```typescript
-import { useTranslation } from 'react-i18next';
-// inside the component:
-const { t } = useTranslation();
-```
-
----
-
-## Key files to read before implementing anything
-
-- `docs/skills.md` — available slash commands for common tasks
-- `docs/implementation-plan.md` — full architecture plan
-- `docs/specs/firestore-data-model.md` — Firestore schema (write this in Phase 0)
-- `shared/src/types/` — all TypeScript types (write these in Phase 0)
-- `firebase/firestore.rules` — security rules (write these in Phase 0)
+Deliver code changes as an open PR against `master` (branch, commit, push,
+`gh pr create`), never a direct push to `master`. Skip for read-only sessions.
