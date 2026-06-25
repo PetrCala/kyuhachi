@@ -99,7 +99,7 @@ function InfoRow({
 }
 
 export default function OnsenDetail() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const { user } = useAuth();
   // Whether onsen pages embed a tappable map preview (default) or instead show a
@@ -109,7 +109,7 @@ export default function OnsenDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [onsen, setOnsen] = useState<OnsenWithId | null>(null);
   const [loading, setLoading] = useState(true);
-  const [hoursExpanded, setHoursExpanded] = useState(false);
+  const [showOriginal, setShowOriginal] = useState(false);
 
   const { challengeId, visit, loading: visitLoading } = useVisit(id);
 
@@ -193,6 +193,9 @@ export default function OnsenDetail() {
   }
 
   const schedule = onsen.businessHours?.schedule ?? null;
+  const hoursExceptions = onsen.businessHours?.exceptions ?? [];
+  const hoursConfidence = onsen.businessHours?.confidence;
+  const lang: 'en' | 'ja' = i18n.language?.toLowerCase().startsWith('ja') ? 'ja' : 'en';
   const feedItem: VisitFeedItem | null = visit
     ? {
         onsenId: onsen.id,
@@ -278,33 +281,58 @@ export default function OnsenDetail() {
             <InfoRow label={t('onsenDetail.labelSpringQuality')} value={onsen.springQuality} />
           )}
           {onsen.businessHours && (
-            <InfoRow label={t('onsenDetail.labelHours')} value={onsen.businessHours.raw} />
-          )}
-          {schedule && (
             <>
-              <Pressable
-                style={styles.hoursToggle}
-                onPress={() => setHoursExpanded((v) => !v)}
-                hitSlop={4}
-              >
-                <Text style={styles.hoursToggleText}>
-                  {hoursExpanded ? t('onsenDetail.hideHours') : t('onsenDetail.showHours')}
+              {/* Base hours: the weekly grid when structured, else the raw text. */}
+              {schedule ? (
+                <>
+                  <Text style={styles.hoursHeader}>{t('onsenDetail.labelHours')}</Text>
+                  {WEEKDAYS.map((day) => {
+                    const slot = schedule[day];
+                    return (
+                      <View key={day} style={styles.dayRow}>
+                        <Text style={styles.dayLabel} selectable>
+                          {t(`onsenDetail.day.${day}`)}
+                        </Text>
+                        <Text style={styles.dayValue} selectable>
+                          {slot ? `${slot.opens}–${slot.closes}` : t('onsenDetail.closed')}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </>
+              ) : (
+                <InfoRow label={t('onsenDetail.labelHours')} value={onsen.businessHours.raw} />
+              )}
+
+              {/* Flagged exceptions / irregularities (display-only captions). */}
+              {hoursExceptions.map((ex, i) => (
+                <Text key={i} style={styles.hoursException} selectable>
+                  {`⚠ ${ex[lang] ?? ex.en}`}
                 </Text>
-              </Pressable>
-              {hoursExpanded &&
-                WEEKDAYS.map((day) => {
-                  const slot = schedule[day];
-                  return (
-                    <View key={day} style={styles.dayRow}>
-                      <Text style={styles.dayLabel} selectable>
-                        {t(`onsenDetail.day.${day}`)}
-                      </Text>
-                      <Text style={styles.dayValue} selectable>
-                        {slot ? `${slot.opens}–${slot.closes}` : t('onsenDetail.closed')}
-                      </Text>
-                    </View>
-                  );
-                })}
+              ))}
+              {hoursConfidence && hoursConfidence !== 'high' && (
+                <Text style={styles.hoursHint}>{t('onsenDetail.hoursVary')}</Text>
+              )}
+
+              {/* Let the user fall back to the verbatim source text. */}
+              {schedule && (
+                <>
+                  <Pressable
+                    style={styles.hoursToggle}
+                    onPress={() => setShowOriginal((v) => !v)}
+                    hitSlop={4}
+                  >
+                    <Text style={styles.hoursToggleText}>
+                      {showOriginal ? t('onsenDetail.hideOriginal') : t('onsenDetail.showOriginal')}
+                    </Text>
+                  </Pressable>
+                  {showOriginal && (
+                    <Text style={styles.hoursRaw} selectable>
+                      {onsen.businessHours.raw}
+                    </Text>
+                  )}
+                </>
+              )}
             </>
           )}
         </View>
@@ -480,6 +508,29 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: typography.sizes.sm,
     color: colors.textPrimary,
+  },
+  hoursHeader: {
+    fontSize: typography.sizes.sm,
+    color: colors.textMuted,
+    marginBottom: spacing[1],
+  },
+  hoursException: {
+    fontSize: typography.sizes.sm,
+    color: colors.textPrimary,
+    lineHeight: 20,
+    paddingVertical: spacing[1] / 2,
+  },
+  hoursHint: {
+    fontSize: typography.sizes.xs,
+    color: colors.textMuted,
+    fontStyle: 'italic',
+    paddingTop: spacing[1],
+  },
+  hoursRaw: {
+    fontSize: typography.sizes.sm,
+    color: colors.textPrimary,
+    lineHeight: 20,
+    paddingTop: spacing[1],
   },
   websiteLink: {
     fontSize: typography.sizes.sm,
