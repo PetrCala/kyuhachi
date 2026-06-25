@@ -123,7 +123,7 @@ All navigation chrome is localized — no hardcoded titles or labels:
 
 | File | Element | Status |
 |---|---|---|
-| [app/(tabs)/_layout.tsx](app/app/(tabs)/_layout.tsx) | `tabBarLabel` + `headerTitle` for all 4 tabs | ✅ `t('tabs.*')`, `t('map.title')`, `t('onsenList.title')`, `t('more.title')` |
+| [app/(tabs)/_layout.tsx](app/app/(tabs)/_layout.tsx) | `tabBarLabel` + `headerTitle` for all 4 tabs | ✅ `t('tabs.*')`, `t('map.title')`, `t('onsenList.title')`, `t('menu.title')` |
 | [app/(tabs)/map.tsx](app/app/(tabs)/map.tsx) | dynamic `headerTitle` | ✅ route name (Firestore data) with `t('map.title')` fallback |
 | [app/_layout.tsx](app/app/_layout.tsx) | root `Stack` | ✅ `headerShown: false`, no titles |
 | [app/onsens/[id].tsx](app/app/onsens/[id].tsx) | `Stack.Screen` title | ✅ `onsen.name` (Firestore) / `''` during load |

@@ -9,7 +9,7 @@ import {
 import { colors, spacing, typography, radii, shadows } from '@/theme';
 
 /**
- * Preferences screen (pushed from the More tab). Currently just the "Near you"
+ * Preferences screen (pushed from the Menu tab). Currently just the "Near you"
  * onsen-list controls: a show/hide toggle and a radius picker.
  */
 export default function Preferences() {

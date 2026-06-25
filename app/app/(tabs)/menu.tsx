@@ -78,17 +78,18 @@ function LanguageToggle() {
   );
 }
 
-export default function More() {
+export default function Menu() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const accountLabel = user?.email ?? user?.displayName ?? '';
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <Text style={styles.sectionHeader}>{t('menu.sectionChallenge')}</Text>
       <View style={styles.group}>
         <Row
           icon="trophy-outline"
-          label={t('more.challenges')}
+          label={t('menu.challenges')}
           onPress={() => router.push('/challenge/list')}
         />
         <Row
@@ -97,36 +98,41 @@ export default function More() {
           onPress={() => router.push('/passport')}
         />
         <Row
-          icon="navigate-outline"
-          label={t('more.routes')}
-          onPress={() => router.push('/routes')}
-        />
-        <Row
-          icon="options-outline"
-          label={t('more.preferences')}
-          onPress={() => router.push('/more/preferences')}
-        />
-        <Row
           icon="stats-chart-outline"
-          label={t('more.stats')}
+          label={t('menu.stats')}
           onPress={() => router.push('/stats')}
         />
         <Row
-          icon="information-circle-outline"
-          label={t('more.about')}
-          onPress={() => router.push('/more/about')}
+          icon="navigate-outline"
+          label={t('menu.routes')}
+          onPress={() => router.push('/routes')}
           last
         />
       </View>
 
-      <Text style={styles.sectionHeader}>{t('more.language')}</Text>
+      <Text style={styles.sectionHeader}>{t('menu.sectionApp')}</Text>
+      <View style={styles.group}>
+        <Row
+          icon="options-outline"
+          label={t('menu.preferences')}
+          onPress={() => router.push('/menu/preferences')}
+        />
+        <Row
+          icon="information-circle-outline"
+          label={t('menu.about')}
+          onPress={() => router.push('/menu/about')}
+          last
+        />
+      </View>
+
+      <Text style={styles.sectionHeader}>{t('menu.language')}</Text>
       <View style={styles.group}>
         <View style={styles.languageRow}>
           <LanguageToggle />
         </View>
       </View>
 
-      <Text style={styles.sectionHeader}>{t('more.account')}</Text>
+      <Text style={styles.sectionHeader}>{t('menu.account')}</Text>
       <View style={styles.group}>
         {accountLabel ? (
           <View style={styles.row}>
@@ -141,7 +147,7 @@ export default function More() {
             </Text>
           </View>
         ) : null}
-        <Row icon="log-out-outline" label={t('more.signOut')} onPress={() => signOut(auth)} destructive last />
+        <Row icon="log-out-outline" label={t('menu.signOut')} onPress={() => signOut(auth)} destructive last />
       </View>
 
       {/* Dev-only entry; never rendered in App Store builds, so the labels are an

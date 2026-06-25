@@ -43,10 +43,10 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="more"
+        name="menu"
         options={{
-          tabBarLabel: t('tabs.more'),
-          headerTitle: t('more.title'),
+          tabBarLabel: t('tabs.menu'),
+          headerTitle: t('menu.title'),
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
               name={focused ? 'ellipsis-horizontal-circle' : 'ellipsis-horizontal-circle-outline'}
