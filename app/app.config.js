@@ -1,12 +1,19 @@
 const googleServicesFile =
   process.env.GOOGLE_SERVICE_INFO_PLIST ?? "./GoogleService-Info.plist";
 
+// Single source of truth for the marketing version (CFBundleShortVersionString).
+// Bump it with `npm run version:bump` (see scripts/version.mjs). The iOS build
+// number (CFBundleVersion) is intentionally NOT set here — it's auto-derived
+// from TestFlight at build time (latest + 1, scoped to this version) by
+// fastlane. See docs/ios-deploy.md.
+const { version } = require("./package.json");
+
 /** @type {import('expo/config').ExpoConfig} */
 module.exports = {
   name: "Kyuhachi",
   slug: "kyuhachi",
   scheme: "kyuhachi",
-  version: "1.0.0",
+  version,
   orientation: "portrait",
   icon: "./assets/icon.png",
   userInterfaceStyle: "automatic",
