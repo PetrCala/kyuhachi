@@ -64,7 +64,9 @@ function InfoRow({
 }) {
   return (
     <View style={styles.infoRow}>
-      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoLabel} selectable>
+        {label}
+      </Text>
       {onPress ? (
         <Pressable
           style={styles.infoValuePressable}
@@ -72,10 +74,12 @@ function InfoRow({
           accessibilityRole="button"
           hitSlop={4}
         >
-          <Text style={[styles.infoValue, styles.infoValueLink]}>{value}</Text>
+          <Text style={[styles.infoValue, styles.infoValueLink]} selectable>
+            {value}
+          </Text>
         </Pressable>
       ) : (
-        <Text style={styles.infoValue}>
+        <Text style={styles.infoValue} selectable>
           {value}
           {action && (
             <Text
@@ -236,8 +240,10 @@ export default function OnsenDetail() {
         )}
 
         <View style={styles.header}>
-          <Text style={styles.name}>{onsen.name}</Text>
-          <Text style={styles.area}>
+          <Text style={styles.name} selectable>
+            {onsen.name}
+          </Text>
+          <Text style={styles.area} selectable>
             {onsen.areaName}　{onsen.prefecture}
           </Text>
           {!onsen.isActive && (
@@ -290,8 +296,10 @@ export default function OnsenDetail() {
                   const slot = schedule[day];
                   return (
                     <View key={day} style={styles.dayRow}>
-                      <Text style={styles.dayLabel}>{t(`onsenDetail.day.${day}`)}</Text>
-                      <Text style={styles.dayValue}>
+                      <Text style={styles.dayLabel} selectable>
+                        {t(`onsenDetail.day.${day}`)}
+                      </Text>
+                      <Text style={styles.dayValue} selectable>
                         {slot ? `${slot.opens}–${slot.closes}` : t('onsenDetail.closed')}
                       </Text>
                     </View>
@@ -337,7 +345,9 @@ export default function OnsenDetail() {
               accessibilityRole="link"
               hitSlop={4}
             >
-              <Text style={styles.websiteLink}>{onsen.websiteUrl}</Text>
+              <Text style={styles.websiteLink} selectable>
+                {onsen.websiteUrl}
+              </Text>
             </Pressable>
           </View>
         )}

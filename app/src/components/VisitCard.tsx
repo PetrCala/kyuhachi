@@ -163,7 +163,7 @@ export function VisitCard({
       ) : null}
 
       {visit.notes ? (
-        <Text style={styles.notes} numberOfLines={3}>
+        <Text style={styles.notes} numberOfLines={3} selectable>
           {visit.notes}
         </Text>
       ) : null}
