@@ -4,6 +4,7 @@ import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
+import * as Application from 'expo-application';
 import { colors, spacing, typography, radii } from '@/theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -56,7 +57,10 @@ export default function About() {
   const { t } = useTranslation();
 
   const version = Constants.expoConfig?.version ?? '—';
-  const build = Constants.expoConfig?.ios?.buildNumber;
+  // The iOS build number (CFBundleVersion) is injected by fastlane *after*
+  // `expo prebuild`, so it never reaches Constants.expoConfig.ios.buildNumber.
+  // Read it from the native Info.plist at runtime instead. See docs/ios-deploy.md.
+  const build = Application.nativeBuildVersion;
   const versionLabel = build
     ? t('about.versionWithBuild', { version, build })
     : t('about.version', { version });
