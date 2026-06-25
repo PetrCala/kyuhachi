@@ -49,7 +49,7 @@ export default function TabsLayout() {
           headerTitle: t('menu.title'),
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
-              name={focused ? 'ellipsis-horizontal-circle' : 'ellipsis-horizontal-circle-outline'}
+              name={focused ? 'menu' : 'menu-outline'}
               size={size}
               color={color}
             />
