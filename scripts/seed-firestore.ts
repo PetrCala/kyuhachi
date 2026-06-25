@@ -56,6 +56,7 @@ interface OnsenWritePayload {
   springQuality: null;
   websiteUrl: null;
   imageUrl: null;
+  blurhash: null;
   isActive: boolean;
   catalogVersion: number;
   createdAt: admin.firestore.FieldValue;
@@ -225,6 +226,7 @@ async function main(): Promise<void> {
       springQuality: null,
       websiteUrl: null,
       imageUrl: null,
+      blurhash: null,
       isActive: true,
       catalogVersion: 1,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),

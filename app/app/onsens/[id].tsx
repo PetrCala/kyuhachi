@@ -149,6 +149,8 @@ export default function OnsenDetail() {
             contentFit="cover"
             transition={200}
             cachePolicy="memory-disk"
+            placeholder={onsen.blurhash ? { blurhash: onsen.blurhash } : undefined}
+            placeholderContentFit="cover"
           />
         )}
 
