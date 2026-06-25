@@ -150,6 +150,9 @@ export function StampClaimModal({ reward, animationsEnabled, onDismiss }: StampC
   const pop = useRef(new Animated.Value(0)).current;
   const glow = useRef(new Animated.Value(0)).current;
   const burst = useRef(new Animated.Value(0)).current;
+  // Whether the flourish is playing — gates the glow halo and sparkles out of the
+  // tree entirely when motion is off, so no static circle lingers behind the seal.
+  const [animating, setAnimating] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
@@ -159,12 +162,11 @@ export function StampClaimModal({ reward, animationsEnabled, onDismiss }: StampC
     AccessibilityInfo.isReduceMotionEnabled().then((reduceMotion) => {
       if (cancelled) return;
       const animate = animationsEnabled && !reduceMotion;
+      setAnimating(animate);
 
       fade.setValue(0);
       pop.setValue(animate ? 0 : 1);
-      // A soft resting halo sits behind the stamp either way; only its pulse is
-      // motion, so a static mid-glow is fine when the flourish is off.
-      glow.setValue(animate ? 0 : 0.5);
+      glow.setValue(0);
       burst.setValue(0);
 
       Animated.timing(fade, {
@@ -248,14 +250,19 @@ export function StampClaimModal({ reward, animationsEnabled, onDismiss }: StampC
           style={[styles.card, shadows.lg, { opacity: fade }]}
         >
           <View style={styles.stampWrap}>
-            <Animated.View
-              pointerEvents="none"
-              style={[
-                styles.glow,
-                { opacity: glowOpacity, transform: [{ scale: glowScale }] },
-              ]}
-            />
-            <Sparkles burst={burst} />
+            {animating ? (
+              <>
+                <Animated.View
+                  testID="stampGlow"
+                  pointerEvents="none"
+                  style={[
+                    styles.glow,
+                    { opacity: glowOpacity, transform: [{ scale: glowScale }] },
+                  ]}
+                />
+                <Sparkles burst={burst} />
+              </>
+            ) : null}
             <Animated.View style={{ transform: [{ scale }, { rotate }] }}>
               <Stamp
                 size={STAMP_SIZE}
