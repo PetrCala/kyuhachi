@@ -20,11 +20,13 @@ export default function Preferences() {
     showOnsenMapPreview,
     nearRouteRadiusKm,
     animateStampCollect,
+    animateProgress,
     setShowNearby,
     setNearRadiusKm,
     setShowOnsenMapPreview,
     setNearRouteRadiusKm,
     setAnimateStampCollect,
+    setAnimateProgress,
   } = usePreferences();
 
   return (
@@ -122,6 +124,18 @@ export default function Preferences() {
         </View>
       </View>
       <Text style={styles.hint}>{t('preferences.stampCollectAnimationHint')}</Text>
+
+      <View style={styles.group}>
+        <View style={styles.row}>
+          <Text style={styles.rowLabel}>{t('preferences.progressAnimation')}</Text>
+          <Switch
+            value={animateProgress}
+            onValueChange={setAnimateProgress}
+            trackColor={{ false: colors.separator, true: colors.actionPrimary }}
+          />
+        </View>
+      </View>
+      <Text style={styles.hint}>{t('preferences.progressAnimationHint')}</Text>
     </ScrollView>
   );
 }

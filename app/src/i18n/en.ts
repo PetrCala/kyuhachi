@@ -296,6 +296,9 @@ const en = {
   'preferences.stampCollectAnimation': 'Stamp collection',
   'preferences.stampCollectAnimationHint':
     'Recording a visit makes its stamp fly in with a flourish before you collect it. Turn this off to have the stamp appear at once.',
+  'preferences.progressAnimation': 'Progress count-up',
+  'preferences.progressAnimationHint':
+    'When a new visit raises your count, the home number counts up and the bar fills smoothly. Turn this off to have the new total appear at once.',
 
   // stamp-collection celebration (shown after recording a new visit)
   'stampClaim.title': 'New stamp!',
