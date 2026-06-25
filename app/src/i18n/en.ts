@@ -569,6 +569,7 @@ const en = {
   'onsenDetail.uploading': 'Uploading...',
   'onsenDetail.cancel': 'Cancel',
   'onsenDetail.editTitle': 'Edit visit',
+  'onsenDetail.recordTitle': 'Record a visit',
   'onsenDetail.editDetails': 'Edit details',
   'onsenDetail.removeVisit': 'Remove visit',
   'onsenDetail.removing': 'Removing...',

@@ -18,11 +18,10 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import {
   doc,
+  setDoc,
   updateDoc,
   deleteDoc,
   serverTimestamp,
-  arrayUnion,
-  arrayRemove,
 } from '@react-native-firebase/firestore';
 import {
   ref,
@@ -59,6 +58,13 @@ import { colors, spacing, typography, radii } from '@/theme';
 
 const MAX_PHOTOS = 6;
 
+/**
+ * A photo in the editor: one already stored on the visit, or one freshly picked
+ * but not yet uploaded. New ones upload to Storage on Save; nothing is written
+ * before that, so Cancel discards them.
+ */
+type PhotoItem = { kind: 'existing'; url: string } | { kind: 'new'; uri: string };
+
 /** A labelled form row. */
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -86,14 +92,22 @@ export default function EditVisit() {
   const [durationText, setDurationText] = useState('');
   const [showDetails, setShowDetails] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState(false);
+  // Photos are staged locally and only uploaded/written on Save; Cancel discards
+  // them. `originalPhotoUrls` remembers what the doc had so Save can delete the
+  // Storage objects for any the user removed.
+  const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  const originalPhotoUrls = useRef<string[]>([]);
   const seeded = useRef(false);
+  // Whether a visit doc ever existed here. In create mode it never does, so a
+  // null visit must not be mistaken for "deleted".
+  const hadVisit = useRef(false);
 
   // Seed the form from the visit once it first loads. The ref guard means later
   // live snapshots (e.g. a photo URL landing) don't clobber in-progress edits.
   // Spreading over the empty record fills any field a pre-existing doc lacks.
   useEffect(() => {
+    if (visit) hadVisit.current = true;
     if (!visit || seeded.current) return;
     seeded.current = true;
     setNotes(visit.notes ?? '');
@@ -101,22 +115,25 @@ export default function EditVisit() {
     setDurationText(
       visit.structuredData?.duration != null ? String(visit.structuredData.duration) : ''
     );
+    const urls = visit.photoUrls ?? [];
+    originalPhotoUrls.current = urls;
+    setPhotos(urls.map((url) => ({ kind: 'existing', url })));
   }, [visit]);
 
-  // Dismiss when there's nothing to edit: the visit was deleted elsewhere while
-  // the modal is open, or the modal was re-presented by navigation state
-  // restoration on reload (without its `id` param, or before auth restored). In
-  // the restore case there may be no underlying screen to pop to, so fall back
-  // to the home route instead of a no-op back().
+  // Leave the editor when there's nothing left to edit: no onsen id (the modal
+  // was re-presented by navigation state restoration on reload), or the visit we
+  // were editing got deleted — via Remove here, or elsewhere. A brand-new visit
+  // that was never created stays open so the form can be filled. `returnTo=home`
+  // pops the whole flow; otherwise fall back to home when there's no screen to
+  // pop to.
   useEffect(() => {
-    if (loading || visit) return;
-    if (dismissToHome) {
-      router.dismissAll();
-      return;
-    }
-    if (router.canGoBack()) router.back();
+    if (loading) return;
+    const gone = !id || (hadVisit.current && !visit);
+    if (!gone) return;
+    if (dismissToHome) router.dismissAll();
+    else if (router.canGoBack()) router.back();
     else router.replace('/');
-  }, [loading, visit, router, dismissToHome]);
+  }, [loading, visit, id, router, dismissToHome]);
 
   function visitRef() {
     if (!user || !challengeId || !id) return null;
@@ -141,17 +158,49 @@ export default function EditVisit() {
   async function handleSaveVisit() {
     const docRef = visitRef();
     if (!docRef) return;
+    // Guard against a late snapshot re-seeding the form mid-save: a create makes
+    // the visit non-null before we navigate away.
+    seeded.current = true;
     setSaving(true);
     try {
-      await updateDoc(docRef, {
-        notes: notes.trim() || null,
-        structuredData: {
-          ...details,
-          waterTemp: details.waterTemp?.trim() ? details.waterTemp : null,
-          duration: durationText ? Number(durationText) : null,
-        },
-        updatedAt: serverTimestamp(),
-      });
+      // Upload freshly-picked photos in order, then write the doc. With no new
+      // photos this stays a single, offline-capable write.
+      const photoUrls: string[] = [];
+      for (let i = 0; i < photos.length; i++) {
+        const photo = photos[i];
+        photoUrls.push(
+          photo.kind === 'existing' ? photo.url : await uploadPhotoFile(photo.uri, i)
+        );
+      }
+      const structuredData = {
+        ...details,
+        waterTemp: details.waterTemp?.trim() ? details.waterTemp : null,
+        duration: durationText ? Number(durationText) : null,
+      };
+      if (visit) {
+        await updateDoc(docRef, {
+          notes: notes.trim() || null,
+          photoUrls,
+          structuredData,
+          updatedAt: serverTimestamp(),
+        });
+      } else {
+        // First save records the visit — the only place a visit is created.
+        await setDoc(docRef, {
+          visitedAt: serverTimestamp(),
+          notes: notes.trim() || null,
+          photoUrls,
+          structuredData,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
+      // Best-effort: drop the Storage objects for any pre-existing photo the user
+      // removed. (onVisitDeleted sweeps by prefix if the whole visit is deleted.)
+      const kept = new Set(photoUrls);
+      for (const url of originalPhotoUrls.current) {
+        if (!kept.has(url)) deleteObject(refFromURL(storage, url)).catch(() => {});
+      }
       if (dismissToHome) router.dismissAll();
       else router.back();
     } catch (error) {
@@ -187,42 +236,18 @@ export default function EditVisit() {
     ]);
   }
 
-  async function uploadPhoto(uri: string) {
-    const docRef = visitRef();
-    if (!docRef || !user || !challengeId || !id) return;
-    setUploading(true);
-    try {
-      // A per-upload timestamped name keeps every photo under the visit's folder
-      // distinct; onVisitDeleted clears the whole folder by prefix on delete.
-      const name = `photo_${Date.now()}.jpg`;
-      const photoRef = ref(storage, `visits/${user.uid}/${challengeId}_${id}/${name}`);
-      await putFile(photoRef, uri);
-      const downloadUrl = await getDownloadURL(photoRef);
-      await updateDoc(docRef, {
-        photoUrls: arrayUnion(downloadUrl),
-        updatedAt: serverTimestamp(),
-      });
-    } catch (error) {
-      Alert.alert(t('common.errorTitle'), t(firebaseErrorKey(error)));
-    } finally {
-      setUploading(false);
-    }
+  // Uploads one freshly-picked photo to Storage and returns its download URL. The
+  // index keeps names distinct when several upload in the same Save. User /
+  // challenge / id are present here — the caller checked visitRef() first.
+  async function uploadPhotoFile(uri: string, index: number): Promise<string> {
+    const name = `photo_${Date.now()}_${index}.jpg`;
+    const photoRef = ref(storage, `visits/${user!.uid}/${challengeId}_${id}/${name}`);
+    await putFile(photoRef, uri);
+    return getDownloadURL(photoRef);
   }
 
-  async function removePhoto(url: string) {
-    const docRef = visitRef();
-    if (!docRef) return;
-    try {
-      await updateDoc(docRef, {
-        photoUrls: arrayRemove(url),
-        updatedAt: serverTimestamp(),
-      });
-      // Best-effort delete of the Storage object. If it fails the orphan is
-      // swept up when the visit itself is deleted (onVisitDeleted, by prefix).
-      await deleteObject(refFromURL(storage, url)).catch(() => {});
-    } catch (error) {
-      Alert.alert(t('common.errorTitle'), t(firebaseErrorKey(error)));
-    }
+  function removePhoto(index: number) {
+    setPhotos((ps) => ps.filter((_, i) => i !== index));
   }
 
   function handleAddPhoto() {
@@ -246,13 +271,14 @@ export default function EditVisit() {
           });
         }
         if (result && !result.canceled && result.assets[0]) {
-          uploadPhoto(result.assets[0].uri);
+          const uri = result.assets[0].uri;
+          setPhotos((ps) => [...ps, { kind: 'new', uri }]);
         }
       }
     );
   }
 
-  if (loading || !visit) {
+  if (loading) {
     return (
       <>
         <Stack.Screen options={{ title: t('onsenDetail.editTitle') }} />
@@ -261,7 +287,7 @@ export default function EditVisit() {
     );
   }
 
-  const photoUrls = visit.photoUrls ?? [];
+  const title = visit ? t('onsenDetail.editTitle') : t('onsenDetail.recordTitle');
   const transportOptions: ChipOption[] = TRANSPORT_MODES.map((mode) => ({
     value: mode,
     label: t(`onsenDetail.transport.${mode}`),
@@ -281,7 +307,7 @@ export default function EditVisit() {
 
   return (
     <>
-      <Stack.Screen options={{ title: t('onsenDetail.editTitle') }} />
+      <Stack.Screen options={{ title }} />
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -292,14 +318,21 @@ export default function EditVisit() {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
         >
-          {/* — Photos — */}
+          {/* — Photos (staged locally; uploaded on Save) — */}
           <View style={styles.photoGrid}>
-            {photoUrls.map((url) => (
-              <View key={url} style={styles.photoThumbWrap}>
-                <Image source={{ uri: url }} style={styles.photoThumb} resizeMode="cover" />
+            {photos.map((photo, index) => (
+              <View
+                key={photo.kind === 'existing' ? photo.url : `new:${index}:${photo.uri}`}
+                style={styles.photoThumbWrap}
+              >
+                <Image
+                  source={{ uri: photo.kind === 'existing' ? photo.url : photo.uri }}
+                  style={styles.photoThumb}
+                  resizeMode="cover"
+                />
                 <Pressable
                   style={styles.photoRemove}
-                  onPress={() => removePhoto(url)}
+                  onPress={() => removePhoto(index)}
                   hitSlop={6}
                   accessibilityLabel={t('onsenDetail.removePhoto')}
                 >
@@ -307,16 +340,11 @@ export default function EditVisit() {
                 </Pressable>
               </View>
             ))}
-            {photoUrls.length < MAX_PHOTOS &&
-              (uploading ? (
-                <View style={[styles.photoThumb, styles.photoAdd]}>
-                  <ActivityIndicator size="small" color={colors.actionPrimary} />
-                </View>
-              ) : (
-                <Pressable style={[styles.photoThumb, styles.photoAdd]} onPress={handleAddPhoto}>
-                  <Ionicons name="add" size={typography.sizes.xxl} color={colors.actionPrimary} />
-                </Pressable>
-              ))}
+            {photos.length < MAX_PHOTOS && (
+              <Pressable style={[styles.photoThumb, styles.photoAdd]} onPress={handleAddPhoto}>
+                <Ionicons name="add" size={typography.sizes.xxl} color={colors.actionPrimary} />
+              </Pressable>
+            )}
           </View>
 
           {/* — Base — */}
@@ -547,15 +575,17 @@ export default function EditVisit() {
           >
             <Text style={styles.cancelButtonText}>{t('onsenDetail.cancel')}</Text>
           </Pressable>
-          <Pressable
-            style={[styles.removeButton, removing && styles.buttonDisabled]}
-            onPress={confirmRemoveVisit}
-            disabled={saving || removing}
-          >
-            <Text style={styles.removeButtonText}>
-              {removing ? t('onsenDetail.removing') : t('onsenDetail.removeVisit')}
-            </Text>
-          </Pressable>
+          {visit && (
+            <Pressable
+              style={[styles.removeButton, removing && styles.buttonDisabled]}
+              onPress={confirmRemoveVisit}
+              disabled={saving || removing}
+            >
+              <Text style={styles.removeButtonText}>
+                {removing ? t('onsenDetail.removing') : t('onsenDetail.removeVisit')}
+              </Text>
+            </Pressable>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </>
