@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { View, Text, Animated, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, Pressable, Animated, ActivityIndicator, StyleSheet } from 'react-native';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';
 import { colors, spacing, typography, radii, shadows } from '@/theme';
@@ -20,6 +20,9 @@ export const ROUTE_DRAW_MS = 1100;
 interface Props {
   name: string;
   points: { lat: number; lng: number }[];
+  /** When provided, tapping anywhere on the overlay skips the dwell and runs
+   *  this immediately (e.g. jump straight to the map). A faint hint is shown. */
+  onSkip?: () => void;
 }
 
 interface Geom {
@@ -90,7 +93,7 @@ function projectTrack(points: { lat: number; lng: number }[]): Geom | null {
   return { d, length, frac, xs: pts.map((p) => p.x), ys: pts.map((p) => p.y) };
 }
 
-export default function RouteDrawLoader({ name, points }: Props) {
+export default function RouteDrawLoader({ name, points, onSkip }: Props) {
   const { t } = useTranslation();
   const progress = useRef(new Animated.Value(0)).current;
   const geom = useMemo(() => projectTrack(points), [points]);
@@ -105,7 +108,12 @@ export default function RouteDrawLoader({ name, points }: Props) {
   }, [progress, geom]);
 
   return (
-    <View style={styles.overlay}>
+    <Pressable
+      style={styles.overlay}
+      onPress={onSkip}
+      accessibilityRole={onSkip ? 'button' : undefined}
+      accessibilityLabel={onSkip ? t('routes.tapToSkip') : undefined}
+    >
       <View style={[styles.card, shadows.lg]}>
         {geom ? (
           <Svg width={CANVAS} height={CANVAS} viewBox={`0 0 ${CANVAS} ${CANVAS}`}>
@@ -161,8 +169,9 @@ export default function RouteDrawLoader({ name, points }: Props) {
           {name}
         </Text>
         <Text style={styles.caption}>{t('routes.drawingRoute')}</Text>
+        {onSkip ? <Text style={styles.skipHint}>{t('routes.tapToSkip')}</Text> : null}
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -199,5 +208,10 @@ const styles = StyleSheet.create({
     marginTop: spacing[1],
     fontSize: typography.sizes.sm,
     color: colors.textMuted,
+  },
+  skipHint: {
+    marginTop: spacing[3],
+    fontSize: typography.sizes.xs,
+    color: colors.textPlaceholder,
   },
 });

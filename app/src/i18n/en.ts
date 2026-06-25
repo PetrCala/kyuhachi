@@ -433,10 +433,9 @@ const en = {
 
   // routes (import + management)
   'routes.title': 'Routes',
-  'routes.selectTitle': 'Select a Route',
-  'routes.selectHint': 'Tap a route to follow it in this challenge.',
   'routes.errorAttach': 'Failed to update the challenge route',
   'routes.drawingRoute': 'Plotting your route…',
+  'routes.tapToSkip': 'Tap to skip',
   'routes.import': 'Import route',
   'routes.importing': 'Importing…',
   'routes.empty': 'No routes yet. Import a .gpx, .kml, or .tcx file to get started.',
@@ -445,6 +444,8 @@ const en = {
   'routes.moreActions': 'More actions',
   'routes.reorderHint': 'Drag the handle to reorder your routes.',
   'routes.dragHandle': 'Drag to reorder',
+  'routes.useInChallenge': 'Use in challenge',
+  'routes.removeFromChallenge': 'Remove from challenge',
   'routes.rename': 'Rename',
   'routes.renameTitle': 'Rename route',
   'routes.renameMessage': 'Enter a new name for this route.',
