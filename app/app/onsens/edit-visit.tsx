@@ -73,8 +73,13 @@ export default function EditVisit() {
   const { t } = useTranslation();
   const router = useRouter();
   const { user } = useAuth();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, returnTo } = useLocalSearchParams<{ id: string; returnTo?: string }>();
   const { challengeId, visit, loading } = useVisit(id);
+
+  // When the modal is opened from the record-a-visit list (returnTo='home'), a
+  // successful Save or a Delete pops the whole flow — both the modal and the
+  // list — back to the Home tab. Cancel / swipe-down still use plain back().
+  const dismissToHome = returnTo === 'home';
 
   const [notes, setNotes] = useState('');
   const [details, setDetails] = useState<VisitStructuredData>({ ...EMPTY_VISIT_STRUCTURED_DATA });
@@ -105,9 +110,13 @@ export default function EditVisit() {
   // to the home route instead of a no-op back().
   useEffect(() => {
     if (loading || visit) return;
+    if (dismissToHome) {
+      router.dismissAll();
+      return;
+    }
     if (router.canGoBack()) router.back();
     else router.replace('/');
-  }, [loading, visit, router]);
+  }, [loading, visit, router, dismissToHome]);
 
   function visitRef() {
     if (!user || !challengeId || !id) return null;
@@ -143,7 +152,8 @@ export default function EditVisit() {
         },
         updatedAt: serverTimestamp(),
       });
-      router.back();
+      if (dismissToHome) router.dismissAll();
+      else router.back();
     } catch (error) {
       Alert.alert(t('common.errorTitle'), t(firebaseErrorKey(error)));
     } finally {

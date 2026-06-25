@@ -50,6 +50,12 @@ interface OnsenListProps {
   loading: boolean;
   /** Trailing indicator for unvisited rows: a chevron (browse) or an empty circle (checklist). */
   unvisitedVariant: 'chevron' | 'circle';
+  /**
+   * Row tap handler. Defaults to opening the onsen detail screen (browse). The
+   * record-a-visit list passes its own handler to open the visit modal directly.
+   * Must be referentially stable (wrap in `useCallback`) so rows stay memoized.
+   */
+  onItemPress?: (item: OnsenListItem) => void;
 }
 
 /** A single row, memoized so scrolling doesn't re-render rows that haven't changed. */
@@ -57,13 +63,18 @@ const OnsenListRow = memo(function OnsenListRow({
   item,
   unvisitedVariant,
   distanceLabel,
+  onPress,
 }: {
   item: OnsenListItem;
   unvisitedVariant: 'chevron' | 'circle';
   distanceLabel?: string;
+  onPress?: (item: OnsenListItem) => void;
 }) {
   return (
-    <Pressable style={styles.row} onPress={() => router.push(`/onsens/${item.id}`)}>
+    <Pressable
+      style={styles.row}
+      onPress={() => (onPress ? onPress(item) : router.push(`/onsens/${item.id}`))}
+    >
       <View style={styles.rowText}>
         <Text style={styles.rowName}>{item.name}</Text>
       </View>
@@ -93,7 +104,7 @@ const OnsenListRow = memo(function OnsenListRow({
  * Grouping by prefecture (not the finer area) keeps the number of sticky headers
  * small (~8), which is what makes the scroll feel smooth.
  */
-export function OnsenList({ data, loading, unvisitedVariant }: OnsenListProps) {
+export function OnsenList({ data, loading, unvisitedVariant, onItemPress }: OnsenListProps) {
   const { t } = useTranslation();
   const { showNearby, nearRadiusKm, loaded: prefsLoaded } = usePreferences();
   const [searchQuery, setSearchQuery] = useState('');
@@ -202,6 +213,7 @@ export function OnsenList({ data, loading, unvisitedVariant }: OnsenListProps) {
       <OnsenListRow
         item={item}
         unvisitedVariant={unvisitedVariant}
+        onPress={onItemPress}
         distanceLabel={
           section.near && item.distanceKm !== undefined
             ? t('onsenList.distanceKm', { km: item.distanceKm.toFixed(1) })
@@ -209,7 +221,7 @@ export function OnsenList({ data, loading, unvisitedVariant }: OnsenListProps) {
         }
       />
     ),
-    [unvisitedVariant, t]
+    [unvisitedVariant, onItemPress, t]
   );
 
   const renderSectionHeader = useCallback(
