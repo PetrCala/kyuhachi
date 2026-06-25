@@ -13,7 +13,9 @@ import { colors, spacing, typography, radii, shadows } from '@/theme';
 /**
  * Preferences screen (pushed from the Menu tab). Each control shows only its
  * label by default; the explanation lives behind a tappable ⓘ so the screen
- * stays scannable while the help text is one tap away.
+ * stays scannable while the help text is one tap away. The "Near you" toggle
+ * and its distance picker share one card, since the radius only matters while
+ * the toggle is on.
  */
 export default function Preferences() {
   const { t } = useTranslation();
@@ -32,26 +34,36 @@ export default function Preferences() {
     setAnimateProgress,
   } = usePreferences();
 
+  // Animate the distance row in/out as the toggle reveals/hides it.
+  const toggleShowNearby = (value: boolean) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setShowNearby(value);
+  };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: t('preferences.title'), headerShown: true }} />
 
-      <ToggleRow
-        label={t('preferences.showNearby')}
-        hint={t('preferences.showNearbyHint')}
-        value={showNearby}
-        onValueChange={setShowNearby}
-      />
-
-      {showNearby ? (
-        <RadiusField
-          title={t('preferences.radiusTitle')}
-          hint={t('preferences.radiusHint', { km: nearRadiusKm })}
-          options={NEAR_RADIUS_OPTIONS_KM}
-          value={nearRadiusKm}
-          onSelect={setNearRadiusKm}
+      <View style={styles.group}>
+        <ToggleRowBody
+          label={t('preferences.showNearby')}
+          hint={t('preferences.showNearbyHint')}
+          value={showNearby}
+          onValueChange={toggleShowNearby}
         />
-      ) : null}
+        {showNearby ? (
+          <>
+            <Separator />
+            <RadiusRowBody
+              label={t('preferences.radiusTitle')}
+              hint={t('preferences.radiusHint', { km: nearRadiusKm })}
+              options={NEAR_RADIUS_OPTIONS_KM}
+              value={nearRadiusKm}
+              onSelect={setNearRadiusKm}
+            />
+          </>
+        ) : null}
+      </View>
 
       <Text style={styles.sectionHeader}>{t('preferences.onsenPageHeader')}</Text>
       <ToggleRow
@@ -86,6 +98,16 @@ export default function Preferences() {
   );
 }
 
+/** Expand/collapse state for a control's on-tap explanation. */
+function useHintToggle() {
+  const [open, setOpen] = useState(false);
+  const toggle = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setOpen((prev) => !prev);
+  };
+  return { open, toggle };
+}
+
 /** Small ⓘ button that expands/collapses a control's explanation. */
 function InfoToggle({ open, onPress, label }: { open: boolean; onPress: () => void; label: string }) {
   return (
@@ -106,8 +128,16 @@ function InfoToggle({ open, onPress, label }: { open: boolean; onPress: () => vo
   );
 }
 
-/** A label + switch row whose hint reveals inside the card when ⓘ is tapped. */
-function ToggleRow({
+/** Inset hairline divider between rows that share a card. */
+function Separator() {
+  return <View style={styles.separator} />;
+}
+
+/**
+ * A label + switch row with an on-tap hint, without its own card wrapper — so
+ * it can stand alone (via ToggleRow) or sit alongside other rows in one card.
+ */
+function ToggleRowBody({
   label,
   hint,
   value,
@@ -119,16 +149,12 @@ function ToggleRow({
   onValueChange: (value: boolean) => void;
 }) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  const toggleHint = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setOpen((prev) => !prev);
-  };
+  const { open, toggle } = useHintToggle();
   return (
-    <View style={styles.group}>
+    <>
       <View style={styles.row}>
         <Text style={styles.rowLabel}>{label}</Text>
-        <InfoToggle open={open} onPress={toggleHint} label={t('preferences.explain', { label })} />
+        <InfoToggle open={open} onPress={toggle} label={t('preferences.explain', { label })} />
         <Switch
           value={value}
           onValueChange={onValueChange}
@@ -136,11 +162,61 @@ function ToggleRow({
         />
       </View>
       {open ? <Text style={styles.cardHint}>{hint}</Text> : null}
+    </>
+  );
+}
+
+/** ToggleRowBody wrapped in its own card. */
+function ToggleRow(props: {
+  label: string;
+  hint: string;
+  value: boolean;
+  onValueChange: (value: boolean) => void;
+}) {
+  return (
+    <View style={styles.group}>
+      <ToggleRowBody {...props} />
     </View>
   );
 }
 
-/** A titled segmented radius picker whose hint reveals below it when ⓘ is tapped. */
+/**
+ * A titled segmented radius picker with an on-tap hint, laid out as a row to
+ * sit inside a shared card (label + ⓘ on one line, segmented control below).
+ */
+function RadiusRowBody({
+  label,
+  hint,
+  options,
+  value,
+  onSelect,
+}: {
+  label: string;
+  hint: string;
+  options: readonly number[];
+  value: number;
+  onSelect: (km: number) => void;
+}) {
+  const { t } = useTranslation();
+  const { open, toggle } = useHintToggle();
+  return (
+    <>
+      <View style={styles.row}>
+        <Text style={styles.rowLabel}>{label}</Text>
+        <InfoToggle open={open} onPress={toggle} label={t('preferences.explain', { label })} />
+      </View>
+      <View style={styles.segmentedRow}>
+        <Segmented options={options} value={value} onSelect={onSelect} />
+      </View>
+      {open ? <Text style={styles.cardHint}>{hint}</Text> : null}
+    </>
+  );
+}
+
+/**
+ * A standalone titled segmented radius picker: a muted header above its own
+ * card, with the hint revealed below when ⓘ is tapped.
+ */
 function RadiusField({
   title,
   hint,
@@ -155,39 +231,50 @@ function RadiusField({
   onSelect: (km: number) => void;
 }) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  const toggleHint = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setOpen((prev) => !prev);
-  };
+  const { open, toggle } = useHintToggle();
   return (
     <>
       <View style={styles.fieldHeaderRow}>
         <Text style={styles.fieldTitle}>{title}</Text>
-        <InfoToggle open={open} onPress={toggleHint} label={t('preferences.explain', { label: title })} />
+        <InfoToggle open={open} onPress={toggle} label={t('preferences.explain', { label: title })} />
       </View>
       <View style={styles.group}>
         <View style={styles.segmentedRow}>
-          <View style={styles.segmented}>
-            {options.map((km) => {
-              const active = km === value;
-              return (
-                <Pressable
-                  key={km}
-                  onPress={() => onSelect(km)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
-                  style={[styles.segment, active && styles.segmentActive, active && shadows.sm]}
-                >
-                  <Text style={[styles.segmentLabel, active && styles.segmentLabelActive]}>{km}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          <Segmented options={options} value={value} onSelect={onSelect} />
         </View>
       </View>
       {open ? <Text style={styles.hint}>{hint}</Text> : null}
     </>
+  );
+}
+
+/** The segmented km selector itself, shared by both radius layouts. */
+function Segmented({
+  options,
+  value,
+  onSelect,
+}: {
+  options: readonly number[];
+  value: number;
+  onSelect: (km: number) => void;
+}) {
+  return (
+    <View style={styles.segmented}>
+      {options.map((km) => {
+        const active = km === value;
+        return (
+          <Pressable
+            key={km}
+            onPress={() => onSelect(km)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
+            style={[styles.segment, active && styles.segmentActive, active && shadows.sm]}
+          >
+            <Text style={[styles.segmentLabel, active && styles.segmentLabelActive]}>{km}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }
 
@@ -217,6 +304,11 @@ const styles = StyleSheet.create({
   },
   infoButton: {
     paddingHorizontal: spacing[2],
+  },
+  separator: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.separator,
+    marginLeft: spacing[4],
   },
   sectionHeader: {
     fontSize: typography.sizes.sm,
