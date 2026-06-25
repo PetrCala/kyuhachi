@@ -20,6 +20,8 @@ import { colors, spacing, typography, radii } from '@/theme';
 export interface OnsenListItem {
   id: string;
   name: string;
+  /** Hiragana reading of `name`; the within-prefecture sort key. null → fall back to `name`. */
+  nameKana: string | null;
   areaName: string;
   prefecture: string;
   lat: number;
@@ -185,9 +187,14 @@ export function OnsenList({ data, loading, unvisitedVariant, onItemPress }: Onse
             visitedCount: progress.visited,
             total: progress.total,
             // Cluster by area (the finer subdivision within the prefecture) so
-            // onsens from the same hot-spring town sit together, then by name.
+            // onsens from the same hot-spring town sit together, then by reading
+            // (yomi) so the order is meaningful to a reader. Falls back to `name`
+            // until the catalog publishes readings; hiragana sorts correctly by
+            // code point (gojūon), so no locale collation is needed.
             data: [...rows].sort(
-              (a, b) => a.areaName.localeCompare(b.areaName) || a.name.localeCompare(b.name)
+              (a, b) =>
+                a.areaName.localeCompare(b.areaName) ||
+                (a.nameKana ?? a.name).localeCompare(b.nameKana ?? b.name)
             ),
           };
         })
