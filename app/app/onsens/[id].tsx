@@ -3,12 +3,12 @@ import {
   View,
   Text,
   ScrollView,
-  Image,
   Pressable,
   StyleSheet,
   Linking,
   ActivityIndicator,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
@@ -143,7 +143,13 @@ export default function OnsenDetail() {
         contentContainerStyle={[styles.content, showVisitButton && styles.contentWithFab]}
       >
         {onsen.imageUrl && (
-          <Image source={{ uri: onsen.imageUrl }} style={styles.image} resizeMode="cover" />
+          <Image
+            source={onsen.imageUrl}
+            style={styles.image}
+            contentFit="cover"
+            transition={200}
+            cachePolicy="memory-disk"
+          />
         )}
 
         <View style={styles.header}>
