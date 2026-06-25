@@ -184,7 +184,11 @@ export function OnsenList({ data, loading, unvisitedVariant, onItemPress }: Onse
             visited,
             visitedCount: progress.visited,
             total: progress.total,
-            data: [...rows].sort((a, b) => a.name.localeCompare(b.name)),
+            // Cluster by area (the finer subdivision within the prefecture) so
+            // onsens from the same hot-spring town sit together, then by name.
+            data: [...rows].sort(
+              (a, b) => a.areaName.localeCompare(b.areaName) || a.name.localeCompare(b.name)
+            ),
           };
         })
         .sort((a, b) => a.prefecture.localeCompare(b.prefecture));
