@@ -268,10 +268,15 @@ const en = {
   'menu.preferences': 'Preferences',
   'menu.stats': 'Stats',
   'menu.account': 'Account',
-  'menu.signOut': 'Sign out',
-  'menu.deleteAccount': 'Delete account',
   'menu.language': 'Language',
   'menu.about': 'About',
+
+  // account (Menu → Account)
+  'account.title': 'Account',
+  'account.signedInWithApple': 'Signed in with Apple',
+  'account.signedInWithEmail': 'Signed in with email',
+  'account.signOut': 'Sign out',
+  'account.deleteAccount': 'Delete account',
 
   // preferences
   'preferences.title': 'Preferences',

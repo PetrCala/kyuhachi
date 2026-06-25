@@ -3,9 +3,7 @@ import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
-import { signOut } from '@react-native-firebase/auth';
 import { useAuth } from '@/context/AuthContext';
-import { auth } from '@/firebase';
 import { DEV_TOOLS_ENABLED } from '@/lib/dev/flags';
 import { LANGUAGES, setAppLanguage } from '@/i18n';
 import { colors, spacing, typography, radii, shadows } from '@/theme';
@@ -20,9 +18,11 @@ type RowProps = {
   destructive?: boolean;
   disabled?: boolean;
   last?: boolean;
+  /** Clamp the label to N lines (e.g. a long email on the account row). */
+  numberOfLines?: number;
 };
 
-function Row({ icon, label, onPress, badge, destructive, disabled, last }: RowProps) {
+function Row({ icon, label, onPress, badge, destructive, disabled, last, numberOfLines }: RowProps) {
   const tint = destructive
     ? colors.destructive
     : disabled
@@ -33,6 +33,7 @@ function Row({ icon, label, onPress, badge, destructive, disabled, last }: RowPr
     <View style={[styles.row, last && styles.rowLast]}>
       <Ionicons name={icon} size={typography.sizes.xl} color={tint} style={styles.rowIcon} />
       <Text
+        numberOfLines={numberOfLines}
         style={[
           styles.rowLabel,
           destructive && styles.rowLabelDestructive,
@@ -134,25 +135,11 @@ export default function Menu() {
 
       <Text style={styles.sectionHeader}>{t('menu.account')}</Text>
       <View style={styles.group}>
-        {accountLabel ? (
-          <View style={styles.row}>
-            <Ionicons
-              name="person-circle-outline"
-              size={typography.sizes.xl}
-              color={colors.textSecondary}
-              style={styles.rowIcon}
-            />
-            <Text style={styles.rowValue} numberOfLines={1}>
-              {accountLabel}
-            </Text>
-          </View>
-        ) : null}
-        <Row icon="log-out-outline" label={t('menu.signOut')} onPress={() => signOut(auth)} destructive />
         <Row
-          icon="trash-outline"
-          label={t('menu.deleteAccount')}
-          onPress={() => router.push('/menu/delete-account')}
-          destructive
+          icon="person-circle-outline"
+          label={accountLabel || t('menu.account')}
+          onPress={() => router.push('/menu/account')}
+          numberOfLines={1}
           last
         />
       </View>
@@ -213,11 +200,6 @@ const styles = StyleSheet.create({
   },
   rowLabelDisabled: {
     color: colors.tabBarInactive,
-  },
-  rowValue: {
-    flex: 1,
-    fontSize: typography.sizes.md,
-    color: colors.textSecondary,
   },
   badge: {
     fontSize: typography.sizes.sm,
