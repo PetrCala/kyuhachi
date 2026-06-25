@@ -1,9 +1,3 @@
-<!--
-  SCAFFOLD — review before publishing. This is a plain-language starting point,
-  not legal advice. Confirm the "support@kyuhachi.app" contact and the data
-  practices below match what the app actually does before relying on it.
--->
-
 # Privacy Policy
 
 **Last updated: 25 June 2026**
@@ -60,7 +54,7 @@ We do not share your personal data with third parties except:
 
 Your data is retained while your account exists. You can delete individual
 visits and challenges within the app. To delete your account and all associated
-data, contact us at the address below and we will remove it.
+data, contact us via the link below and we will remove it.
 
 ## Children
 
@@ -74,5 +68,5 @@ by the “Last updated” date above.
 
 ## Contact
 
-Questions about this policy: **support@kyuhachi.app**, or open an issue at
-<https://github.com/PetrCala/kyuhachi/issues>.
+Questions about this policy, or requests to delete your account and data, can be
+raised by opening an issue at <https://github.com/PetrCala/kyuhachi/issues>.
