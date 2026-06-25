@@ -261,10 +261,15 @@ const ja: Record<keyof typeof en, string> = {
   'menu.preferences': '設定',
   'menu.stats': '統計',
   'menu.account': 'アカウント',
-  'menu.signOut': 'サインアウト',
-  'menu.deleteAccount': 'アカウントを削除',
   'menu.language': '言語',
   'menu.about': 'アプリについて',
+
+  // account (Menu → Account)
+  'account.title': 'アカウント',
+  'account.signedInWithApple': 'Appleでサインイン',
+  'account.signedInWithEmail': 'メールでサインイン',
+  'account.signOut': 'サインアウト',
+  'account.deleteAccount': 'アカウントを削除',
 
   // preferences
   'preferences.title': '設定',
