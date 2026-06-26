@@ -24,6 +24,7 @@ import { COLLECTIONS } from '@kyuhachi/shared';
 import type { VisitFeedItem } from '@/lib/visit-feed';
 import { VisitCard } from '@/components/VisitCard';
 import { OnsenInfoRow } from '@/components/OnsenInfoRow';
+import { OnsenFee } from '@/components/OnsenFee';
 import { OnsenHours } from '@/components/OnsenHours';
 import RecordVisitFab from '@/components/RecordVisitFab';
 import { useVisit } from '@/hooks/useVisit';
@@ -186,9 +187,7 @@ export default function OnsenDetail() {
               onPress={() => Linking.openURL(`tel:${onsen.phone!.replace(/[^\d+]/g, '')}`)}
             />
           )}
-          {onsen.admissionFee && (
-            <OnsenInfoRow label={t('onsenDetail.labelFee')} value={onsen.admissionFee} />
-          )}
+          <OnsenFee admissionFee={onsen.admissionFee} adultFee={onsen.adultFee} />
           {onsen.springQuality && (
             <OnsenInfoRow label={t('onsenDetail.labelSpringQuality')} value={onsen.springQuality} />
           )}

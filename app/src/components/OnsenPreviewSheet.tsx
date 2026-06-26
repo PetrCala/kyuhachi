@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import type { OnsenDocument } from '@kyuhachi/shared';
 import { OnsenInfoRow } from '@/components/OnsenInfoRow';
+import { OnsenFee } from '@/components/OnsenFee';
 import { OnsenHours } from '@/components/OnsenHours';
 import { colors, radii, shadows, spacing, typography } from '@/theme';
 
@@ -244,9 +245,7 @@ export default function OnsenPreviewSheet({
                 value={shown.address}
                 action={directionsAction}
               />
-              {shown.admissionFee && (
-                <OnsenInfoRow label={t('onsenDetail.labelFee')} value={shown.admissionFee} />
-              )}
+              <OnsenFee admissionFee={shown.admissionFee} adultFee={shown.adultFee} />
               {shown.springQuality && (
                 <OnsenInfoRow
                   label={t('onsenDetail.labelSpringQuality')}
