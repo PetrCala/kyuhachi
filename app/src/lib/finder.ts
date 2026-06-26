@@ -18,6 +18,11 @@ export interface FinderResult {
   awayKm?: number;
 }
 
+/** Stable identity for a result — used as the list key and to sync list ↔ map. */
+export function finderResultKey(result: FinderResult): string {
+  return `${result.poi.name}@${result.poi.lat},${result.poi.lng}`;
+}
+
 /** Target spacing between corridor search tiles; trades coverage for request count. */
 const TILE_TARGET_KM = 8;
 /** Cap on tiles per search — Apple's per-request result limit makes more tiles the
