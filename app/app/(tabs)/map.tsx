@@ -77,6 +77,13 @@ const KYUSHU_OVERVIEW_ALTITUDE = estimateAltitude(KYUSHU_REGION.latitudeDelta);
  *  Maps animates the camera on its own ease-in-out curve), not a snap. */
 const FOCUS_FLY_IN_MS = 1200;
 
+/** Pause after the map reports ready before the fly-in starts. When "Show on map"
+ *  reaches this screen via a tab that hadn't mounted the map yet, the map is still
+ *  laying out its initial region when it first reports ready; animating into that
+ *  makes MapKit swallow the descent and snap straight to the pin. A short settle
+ *  lets the overview paint first so the fly-in actually plays. */
+const FOCUS_FLY_IN_SETTLE_MS = 400;
+
 /** A map region that frames the route's bounding box with a little padding. */
 function regionForBounds(bounds: RouteDocument['bounds']): Region {
   return {
@@ -364,7 +371,16 @@ export default function MapScreen() {
     onsensLoading || (paramRouteId ? !paramRouteLoaded : !!user && progressLoading);
   // Route names are user/Firestore data, shown as-is; fall back to the generic title.
   const title = route?.name ?? t('map.title');
-  const initialRegion = route ? regionForBounds(route.bounds) : KYUSHU_REGION;
+  // A "Show on map" navigation flies the camera in from the Kyushu overview, so
+  // frame the overview at mount — when this screen mounts fresh for that navigation
+  // (the Map tab hadn't been opened yet), the fly-in then starts wide even before
+  // the camera commands run. Otherwise frame the route if there is one.
+  const initialRegion =
+    focusOnsenId && focusTs
+      ? KYUSHU_REGION
+      : route
+        ? regionForBounds(route.bounds)
+        : KYUSHU_REGION;
 
   // Onsens actually drawn as pins. With the "Near route" filter on and a route
   // present, keep only those within the preferred radius of the route; otherwise
@@ -417,9 +433,11 @@ export default function MapScreen() {
   // Arriving from an onsen's "Show on map": fly in to that pin. We snap to the
   // whole-Kyushu overview first, then ease the camera down to the onsen so the
   // zoom plays as a deliberate descent (Apple Maps' built-in ease-in-out curve)
-  // rather than an instant jump — whatever the map happened to be framing. The
-  // snap and the animation are split across a frame so MapKit starts the descent
-  // from the overview instead of coalescing both into one move from the old view.
+  // rather than an instant jump — whatever the map happened to be framing. A short
+  // settle separates the snap from the animation: it keeps MapKit from coalescing
+  // both into one move from the old view, and gives a freshly mounted map (this
+  // screen reached via a tab that hadn't shown the map yet) time to lay out its
+  // initial region before we animate, which it would otherwise swallow.
   //
   // We don't open the preview half-sheet — the user came straight from this
   // onsen's detail screen, so the sheet would just repeat what they already saw.
@@ -441,7 +459,7 @@ export default function MapScreen() {
       center: { latitude: KYUSHU_REGION.latitude, longitude: KYUSHU_REGION.longitude },
       altitude: KYUSHU_OVERVIEW_ALTITUDE,
     });
-    const raf = requestAnimationFrame(() => {
+    const timer = setTimeout(() => {
       mapRef.current?.animateCamera(
         {
           center: { latitude: target.lat, longitude: target.lng },
@@ -449,8 +467,8 @@ export default function MapScreen() {
         },
         { duration: FOCUS_FLY_IN_MS }
       );
-    });
-    return () => cancelAnimationFrame(raf);
+    }, FOCUS_FLY_IN_SETTLE_MS);
+    return () => clearTimeout(timer);
   }, [mapReady, focusOnsenId, focusTs, onsens]);
 
   if (loading) {
