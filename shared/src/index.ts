@@ -32,6 +32,10 @@ export {
   EMPTY_VISIT_STRUCTURED_DATA,
 } from './types/challenge';
 
+export type { PoiCategory, Poi } from './types/finder';
+
+export { POI_CATEGORIES } from './types/finder';
+
 export type { UserDocument } from './types/user';
 
 export type { Timestamp } from './types/firestore';

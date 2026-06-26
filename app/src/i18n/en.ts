@@ -300,6 +300,33 @@ const en = {
   'preferences.progressAnimation': 'Progress count-up',
   'preferences.progressAnimationHint':
     'When a new visit raises your count, the home number counts up and the bar fills smoothly. Turn this off to have the new total appear at once.',
+  'preferences.finderHeader': 'Finder',
+  'preferences.finderCorridorTitle': 'Search corridor (km)',
+  'preferences.finderCorridorHint':
+    'The finder includes places within {{km}} km either side of your route.',
+  'preferences.finderLookAheadTitle': 'Look ahead (km)',
+  'preferences.finderLookAheadHint':
+    'The finder lists places up to {{km}} km ahead of you along the route.',
+
+  // finder (Menu → Finder: places ahead on your route, or nearby with no route)
+  'finder.title': 'Finder',
+  'finder.categoryConvenienceStore': 'Convenience stores',
+  'finder.categorySupermarket': 'Supermarkets',
+  'finder.categoryHotel': 'Hotels',
+  'finder.categoryCampsite': 'Campsites',
+  'finder.categoryMichiNoEki': 'Roadside stations',
+  'finder.reverse': 'Reverse',
+  'finder.reverseHint': 'Searching the other way along the route',
+  'finder.noRouteNote': 'No active route — showing places near you.',
+  'finder.aheadKm': '{{km}} km ahead',
+  'finder.awayKm': '{{km}} km away',
+  'finder.detourKm': '{{km}} km detour',
+  'finder.searching': 'Searching…',
+  'finder.directions': 'Directions',
+  'finder.empty': 'Nothing found. Try a longer distance in Preferences.',
+  'finder.locationNeededTitle': 'Location needed',
+  'finder.locationNeededBody':
+    'Turn on location access to find places along your route.',
 
   // stamp-collection celebration (shown after recording a new visit)
   'stampClaim.title': 'New stamp!',

@@ -7,6 +7,8 @@ import {
   usePreferences,
   NEAR_RADIUS_OPTIONS_KM,
   NEAR_ROUTE_RADIUS_OPTIONS_KM,
+  FINDER_CORRIDOR_OPTIONS_KM,
+  FINDER_LOOKAHEAD_OPTIONS_KM,
 } from '@/context/PreferencesContext';
 import { colors, spacing, typography, radii, shadows } from '@/theme';
 
@@ -24,12 +26,16 @@ export default function Preferences() {
     nearRadiusKm,
     showOnsenMapPreview,
     nearRouteRadiusKm,
+    finderCorridorKm,
+    finderLookAheadKm,
     animateStampCollect,
     animateProgress,
     setShowNearby,
     setNearRadiusKm,
     setShowOnsenMapPreview,
     setNearRouteRadiusKm,
+    setFinderCorridorKm,
+    setFinderLookAheadKm,
     setAnimateStampCollect,
     setAnimateProgress,
   } = usePreferences();
@@ -79,6 +85,22 @@ export default function Preferences() {
         options={NEAR_ROUTE_RADIUS_OPTIONS_KM}
         value={nearRouteRadiusKm}
         onSelect={setNearRouteRadiusKm}
+      />
+
+      <Text style={styles.sectionHeader}>{t('preferences.finderHeader')}</Text>
+      <RadiusField
+        title={t('preferences.finderCorridorTitle')}
+        hint={t('preferences.finderCorridorHint', { km: finderCorridorKm })}
+        options={FINDER_CORRIDOR_OPTIONS_KM}
+        value={finderCorridorKm}
+        onSelect={setFinderCorridorKm}
+      />
+      <RadiusField
+        title={t('preferences.finderLookAheadTitle')}
+        hint={t('preferences.finderLookAheadHint', { km: finderLookAheadKm })}
+        options={FINDER_LOOKAHEAD_OPTIONS_KM}
+        value={finderLookAheadKm}
+        onSelect={setFinderLookAheadKm}
       />
 
       <Text style={styles.sectionHeader}>{t('preferences.animationsHeader')}</Text>

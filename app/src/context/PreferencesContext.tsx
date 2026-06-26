@@ -13,11 +13,26 @@ export const DEFAULT_NEAR_ROUTE_RADIUS_KM = 2;
 /** Selectable radii (km) for the map's "Near route" filter (walk/ride scale). */
 export const NEAR_ROUTE_RADIUS_OPTIONS_KM = [1, 2, 5, 10] as const;
 
+/** Default corridor width for the finder. Tighter than the onsen filter — a
+ *  2 km-off-route stop is a 4 km round-trip detour. */
+export const DEFAULT_FINDER_CORRIDOR_KM = 1;
+
+/** Selectable corridor widths (km) for the finder. */
+export const FINDER_CORRIDOR_OPTIONS_KM = [0.5, 1, 2, 5] as const;
+
+/** Default distance the finder looks ahead along the route. */
+export const DEFAULT_FINDER_LOOKAHEAD_KM = 20;
+
+/** Selectable look-ahead distances (km) for the finder. */
+export const FINDER_LOOKAHEAD_OPTIONS_KM = [5, 10, 20, 30, 50] as const;
+
 // AsyncStorage keys; mirrors the 'settings.' prefix used for the language choice.
 const SHOW_NEARBY_KEY = 'settings.nearby.show';
 const RADIUS_KEY = 'settings.nearby.radiusKm';
 const ONSEN_MAP_PREVIEW_KEY = 'settings.onsen.mapPreview';
 const NEAR_ROUTE_RADIUS_KEY = 'settings.nearRoute.radiusKm';
+const FINDER_CORRIDOR_KEY = 'settings.finder.corridorKm';
+const FINDER_LOOKAHEAD_KEY = 'settings.finder.lookaheadKm';
 const STAMP_COLLECT_ANIM_KEY = 'settings.animations.stampCollect';
 const PROGRESS_ANIM_KEY = 'settings.animations.progress';
 
@@ -34,6 +49,10 @@ interface PreferencesContextValue {
   showOnsenMapPreview: boolean;
   /** Radius (km) for the map's "Near route" filter. */
   nearRouteRadiusKm: number;
+  /** Corridor width (km) the finder searches either side of the route. */
+  finderCorridorKm: number;
+  /** Distance (km) the finder looks ahead along the route. */
+  finderLookAheadKm: number;
   /**
    * Whether recording a new visit plays the celebratory stamp-collection
    * animation (the seal flies in over a glow with sparkles). When off, the stamp
@@ -53,6 +72,8 @@ interface PreferencesContextValue {
   setNearRadiusKm: (value: number) => void;
   setShowOnsenMapPreview: (value: boolean) => void;
   setNearRouteRadiusKm: (value: number) => void;
+  setFinderCorridorKm: (value: number) => void;
+  setFinderLookAheadKm: (value: number) => void;
   setAnimateStampCollect: (value: boolean) => void;
   setAnimateProgress: (value: boolean) => void;
 }
@@ -62,6 +83,8 @@ const PreferencesContext = createContext<PreferencesContextValue>({
   nearRadiusKm: DEFAULT_NEAR_RADIUS_KM,
   showOnsenMapPreview: true,
   nearRouteRadiusKm: DEFAULT_NEAR_ROUTE_RADIUS_KM,
+  finderCorridorKm: DEFAULT_FINDER_CORRIDOR_KM,
+  finderLookAheadKm: DEFAULT_FINDER_LOOKAHEAD_KM,
   animateStampCollect: true,
   animateProgress: false,
   loaded: false,
@@ -69,6 +92,8 @@ const PreferencesContext = createContext<PreferencesContextValue>({
   setNearRadiusKm: () => {},
   setShowOnsenMapPreview: () => {},
   setNearRouteRadiusKm: () => {},
+  setFinderCorridorKm: () => {},
+  setFinderLookAheadKm: () => {},
   setAnimateStampCollect: () => {},
   setAnimateProgress: () => {},
 });
@@ -80,6 +105,12 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
   const [nearRouteRadiusKm, setNearRouteRadiusKmState] = useState<number>(
     DEFAULT_NEAR_ROUTE_RADIUS_KM
   );
+  const [finderCorridorKm, setFinderCorridorKmState] = useState<number>(
+    DEFAULT_FINDER_CORRIDOR_KM
+  );
+  const [finderLookAheadKm, setFinderLookAheadKmState] = useState<number>(
+    DEFAULT_FINDER_LOOKAHEAD_KM
+  );
   const [animateStampCollect, setAnimateStampCollectState] = useState(true);
   const [animateProgress, setAnimateProgressState] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -88,15 +119,25 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
     let cancelled = false;
     (async () => {
       try {
-        const [[, show], [, radius], [, mapPreview], [, routeRadius], [, stampAnim], [, progressAnim]] =
-          await AsyncStorage.multiGet([
-            SHOW_NEARBY_KEY,
-            RADIUS_KEY,
-            ONSEN_MAP_PREVIEW_KEY,
-            NEAR_ROUTE_RADIUS_KEY,
-            STAMP_COLLECT_ANIM_KEY,
-            PROGRESS_ANIM_KEY,
-          ]);
+        const [
+          [, show],
+          [, radius],
+          [, mapPreview],
+          [, routeRadius],
+          [, finderCorridor],
+          [, finderLookahead],
+          [, stampAnim],
+          [, progressAnim],
+        ] = await AsyncStorage.multiGet([
+          SHOW_NEARBY_KEY,
+          RADIUS_KEY,
+          ONSEN_MAP_PREVIEW_KEY,
+          NEAR_ROUTE_RADIUS_KEY,
+          FINDER_CORRIDOR_KEY,
+          FINDER_LOOKAHEAD_KEY,
+          STAMP_COLLECT_ANIM_KEY,
+          PROGRESS_ANIM_KEY,
+        ]);
         if (cancelled) return;
         if (show !== null) setShowNearbyState(show !== 'false');
         const parsed = radius !== null ? Number(radius) : NaN;
@@ -104,6 +145,10 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
         if (mapPreview !== null) setShowOnsenMapPreviewState(mapPreview !== 'false');
         const parsedRoute = routeRadius !== null ? Number(routeRadius) : NaN;
         if (Number.isFinite(parsedRoute)) setNearRouteRadiusKmState(parsedRoute);
+        const parsedCorridor = finderCorridor !== null ? Number(finderCorridor) : NaN;
+        if (Number.isFinite(parsedCorridor)) setFinderCorridorKmState(parsedCorridor);
+        const parsedLookahead = finderLookahead !== null ? Number(finderLookahead) : NaN;
+        if (Number.isFinite(parsedLookahead)) setFinderLookAheadKmState(parsedLookahead);
         if (stampAnim !== null) setAnimateStampCollectState(stampAnim !== 'false');
         if (progressAnim !== null) setAnimateProgressState(progressAnim !== 'false');
       } catch {
@@ -137,6 +182,16 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
     AsyncStorage.setItem(NEAR_ROUTE_RADIUS_KEY, String(value)).catch(() => {});
   };
 
+  const setFinderCorridorKm = (value: number) => {
+    setFinderCorridorKmState(value);
+    AsyncStorage.setItem(FINDER_CORRIDOR_KEY, String(value)).catch(() => {});
+  };
+
+  const setFinderLookAheadKm = (value: number) => {
+    setFinderLookAheadKmState(value);
+    AsyncStorage.setItem(FINDER_LOOKAHEAD_KEY, String(value)).catch(() => {});
+  };
+
   const setAnimateStampCollect = (value: boolean) => {
     setAnimateStampCollectState(value);
     AsyncStorage.setItem(STAMP_COLLECT_ANIM_KEY, value ? 'true' : 'false').catch(() => {});
@@ -154,6 +209,8 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
         nearRadiusKm,
         showOnsenMapPreview,
         nearRouteRadiusKm,
+        finderCorridorKm,
+        finderLookAheadKm,
         animateStampCollect,
         animateProgress,
         loaded,
@@ -161,6 +218,8 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
         setNearRadiusKm,
         setShowOnsenMapPreview,
         setNearRouteRadiusKm,
+        setFinderCorridorKm,
+        setFinderLookAheadKm,
         setAnimateStampCollect,
         setAnimateProgress,
       }}
