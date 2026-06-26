@@ -7,8 +7,9 @@ import { useTranslation } from 'react-i18next';
 import BottomSheet, {
   BottomSheetBackdrop,
   type BottomSheetBackdropProps,
+  BottomSheetFooter,
+  type BottomSheetFooterProps,
   BottomSheetScrollView,
-  BottomSheetView,
 } from '@gorhom/bottom-sheet';
 import type { OnsenDocument } from '@kyuhachi/shared';
 import { OnsenInfoRow } from '@/components/OnsenInfoRow';
@@ -40,19 +41,24 @@ interface OnsenPreviewSheetProps {
 
 /**
  * An image-forward bottom-sheet preview shown when a map marker is tapped. A
- * large hero image (or a themed placeholder when the onsen has no photo) anchors
- * the top with the name overlaid on a scrim and a close affordance; below it a
- * scrollable info area mirrors the detail screen's rows, and a pinned primary CTA
- * opens the full detail screen.
+ * large hero image (or a themed placeholder when the onsen has no photo) is
+ * pinned at the top with the name overlaid on a scrim and a close affordance;
+ * below it a scrollable info area mirrors the detail screen's rows, and a pinned
+ * primary CTA opens the full detail screen.
  *
  * Built on `@gorhom/bottom-sheet`'s inline `BottomSheet` (rendered in place as a
  * sibling of the map). We deliberately do NOT use the portal-based
  * `BottomSheetModal` here: its `@gorhom/portal` host does not render on React
  * Native's New Architecture (`present()` runs but nothing ever mounts), whereas
- * the inline sheet renders fine. It's driven by the `onsen` prop — snapped open
- * via the ref when an onsen is selected, closed when cleared — keeping the map the
- * single source of truth; the last onsen is retained while it animates out so the
- * content doesn't blank mid-exit.
+ * the inline sheet renders fine.
+ *
+ * The sheet is a fixed height, so content is laid out the way gorhom expects for a
+ * fixed frame: a `BottomSheetScrollView` is the scrollable body (the hero is its
+ * sticky first row, so it stays pinned while the info scrolls under it), and the
+ * CTA lives in a pinned `footerComponent` — long onsen text scrolls instead of
+ * pushing the CTA off-screen. Driven by the `onsen` prop: snapped open via the ref
+ * when an onsen is selected, closed when cleared; the last onsen is retained while
+ * it animates out so the content doesn't blank mid-exit.
  */
 export default function OnsenPreviewSheet({
   onsen,
@@ -64,6 +70,9 @@ export default function OnsenPreviewSheet({
   const insets = useSafeAreaInsets();
   const sheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => SNAP_POINTS, []);
+  // Measured height of the pinned footer, so the scroll body can clear it (the
+  // footer overlays the content rather than reserving space).
+  const [footerHeight, setFooterHeight] = useState(0);
 
   // Keep showing the last onsen while the sheet animates out, so content doesn't
   // blank before the slide-down finishes.
@@ -99,6 +108,35 @@ export default function OnsenPreviewSheet({
     []
   );
 
+  // Pinned CTA. Lives in the footer so it stays visible no matter how long the
+  // onsen's info is; its measured height feeds the scroll body's bottom padding.
+  const renderFooter = useCallback(
+    (props: BottomSheetFooterProps) =>
+      shown ? (
+        <BottomSheetFooter {...props} bottomInset={insets.bottom}>
+          <View
+            style={styles.footer}
+            onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)}
+          >
+            <Pressable
+              style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
+              onPress={() => onViewDetails(shown.id)}
+              accessibilityRole="button"
+              accessibilityLabel={t('onsenPreview.viewFullDetails')}
+            >
+              <Text style={styles.ctaText}>{t('onsenPreview.viewFullDetails')}</Text>
+              <Ionicons
+                name="chevron-forward"
+                size={typography.sizes.md}
+                color={colors.actionPrimaryText}
+              />
+            </Pressable>
+          </View>
+        </BottomSheetFooter>
+      ) : null,
+    [shown, onViewDetails, insets.bottom, t]
+  );
+
   const directionsAction = shown
     ? {
         icon: 'navigate' as const,
@@ -116,105 +154,90 @@ export default function OnsenPreviewSheet({
       enablePanDownToClose
       onClose={handleClose}
       backdropComponent={renderBackdrop}
+      footerComponent={renderFooter}
       backgroundStyle={styles.sheetBackground}
       handleIndicatorStyle={styles.handleIndicator}
     >
-      <BottomSheetView style={[styles.content, { paddingBottom: insets.bottom + spacing[4] }]}>
-        {shown && directionsAction ? (
-          <>
-            <View style={styles.hero}>
-              {shown.imageUrl ? (
-                <Image
-                  source={shown.imageUrl}
-                  style={styles.heroImage}
-                  contentFit="cover"
-                  transition={200}
-                  cachePolicy="memory-disk"
-                  placeholder={shown.blurhash ? { blurhash: shown.blurhash } : undefined}
-                  placeholderContentFit="cover"
+      {shown && directionsAction ? (
+        <BottomSheetScrollView
+          contentContainerStyle={{ paddingBottom: footerHeight + insets.bottom }}
+          stickyHeaderIndices={[0]}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.hero}>
+            {shown.imageUrl ? (
+              <Image
+                source={shown.imageUrl}
+                style={styles.heroImage}
+                contentFit="cover"
+                transition={200}
+                cachePolicy="memory-disk"
+                placeholder={shown.blurhash ? { blurhash: shown.blurhash } : undefined}
+                placeholderContentFit="cover"
+              />
+            ) : (
+              <View style={styles.heroPlaceholder}>
+                <Ionicons
+                  name="image-outline"
+                  size={PLACEHOLDER_GLYPH}
+                  color={colors.textMuted}
+                  accessibilityLabel={t('onsenPreview.imagePlaceholder')}
                 />
-              ) : (
-                <View style={styles.heroPlaceholder}>
+              </View>
+            )}
+            <View style={styles.heroScrim} pointerEvents="none" />
+            <Text style={styles.heroName} numberOfLines={2}>
+              {shown.name}
+            </Text>
+            <Pressable
+              style={[styles.closeButton, shadows.sm]}
+              onPress={() => sheetRef.current?.close()}
+              accessibilityRole="button"
+              accessibilityLabel={t('onsenPreview.close')}
+              hitSlop={spacing[2]}
+            >
+              <Ionicons name="close" size={typography.sizes.xl} color={colors.textPrimary} />
+            </Pressable>
+          </View>
+
+          <View style={styles.info}>
+            <View style={styles.subheader}>
+              <Text style={styles.area} selectable>
+                {t('onsenPreview.areaPrefecture', {
+                  area: shown.areaName,
+                  prefecture: shown.prefecture,
+                })}
+              </Text>
+              {visited && (
+                <View style={styles.visitedBadge}>
+                  <Text style={styles.visitedText}>{t('onsenPreview.visited')}</Text>
                   <Ionicons
-                    name="image-outline"
-                    size={PLACEHOLDER_GLYPH}
-                    color={colors.textMuted}
-                    accessibilityLabel={t('onsenPreview.imagePlaceholder')}
+                    name="checkmark-circle"
+                    size={typography.sizes.md}
+                    color={colors.stampInk}
                   />
                 </View>
               )}
-              <View style={styles.heroScrim} pointerEvents="none" />
-              <Text style={styles.heroName} numberOfLines={2}>
-                {shown.name}
-              </Text>
-              <Pressable
-                style={[styles.closeButton, shadows.sm]}
-                onPress={() => sheetRef.current?.close()}
-                accessibilityRole="button"
-                accessibilityLabel={t('onsenPreview.close')}
-                hitSlop={spacing[2]}
-              >
-                <Ionicons name="close" size={typography.sizes.xl} color={colors.textPrimary} />
-              </Pressable>
             </View>
 
-            <BottomSheetScrollView
-              style={styles.body}
-              contentContainerStyle={styles.bodyContent}
-              showsVerticalScrollIndicator={false}
-            >
-              <View style={styles.subheader}>
-                <Text style={styles.area} selectable>
-                  {t('onsenPreview.areaPrefecture', {
-                    area: shown.areaName,
-                    prefecture: shown.prefecture,
-                  })}
-                </Text>
-                {visited && (
-                  <View style={styles.visitedBadge}>
-                    <Text style={styles.visitedText}>{t('onsenPreview.visited')}</Text>
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={typography.sizes.md}
-                      color={colors.stampInk}
-                    />
-                  </View>
-                )}
-              </View>
-
-              <View style={styles.section}>
-                <OnsenInfoRow
-                  label={t('onsenDetail.labelAddress')}
-                  value={shown.address}
-                  action={directionsAction}
-                />
-                <OnsenFee admissionFee={shown.admissionFee} adultFee={shown.adultFee} />
-                {shown.springQuality && (
-                  <OnsenInfoRow
-                    label={t('onsenDetail.labelSpringQuality')}
-                    value={shown.springQuality}
-                  />
-                )}
-                {shown.businessHours && <OnsenHours hours={shown.businessHours} />}
-              </View>
-            </BottomSheetScrollView>
-
-            <Pressable
-              style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
-              onPress={() => onViewDetails(shown.id)}
-              accessibilityRole="button"
-              accessibilityLabel={t('onsenPreview.viewFullDetails')}
-            >
-              <Text style={styles.ctaText}>{t('onsenPreview.viewFullDetails')}</Text>
-              <Ionicons
-                name="chevron-forward"
-                size={typography.sizes.md}
-                color={colors.actionPrimaryText}
+            <View style={styles.section}>
+              <OnsenInfoRow
+                label={t('onsenDetail.labelAddress')}
+                value={shown.address}
+                action={directionsAction}
               />
-            </Pressable>
-          </>
-        ) : null}
-      </BottomSheetView>
+              <OnsenFee admissionFee={shown.admissionFee} adultFee={shown.adultFee} />
+              {shown.springQuality && (
+                <OnsenInfoRow
+                  label={t('onsenDetail.labelSpringQuality')}
+                  value={shown.springQuality}
+                />
+              )}
+              {shown.businessHours && <OnsenHours hours={shown.businessHours} />}
+            </View>
+          </View>
+        </BottomSheetScrollView>
+      ) : null}
     </BottomSheet>
   );
 }
@@ -230,12 +253,11 @@ const styles = StyleSheet.create({
   handleIndicator: {
     backgroundColor: colors.separator,
   },
-  content: {
-    flex: 1,
-  },
+  // Pinned hero (sticky first row of the scroll body); full-bleed, so no padding.
   hero: {
     height: HERO_HEIGHT,
     justifyContent: 'flex-end',
+    backgroundColor: colors.background,
   },
   heroImage: {
     ...StyleSheet.absoluteFillObject,
@@ -279,13 +301,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  body: {
-    flex: 1,
-  },
-  bodyContent: {
+  // Scrollable info area below the pinned hero.
+  info: {
     paddingHorizontal: spacing[4],
     paddingTop: spacing[3],
-    paddingBottom: spacing[2],
   },
   subheader: {
     flexDirection: 'row',
@@ -315,13 +334,18 @@ const styles = StyleSheet.create({
   section: {
     paddingTop: spacing[2],
   },
+  // Pinned footer surface around the CTA: app background so scrolled content
+  // doesn't show through behind the button.
+  footer: {
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[3],
+    backgroundColor: colors.background,
+  },
   cta: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing[1],
-    marginHorizontal: spacing[4],
-    marginTop: spacing[3],
     paddingVertical: spacing[4],
     borderRadius: radii.md,
     backgroundColor: colors.actionPrimary,
