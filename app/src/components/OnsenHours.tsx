@@ -56,7 +56,7 @@ export function OnsenHours({ hours }: OnsenHoursProps) {
             </Text>
             {/* Expand the full weekly grid. */}
             <Pressable
-              style={styles.hoursIcon}
+              style={styles.hoursWeekIcon}
               onPress={() => setShowWeek((v) => !v)}
               accessibilityRole="button"
               accessibilityLabel={t(showWeek ? 'onsenDetail.hideHours' : 'onsenDetail.showHours')}
@@ -70,7 +70,7 @@ export function OnsenHours({ hours }: OnsenHoursProps) {
             </Pressable>
             {/* Reveal the verbatim source text. */}
             <Pressable
-              style={styles.hoursIcon}
+              style={styles.hoursOriginalIcon}
               onPress={() => setShowOriginal((v) => !v)}
               accessibilityRole="button"
               accessibilityLabel={t(
@@ -143,14 +143,18 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   hoursTodayValue: {
-    flex: 1,
     marginLeft: spacing[2],
     fontSize: typography.sizes.sm,
     color: colors.textPrimary,
     lineHeight: typography.sizes.xl,
   },
-  hoursIcon: {
+  // The weekly toggle hugs today's hours; the original-text chevron is pushed to
+  // the far edge by an auto margin, leaving the blank space between them.
+  hoursWeekIcon: {
     marginLeft: spacing[2],
+  },
+  hoursOriginalIcon: {
+    marginLeft: 'auto',
   },
   dayRow: {
     flexDirection: 'row',
