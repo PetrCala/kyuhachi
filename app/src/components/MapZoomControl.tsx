@@ -1,14 +1,19 @@
-import { useRef, useEffect, useCallback, type RefObject } from 'react';
+import { useRef, useEffect, useCallback, useMemo, type RefObject } from 'react';
 import {
   View,
   Pressable,
-  Animated,
-  PanResponder,
   StyleSheet,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import type MapView from 'react-native-maps';
 import { colors, radii, spacing, shadows } from '@/theme';
 
@@ -28,6 +33,13 @@ const RAIL_WIDTH = 3;
 export const MIN_ALTITUDE = 1_000; // knob at top — streets
 export const MAX_ALTITUDE = 2_000_000; // knob at bottom — the whole region
 const STEP_FACTOR = 2; // each +/- tap halves / doubles the altitude
+
+// While the knob is dragged it rides the UI thread and updates every frame, but
+// moving the map camera is a JS→native bridge call. Throttle that call to a
+// steady cadence (~30 fps) so the bridge stays clear and the knob never stutters
+// even on a fast drag; the drag's end always lands the camera on the final knob
+// position, so the cap never leaves the two out of step.
+const CAMERA_FOLLOW_INTERVAL_MS = 1000 / 30;
 
 const clampAltitude = (a: number) => Math.min(MAX_ALTITUDE, Math.max(MIN_ALTITUDE, a));
 
@@ -63,6 +75,10 @@ interface MapZoomControlProps {
  * a draggable knob between a + and - end cap. Dragging the knob zooms the camera
  * live; tapping an end cap steps by a fixed factor. The knob follows pinch
  * gestures via the `altitude` prop, but never while a drag is in progress.
+ *
+ * The knob position is a reanimated shared value driven by a gesture-handler pan
+ * on the UI thread, so it tracks the finger frame-for-frame; the camera follow
+ * (a JS bridge call) is throttled off that, decoupled from the knob's motion.
  */
 export default function MapZoomControl({
   mapRef,
@@ -73,82 +89,116 @@ export default function MapZoomControl({
   style,
   onActivity,
 }: MapZoomControlProps) {
-  const knobY = useRef(
-    new Animated.Value(altitudeToOffset(altitude ?? initialAltitude))
-  ).current;
-  // Plain mirrors of the animated value so the gesture handlers can read the
-  // current knob position synchronously (Animated.Value has no getter).
-  const offsetRef = useRef(altitudeToOffset(altitude ?? initialAltitude));
-  const dragStartOffsetRef = useRef(0);
+  // Knob position in px from the track top (0 = zoomed in, TRACK_HEIGHT = out),
+  // animated on the UI thread. `dragStartOffset` anchors a drag to where the knob
+  // sat so it moves relative to that point rather than jumping to the touch.
+  const knobY = useSharedValue(altitudeToOffset(altitude ?? initialAltitude));
+  const dragStartOffset = useSharedValue(0);
+
+  // Whether a knob drag is in progress, kept on the JS thread (flipped from the
+  // gesture via runOnJS) so the pinch-follow effect below can read it
+  // synchronously and yield the knob to the drag.
   const draggingRef = useRef(false);
-  // Keep the latest onActivity in a ref so the once-built PanResponder and the
+  // Keep the latest onActivity in a ref so the once-built gesture and the
   // memoized stepZoom call the current callback, not the one captured first.
   const onActivityRef = useRef(onActivity);
   onActivityRef.current = onActivity;
 
-  useEffect(() => {
-    const id = knobY.addListener(({ value }) => {
-      offsetRef.current = value;
-    });
-    return () => knobY.removeListener(id);
-  }, [knobY]);
+  // Throttle bookkeeping for the camera follow: the last time we moved the camera
+  // and the latest knob offset seen this drag. `null` means "no move yet", so a
+  // tap that never drags leaves the camera untouched (matching the old responder).
+  const lastCameraAtRef = useRef(0);
+  const pendingOffsetRef = useRef<number | null>(null);
+
+  const moveCamera = useCallback(
+    (offset: number) => {
+      mapRef.current?.setCamera({ altitude: offsetToAltitude(offset) });
+    },
+    [mapRef]
+  );
+
+  // Touch-down: count it as activity and reset the throttle so the first drag
+  // frame moves the camera immediately.
+  const handleDragStart = useCallback(() => {
+    onActivityRef.current?.();
+    draggingRef.current = true;
+    pendingOffsetRef.current = null;
+    lastCameraAtRef.current = 0;
+  }, []);
+
+  // Every move frame: record the latest knob offset and move the camera at most
+  // once per throttle interval.
+  const handleDragMove = useCallback(
+    (offset: number) => {
+      pendingOffsetRef.current = offset;
+      const now = Date.now();
+      if (now - lastCameraAtRef.current < CAMERA_FOLLOW_INTERVAL_MS) return;
+      lastCameraAtRef.current = now;
+      moveCamera(offset);
+    },
+    [moveCamera]
+  );
+
+  // Drag end (release or terminate): release the knob back to the pinch-follow
+  // effect, then land the camera on the knob's final position so a frame
+  // throttled out at the very end can't leave them apart. A pure tap (no move)
+  // left pendingOffset null, so it never touches the camera.
+  const handleDragEnd = useCallback(() => {
+    draggingRef.current = false;
+    if (pendingOffsetRef.current === null) return;
+    moveCamera(pendingOffsetRef.current);
+    pendingOffsetRef.current = null;
+  }, [moveCamera]);
 
   // Follow the map when it reports a new altitude (pinch/pan settle) — but never
   // fight an in-progress drag, which owns the knob until released.
   useEffect(() => {
     if (altitude === undefined || draggingRef.current) return;
-    Animated.timing(knobY, {
-      toValue: altitudeToOffset(altitude),
-      duration: 120,
-      useNativeDriver: false,
-    }).start();
+    knobY.value = withTiming(altitudeToOffset(altitude), { duration: 120 });
   }, [altitude, knobY]);
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onStartShouldSetPanResponderCapture: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        onActivityRef.current?.();
-        draggingRef.current = true;
-        // Grab the knob where it sits and drag relative to that — don't jump to
-        // the touch point. (locationY is measured inside whichever child is hit,
-        // so pressing the knob vs. the rail would report different origins.)
-        knobY.stopAnimation();
-        dragStartOffsetRef.current = offsetRef.current;
-      },
-      onPanResponderMove: (_evt, gesture) => {
-        const next = Math.min(
-          TRACK_HEIGHT,
-          Math.max(0, dragStartOffsetRef.current + gesture.dy)
-        );
-        knobY.setValue(next);
-        mapRef.current?.setCamera({ altitude: offsetToAltitude(next) });
-      },
-      onPanResponderRelease: () => {
-        draggingRef.current = false;
-      },
-      onPanResponderTerminate: () => {
-        draggingRef.current = false;
-      },
-    })
-  ).current;
+  // The pan runs on the UI thread: it sets the knob's shared value directly (so
+  // the knob tracks the finger frame-for-frame) and hands the camera off to JS at
+  // the throttled cadence. Memoized so MapZoomControl's per-frame re-renders (the
+  // parent streams the live altitude on every gesture frame) never tear down and
+  // re-attach the native gesture. minDistance(0) keeps the grab immediate, like
+  // the old PanResponder, with no activation slop before the knob responds.
+  const panGesture = useMemo(
+    () =>
+      Gesture.Pan()
+        .minDistance(0)
+        .onBegin(() => {
+          dragStartOffset.value = knobY.value;
+          runOnJS(handleDragStart)();
+        })
+        .onUpdate((event) => {
+          const next = Math.min(
+            TRACK_HEIGHT,
+            Math.max(0, dragStartOffset.value + event.translationY)
+          );
+          knobY.value = next;
+          runOnJS(handleDragMove)(next);
+        })
+        .onFinalize(() => {
+          runOnJS(handleDragEnd)();
+        }),
+    [knobY, dragStartOffset, handleDragStart, handleDragMove, handleDragEnd]
+  );
 
   const stepZoom = useCallback(
     (zoomIn: boolean) => {
       onActivityRef.current?.();
-      const current = offsetToAltitude(offsetRef.current);
+      const current = offsetToAltitude(knobY.value);
       const next = clampAltitude(zoomIn ? current / STEP_FACTOR : current * STEP_FACTOR);
-      Animated.timing(knobY, {
-        toValue: altitudeToOffset(next),
-        duration: 150,
-        useNativeDriver: false,
-      }).start();
+      knobY.value = withTiming(altitudeToOffset(next), { duration: 150 });
       mapRef.current?.animateCamera({ altitude: next }, { duration: 200 });
     },
     [knobY, mapRef]
   );
+
+  const knobStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: knobY.value }],
+  }));
 
   return (
     <View style={[styles.container, shadows.md, style]}>
@@ -162,12 +212,12 @@ export default function MapZoomControl({
         <Ionicons name="add" size={GLYPH_SIZE} color={colors.textPrimary} />
       </Pressable>
 
-      <View style={styles.track} {...panResponder.panHandlers}>
-        <View style={styles.rail} />
-        <Animated.View
-          style={[styles.knob, shadows.sm, { transform: [{ translateY: knobY }] }]}
-        />
-      </View>
+      <GestureDetector gesture={panGesture}>
+        <View style={styles.track}>
+          <View style={styles.rail} />
+          <Animated.View style={[styles.knob, shadows.sm, knobStyle]} />
+        </View>
+      </GestureDetector>
 
       <Pressable
         onPress={() => stepZoom(false)}
