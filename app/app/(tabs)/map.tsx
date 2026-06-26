@@ -30,7 +30,7 @@ import { db } from '@/firebase';
 import { simulatedCoordinate } from '@/lib/dev-location';
 import { distanceToPolylineKm } from '@/lib/geo';
 import { useActiveChallengeProgress } from '@/hooks/useActiveChallengeProgress';
-import MapZoomControl from '@/components/MapZoomControl';
+import MapZoomControl, { MIN_ALTITUDE, MAX_ALTITUDE } from '@/components/MapZoomControl';
 import OnsenMarker from '@/components/OnsenMarker';
 import OnsenPreviewSheet from '@/components/OnsenPreviewSheet';
 import { colors, spacing, radii, typography, shadows } from '@/theme';
@@ -47,9 +47,14 @@ const KYUSHU_REGION = {
 /** Roughly city-level zoom used when recentering the map on the user. */
 const USER_LOCATION_DELTA = 0.05;
 
-/** Tight, street-level zoom used when focusing a single onsen via "Show on map".
- *  ~85% closer than {@link USER_LOCATION_DELTA} so the pin really fills the view. */
-const FOCUS_ONSEN_DELTA = 0.0075;
+/** Camera altitude used when focusing a single onsen via "Show on map". Sits ~85%
+ *  of the way up the zoom slider's range toward its closest setting, on the same
+ *  log scale the slider uses — i.e. a strongly zoomed-in, near-the-top view. */
+const FOCUS_ONSEN_ZOOM_FRACTION = 0.85;
+const FOCUS_ONSEN_ALTITUDE = Math.exp(
+  Math.log(MAX_ALTITUDE) -
+    FOCUS_ONSEN_ZOOM_FRACTION * (Math.log(MAX_ALTITUDE) - Math.log(MIN_ALTITUDE))
+);
 
 /** Idle time (ms) with no map interaction before the on-map controls (filter
  *  pill, zoom slider, recenter button) fade out together, and how long that fade
@@ -402,11 +407,9 @@ export default function MapScreen() {
     const target = onsens.find((o) => o.id === focusOnsenId);
     if (!target) return; // onsen list not loaded yet; re-runs when it arrives
     focusedTokenRef.current = focusTs;
-    mapRef.current?.animateToRegion({
-      latitude: target.lat,
-      longitude: target.lng,
-      latitudeDelta: FOCUS_ONSEN_DELTA,
-      longitudeDelta: FOCUS_ONSEN_DELTA,
+    mapRef.current?.animateCamera({
+      center: { latitude: target.lat, longitude: target.lng },
+      altitude: FOCUS_ONSEN_ALTITUDE,
     });
   }, [focusOnsenId, focusTs, onsens]);
 
