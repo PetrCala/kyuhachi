@@ -3,10 +3,16 @@ import { Animated, Dimensions, Easing, StyleSheet, View } from 'react-native';
 import { colors } from '@/theme';
 
 // A purely cosmetic confetti burst. One Animated driver (0 → 1) fans out to
-// every piece through interpolation, so the whole shower runs on the native
-// thread off a single timing animation rather than N. No external library:
-// this keeps the New-Architecture-safe, vanilla-RN footprint the project
-// mandates, and lets the pieces use the exact tier-metal palette.
+// every piece through interpolation, so the whole shower runs off a single
+// timing animation rather than N. No external library: this keeps the
+// vanilla-RN footprint the project mandates and lets the pieces use the exact
+// tier-metal palette.
+//
+// The driver uses the JS driver (useNativeDriver: false). Confetti renders
+// inside TierClaimModal's <Modal>, and under the New Architecture the native
+// animation driver doesn't reliably bind to views inside a Modal's detached
+// surface — native-driven, the pieces never animated. See StampClaimModal for
+// the same constraint.
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -68,7 +74,7 @@ export function Confetti({ count = 70 }: ConfettiProps) {
       toValue: 1,
       duration: FALL_DURATION,
       easing: Easing.linear,
-      useNativeDriver: true,
+      useNativeDriver: false,
     });
     anim.start();
     return () => anim.stop();
