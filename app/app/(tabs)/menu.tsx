@@ -107,6 +107,11 @@ export default function Menu() {
           icon="navigate-outline"
           label={t('menu.routes')}
           onPress={() => router.push('/routes')}
+        />
+        <Row
+          icon="search-outline"
+          label={t('finder.title')}
+          onPress={() => router.push('/finder')}
           last
         />
       </View>

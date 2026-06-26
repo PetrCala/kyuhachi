@@ -299,6 +299,30 @@ const ja: Record<keyof typeof en, string> = {
   'preferences.progressAnimation': '進捗のカウントアップ',
   'preferences.progressAnimationHint':
     '新しい訪問で件数が増えると、ホームの数字がカウントアップしてバーが滑らかに伸びます。オフにすると、新しい合計がすぐに表示されます。',
+  'preferences.finderHeader': 'スポット検索',
+  'preferences.finderCorridorTitle': '検索範囲（km）',
+  'preferences.finderCorridorHint': 'ルートの両側{{km}}km以内のスポットを表示します。',
+  'preferences.finderLookAheadTitle': '先読み距離（km）',
+  'preferences.finderLookAheadHint': 'ルート沿いに前方{{km}}kmまでのスポットを表示します。',
+
+  // finder (Menu → Finder: places ahead on your route, or nearby with no route)
+  'finder.title': 'スポット検索',
+  'finder.categoryConvenienceStore': 'コンビニ',
+  'finder.categorySupermarket': 'スーパー',
+  'finder.categoryHotel': 'ホテル',
+  'finder.categoryCampsite': 'キャンプ場',
+  'finder.categoryMichiNoEki': '道の駅',
+  'finder.reverse': '逆方向',
+  'finder.reverseHint': 'ルートを反対方向に検索します',
+  'finder.noRouteNote': 'アクティブなルートがありません — 周辺のスポットを表示します。',
+  'finder.aheadKm': '前方 {{km}} km',
+  'finder.awayKm': '約 {{km}} km',
+  'finder.detourKm': '寄り道 {{km}} km',
+  'finder.searching': '検索中…',
+  'finder.directions': '経路',
+  'finder.empty': '見つかりませんでした。設定で距離を広げてみてください。',
+  'finder.locationNeededTitle': '位置情報が必要です',
+  'finder.locationNeededBody': 'ルート沿いのスポットを探すには位置情報を許可してください。',
 
   // stamp-collection celebration (shown after recording a new visit)
   'stampClaim.title': '新しいスタンプ！',
