@@ -323,6 +323,9 @@ const en = {
   'finder.detourKm': '{{km}} km detour',
   'finder.searching': 'Searching…',
   'finder.directions': 'Directions',
+  'finder.mapExpand': 'Enlarge map',
+  'finder.mapCollapse': 'Collapse map',
+  'finder.youAreHere': 'You are here',
   'finder.empty': 'Nothing found. Try a longer distance in Preferences.',
   'finder.locationNeededTitle': 'Location needed',
   'finder.locationNeededBody':

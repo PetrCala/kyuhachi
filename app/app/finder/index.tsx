@@ -1,4 +1,13 @@
-import { useEffect, useMemo, useState, type ComponentProps } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentProps,
+  type ReactNode,
+  type RefObject,
+} from 'react';
 import {
   View,
   Text,
@@ -7,6 +16,7 @@ import {
   ActivityIndicator,
   Linking,
   ScrollView,
+  LayoutAnimation,
   StyleSheet,
 } from 'react-native';
 import { Stack } from 'expo-router';
@@ -20,12 +30,14 @@ import { simulatedCoordinate } from '@/lib/dev-location';
 import type { LatLng } from '@/lib/geo';
 import {
   corridorTileCenters,
+  finderResultKey,
   orderAlongRoute,
   orderNearMe,
   userAlongRouteKm,
   type FinderResult,
 } from '@/lib/finder';
 import { searchPois } from '@/lib/poi-provider';
+import FinderMap from '@/components/FinderMap';
 import { colors, spacing, typography, radii, shadows } from '@/theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -59,11 +71,21 @@ export default function FinderScreen() {
 
   const route =
     activeRoute && activeRoute.points.length >= 2 ? activeRoute.points : null;
+  const routeCoords = useMemo(
+    () => route?.map((p) => ({ latitude: p.lat, longitude: p.lng })) ?? [],
+    [route]
+  );
 
   const [category, setCategory] = useState<PoiCategory>(POI_CATEGORIES[0]);
   const [reversed, setReversed] = useState(false);
   const [results, setResults] = useState<FinderResult[]>([]);
   const [searching, setSearching] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+
+  const listRef = useRef<FlatList<FinderResult>>(null);
+  const resultsRef = useRef(results);
+  resultsRef.current = results;
 
   useEffect(() => {
     if (!coords || !loaded) {
@@ -110,6 +132,45 @@ export default function FinderScreen() {
     };
   }, [coords, route, category, reversed, finderCorridorKm, finderLookAheadKm, loaded]);
 
+  // A new result set invalidates any selection (the keys may no longer exist).
+  useEffect(() => {
+    setSelectedKey(null);
+  }, [results]);
+
+  const handleToggleExpand = useCallback(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpanded((prev) => !prev);
+  }, []);
+
+  // Pin tap → select its row and scroll it into view.
+  const handleSelectFromMap = useCallback((key: string) => {
+    setSelectedKey(key);
+    const index = resultsRef.current.findIndex((r) => finderResultKey(r) === key);
+    if (index >= 0) {
+      listRef.current?.scrollToIndex({ index, viewPosition: 0.5, animated: true });
+    }
+  }, []);
+
+  // Row tap → select it (the map recentres on the matching pin via its effect).
+  const handleSelectRow = useCallback((key: string) => setSelectedKey(key), []);
+
+  const handleScrollToIndexFailed = useCallback(
+    (info: { index: number; averageItemLength: number }) => {
+      listRef.current?.scrollToOffset({
+        offset: info.averageItemLength * info.index,
+        animated: true,
+      });
+      setTimeout(() => {
+        listRef.current?.scrollToIndex({
+          index: info.index,
+          viewPosition: 0.5,
+          animated: true,
+        });
+      }, 120);
+    },
+    []
+  );
+
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: t('finder.title'), headerShown: true }} />
@@ -150,11 +211,29 @@ export default function FinderScreen() {
         <Text style={styles.note}>{t('finder.noRouteNote')}</Text>
       ) : null}
 
+      {coords && (
+        <FinderMap
+          results={results}
+          userCoord={coords}
+          simulated={__DEV__}
+          routeCoords={routeCoords}
+          selectedKey={selectedKey}
+          onSelect={handleSelectFromMap}
+          expanded={expanded}
+          onToggleExpand={handleToggleExpand}
+        />
+      )}
+
       <FinderBody
         coords={coords}
         category={category}
         results={results}
         searching={searching}
+        hidden={expanded}
+        listRef={listRef}
+        selectedKey={selectedKey}
+        onSelectRow={handleSelectRow}
+        onScrollToIndexFailed={handleScrollToIndexFailed}
       />
     </View>
   );
@@ -165,44 +244,67 @@ function FinderBody({
   category,
   results,
   searching,
+  hidden,
+  listRef,
+  selectedKey,
+  onSelectRow,
+  onScrollToIndexFailed,
 }: {
   coords: LatLng | null;
   category: PoiCategory;
   results: FinderResult[];
   searching: boolean;
+  hidden: boolean;
+  listRef: RefObject<FlatList<FinderResult> | null>;
+  selectedKey: string | null;
+  onSelectRow: (key: string) => void;
+  onScrollToIndexFailed: (info: { index: number; averageItemLength: number }) => void;
 }) {
   const { t } = useTranslation();
 
+  let content: ReactNode;
   if (!coords) {
-    return (
+    content = (
       <View style={styles.centered}>
         <Ionicons name="location-outline" size={40} color={colors.textPlaceholder} />
         <Text style={styles.stateTitle}>{t('finder.locationNeededTitle')}</Text>
         <Text style={styles.stateBody}>{t('finder.locationNeededBody')}</Text>
       </View>
     );
-  }
-
-  if (searching && results.length === 0) {
-    return (
+  } else if (searching && results.length === 0) {
+    content = (
       <View style={styles.centered}>
         <ActivityIndicator color={colors.actionPrimary} />
         <Text style={styles.stateBody}>{t('finder.searching')}</Text>
       </View>
     );
+  } else {
+    content = (
+      <FlatList
+        ref={listRef}
+        data={results}
+        keyExtractor={finderResultKey}
+        renderItem={({ item }) => {
+          const key = finderResultKey(item);
+          return (
+            <ResultRow
+              result={item}
+              category={category}
+              selected={key === selectedKey}
+              onSelect={() => onSelectRow(key)}
+            />
+          );
+        }}
+        extraData={selectedKey}
+        ItemSeparatorComponent={Separator}
+        onScrollToIndexFailed={onScrollToIndexFailed}
+        contentContainerStyle={results.length === 0 ? styles.emptyContainer : undefined}
+        ListEmptyComponent={<Text style={styles.empty}>{t('finder.empty')}</Text>}
+      />
+    );
   }
 
-  return (
-    <FlatList
-      data={results}
-      style={styles.list}
-      keyExtractor={(r) => `${r.poi.name}@${r.poi.lat},${r.poi.lng}`}
-      renderItem={({ item }) => <ResultRow result={item} category={category} />}
-      ItemSeparatorComponent={Separator}
-      contentContainerStyle={results.length === 0 ? styles.emptyContainer : undefined}
-      ListEmptyComponent={<Text style={styles.empty}>{t('finder.empty')}</Text>}
-    />
-  );
+  return <View style={hidden ? styles.bodyHidden : styles.body}>{content}</View>;
 }
 
 function CategoryChip({
@@ -238,9 +340,13 @@ function CategoryChip({
 function ResultRow({
   result,
   category,
+  selected,
+  onSelect,
 }: {
   result: FinderResult;
   category: PoiCategory;
+  selected: boolean;
+  onSelect: () => void;
 }) {
   const { t } = useTranslation();
   const { poi } = result;
@@ -252,7 +358,11 @@ function ResultRow({
         })}`;
 
   return (
-    <View style={styles.row}>
+    <Pressable
+      onPress={onSelect}
+      accessibilityRole="button"
+      style={[styles.row, selected && styles.rowSelected]}
+    >
       <Ionicons
         name={CATEGORY_META[category].icon}
         size={22}
@@ -278,7 +388,7 @@ function ResultRow({
       >
         <Ionicons name="navigate" size={20} color={colors.actionPrimary} />
       </Pressable>
-    </View>
+    </Pressable>
   );
 }
 
@@ -299,8 +409,12 @@ const styles = StyleSheet.create({
     paddingVertical: spacing[3],
     gap: spacing[2],
   },
-  list: {
+  body: {
     flex: 1,
+  },
+  bodyHidden: {
+    height: 0,
+    overflow: 'hidden',
   },
   chip: {
     flexDirection: 'row',
@@ -349,6 +463,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[3],
+    backgroundColor: colors.background,
+  },
+  rowSelected: {
+    backgroundColor: colors.backgroundSecondary,
   },
   rowIcon: {
     marginRight: spacing[3],
