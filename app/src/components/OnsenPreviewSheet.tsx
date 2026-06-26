@@ -22,7 +22,7 @@ type OnsenRow = OnsenDocument & { id: string };
 
 // The sheet rests at a single fixed height — image-forward, with room for a few
 // info rows and the CTA without resizing to content.
-const SNAP_POINTS = ['78%'];
+const SNAP_POINTS = [450]; // DEBUG: fixed px (rules out 78%-of-a-0-height-container)
 // Hero image height — the image-forward focal point of the sheet.
 const HERO_HEIGHT = 200;
 // Glyph size for the placeholder mark when an onsen has no photo; a layout
@@ -146,7 +146,17 @@ export default function OnsenPreviewSheet({
       backgroundStyle={styles.sheetBackground}
       handleIndicatorStyle={styles.handleIndicator}
     >
-      <BottomSheetView style={[styles.content, { paddingBottom: insets.bottom + spacing[4] }]}>
+      <BottomSheetView
+        onLayout={(e) =>
+          console.log(
+            '[preview] BottomSheetView onLayout h=',
+            e.nativeEvent.layout.height,
+            'w=',
+            e.nativeEvent.layout.width
+          )
+        }
+        style={[styles.content, { paddingBottom: insets.bottom + spacing[4] }]}
+      >
         {shown && directionsAction ? (
           <>
           <View style={styles.hero}>

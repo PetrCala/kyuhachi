@@ -68,7 +68,12 @@ export default function RootLayout() {
     // GestureHandlerRootView must wrap the app for gesture-handler (and the
     // bottom-sheet preview built on it) to receive touches; BottomSheetModalProvider
     // lets any screen present the onsen preview sheet.
-    <GestureHandlerRootView style={styles.root}>
+    <GestureHandlerRootView
+      style={styles.root}
+      onLayout={(e) =>
+        console.log('[preview] GestureHandlerRootView onLayout h=', e.nativeEvent.layout.height)
+      }
+    >
       <BottomSheetModalProvider>
         <AuthProvider>
           <PreferencesProvider>
