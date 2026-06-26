@@ -24,13 +24,21 @@ const CATEGORY_SPECS: Record<PoiCategory, { query: string; poiCategories?: strin
 /** Apple caps a region search's radius near 50 km. */
 const MAX_SEARCH_RADIUS_M = 50_000;
 
+/**
+ * Whether the finder can return real results. True when the native MKLocalSearch
+ * module is linked; also true in dev (we stand in mock data there). In a release
+ * build without the module it is false — callers should show an unavailable state
+ * rather than the fabricated mock data, which must never reach a real user.
+ */
+export const finderSearchAvailable = __DEV__ || isLocalSearchAvailable;
+
 function dedupeKey(p: { name: string; lat: number; lng: number }): string {
   return `${p.name}@${p.lat.toFixed(4)},${p.lng.toFixed(4)}`;
 }
 
-// Deterministic stand-ins used only when the native module isn't linked (e.g.
-// iterating on the UI without a custom dev build). Small fixed offsets keep them
-// inside a typical corridor so route mode still shows something.
+// Deterministic stand-ins for DEV ONLY, so the UI is buildable without a custom
+// native build. Never used in release builds — see rawSearch. Small fixed offsets
+// keep them inside a typical corridor so route mode still shows something.
 const MOCK_OFFSETS_KM: [number, number][] = [
   [0.05, 0.1],
   [0.2, -0.15],
@@ -64,7 +72,8 @@ async function rawSearch(
       categories: spec.poiCategories ?? null,
     });
   }
-  return mockSearch(spec.query, center);
+  // Module absent: mock only in dev; never fabricate data in a release build.
+  return __DEV__ ? mockSearch(spec.query, center) : [];
 }
 
 /**

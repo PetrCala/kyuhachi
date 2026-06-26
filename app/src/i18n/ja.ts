@@ -326,6 +326,8 @@ const ja: Record<keyof typeof en, string> = {
   'finder.empty': '見つかりませんでした。設定で距離を広げてみてください。',
   'finder.locationNeededTitle': '位置情報が必要です',
   'finder.locationNeededBody': 'ルート沿いのスポットを探すには位置情報を許可してください。',
+  'finder.unavailableTitle': '検索を利用できません',
+  'finder.unavailableBody': 'スポット検索には最新のアプリが必要です。Kyuhachiを更新してください。',
 
   // stamp-collection celebration (shown after recording a new visit)
   'stampClaim.title': '新しいスタンプ！',
