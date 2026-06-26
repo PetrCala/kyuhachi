@@ -68,10 +68,16 @@ export default function OnsenPreviewSheet({
   // blank before the slide-down finishes.
   const [shown, setShown] = useState<OnsenRow | null>(onsen);
 
+  useEffect(() => {
+    console.log('[preview] OnsenPreviewSheet mounted (provider context present)');
+  }, []);
+
   // Present when an onsen is selected, dismiss when cleared.
   useEffect(() => {
+    console.log('[preview] onsen prop:', onsen?.id ?? null, '| sheetRef set?', !!sheetRef.current);
     if (onsen) {
       setShown(onsen);
+      console.log('[preview] calling present()');
       sheetRef.current?.present();
     } else {
       sheetRef.current?.dismiss();
@@ -83,7 +89,10 @@ export default function OnsenPreviewSheet({
   onCloseRef.current = onClose;
   // Any dismissal — swipe, backdrop, close button, or programmatic — clears the
   // map's selection so its state matches the closed sheet.
-  const handleDismiss = useCallback(() => onCloseRef.current(), []);
+  const handleDismiss = useCallback(() => {
+    console.log('[preview] onDismiss fired');
+    onCloseRef.current();
+  }, []);
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
@@ -112,12 +121,15 @@ export default function OnsenPreviewSheet({
       enableDynamicSizing={false}
       enablePanDownToClose
       onDismiss={handleDismiss}
+      onChange={(index) => console.log('[preview] sheet onChange index:', index)}
+      onAnimate={(from, to) => console.log('[preview] sheet onAnimate:', from, '->', to)}
       backdropComponent={renderBackdrop}
       backgroundStyle={styles.sheetBackground}
       handleIndicatorStyle={styles.handleIndicator}
     >
-      {shown && directionsAction && (
-        <BottomSheetView style={[styles.content, { paddingBottom: insets.bottom + spacing[4] }]}>
+      <BottomSheetView style={[styles.content, { paddingBottom: insets.bottom + spacing[4] }]}>
+        {shown && directionsAction ? (
+          <>
           <View style={styles.hero}>
             {shown.imageUrl ? (
               <Image
@@ -208,8 +220,9 @@ export default function OnsenPreviewSheet({
               color={colors.actionPrimaryText}
             />
           </Pressable>
-        </BottomSheetView>
-      )}
+          </>
+        ) : null}
+      </BottomSheetView>
     </BottomSheetModal>
   );
 }

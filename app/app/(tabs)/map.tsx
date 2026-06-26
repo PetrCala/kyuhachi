@@ -315,8 +315,11 @@ export default function MapScreen() {
   // Resolved against the latest onsen list via the functional setter so this
   // callback stays stable (the memoized markers never re-render to re-bind it).
   const handleOnsenPress = useCallback((id: string) => {
+    console.log('[preview] pin tapped:', id);
     setOnsens((current) => {
-      setSelectedOnsen(current.find((o) => o.id === id) ?? null);
+      const found = current.find((o) => o.id === id) ?? null;
+      console.log('[preview] setSelectedOnsen ->', found?.id ?? null);
+      setSelectedOnsen(found);
       return current;
     });
   }, []);
