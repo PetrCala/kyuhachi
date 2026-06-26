@@ -1,9 +1,20 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { View, Text, Pressable, Animated, ActivityIndicator, StyleSheet } from 'react-native';
+import { useEffect, useMemo } from 'react';
+import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import Animated, {
+  Easing,
+  ReduceMotion,
+  interpolate,
+  useAnimatedProps,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';
 import { colors, spacing, typography, radii, shadows } from '@/theme';
 
+// Reanimated drives the SVG props on the UI thread via useAnimatedProps, so the
+// trace stays smooth even on low-end devices (the old Animated path ran on the
+// JS thread because svg props can't use the native driver).
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -84,7 +95,7 @@ function projectTrack(points: { lat: number; lng: number }[]): Geom | null {
   if (length <= 0) return null;
 
   const frac = cum.map((c) => c / length);
-  // Guarantee strict monotonicity for Animated.interpolate's inputRange.
+  // Guarantee strict monotonicity for the interpolate() inputRange.
   for (let i = 1; i < frac.length; i++) {
     if (frac[i] <= frac[i - 1]) frac[i] = frac[i - 1] + 1e-6;
   }
@@ -95,17 +106,38 @@ function projectTrack(points: { lat: number; lng: number }[]): Geom | null {
 
 export default function RouteDrawLoader({ name, points, onSkip }: Props) {
   const { t } = useTranslation();
-  const progress = useRef(new Animated.Value(0)).current;
+  const progress = useSharedValue(0);
   const geom = useMemo(() => projectTrack(points), [points]);
 
   useEffect(() => {
-    progress.setValue(0);
-    Animated.timing(progress, {
-      toValue: 1,
+    progress.value = 0;
+    // Match the old Animated.timing exactly: same duration and its default
+    // Easing.inOut(Easing.ease) curve. ReduceMotion.Never preserves the
+    // original always-animate behavior (RN's Animated didn't honor it either).
+    progress.value = withTiming(1, {
       duration: ROUTE_DRAW_MS,
-      useNativeDriver: false, // svg props can't run on the native driver
-    }).start();
+      easing: Easing.inOut(Easing.ease),
+      reduceMotion: ReduceMotion.Never,
+    });
   }, [progress, geom]);
+
+  // The line trace: walk strokeDashoffset from the full length down to 0.
+  const pathProps = useAnimatedProps(() => {
+    'worklet';
+    return {
+      strokeDashoffset: geom ? interpolate(progress.value, [0, 1], [geom.length, 0]) : 0,
+    };
+  });
+
+  // The pen: interpolate its position along the path by cumulative arc fraction.
+  const penProps = useAnimatedProps(() => {
+    'worklet';
+    if (!geom) return { cx: 0, cy: 0 };
+    return {
+      cx: interpolate(progress.value, geom.frac, geom.xs),
+      cy: interpolate(progress.value, geom.frac, geom.ys),
+    };
+  });
 
   return (
     <Pressable
@@ -134,31 +166,9 @@ export default function RouteDrawLoader({ name, points, onSkip }: Props) {
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeDasharray={geom.length}
-              // Animated.interpolate yields an AnimatedNode; the svg prop types
-              // only accept number, so cast each interpolation narrowly.
-              strokeDashoffset={
-                progress.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [geom.length, 0],
-                }) as unknown as number
-              }
+              animatedProps={pathProps}
             />
-            <AnimatedCircle
-              r={PEN_RADIUS}
-              fill={colors.brandGlyph}
-              cx={
-                progress.interpolate({
-                  inputRange: geom.frac,
-                  outputRange: geom.xs,
-                }) as unknown as number
-              }
-              cy={
-                progress.interpolate({
-                  inputRange: geom.frac,
-                  outputRange: geom.ys,
-                }) as unknown as number
-              }
-            />
+            <AnimatedCircle r={PEN_RADIUS} fill={colors.brandGlyph} animatedProps={penProps} />
           </Svg>
         ) : (
           <View style={styles.fallback}>
