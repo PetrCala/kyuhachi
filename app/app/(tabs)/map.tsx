@@ -109,8 +109,9 @@ export default function MapScreen() {
   const { visitedIds, activeRoute, loading: progressLoading } =
     useActiveChallengeProgress();
   const mapRef = useRef<MapView>(null);
-  // Per-onsen Marker handles so an arriving "Show on map" focus can pop the
-  // matching callout once the camera has settled on its pin.
+  // Per-onsen Marker handles, keyed by id, so the screen can deselect a pin (hide
+  // its native callout) when its preview sheet closes — otherwise the tapped pin
+  // stays selected and a re-tap wouldn't re-fire onPress to reopen the sheet.
   const markerRefs = useRef<Record<string, ElementRef<typeof Marker> | null>>({});
   const [onsens, setOnsens] = useState<OnsenRow[]>([]);
   const [onsensLoading, setOnsensLoading] = useState(true);
@@ -319,10 +320,21 @@ export default function MapScreen() {
       return current;
     });
   }, []);
-  const handleCloseSheet = useCallback(() => setSelectedOnsen(null), []);
-  // The preview's "View full details" CTA: dismiss the sheet, then open the
+  // Dismiss the preview. The tapped pin is the iOS map's *selected* annotation,
+  // its native callout hidden behind the sheet's backdrop; once the sheet slides
+  // away that callout would be revealed, and — because MapKit only fires onPress
+  // when the selection changes — a re-tap on the still-selected pin would do
+  // nothing until the user tapped elsewhere to deselect it first. Deselecting the
+  // pin as the sheet closes returns it to rest, so re-tapping reopens the preview.
+  const handleCloseSheet = useCallback(() => {
+    if (selectedOnsen) markerRefs.current[selectedOnsen.id]?.hideCallout();
+    setSelectedOnsen(null);
+  }, [selectedOnsen]);
+  // The preview's "View full details" CTA: dismiss the sheet — deselecting the pin
+  // as above, so it isn't left active when we return to this tab — then open the
   // detail screen — the "enlarge" action.
   const handleViewDetails = useCallback((id: string) => {
+    markerRefs.current[id]?.hideCallout();
     setSelectedOnsen(null);
     router.push(`/onsens/${id}`);
   }, []);

@@ -29,9 +29,10 @@ interface OnsenMarkerProps {
  * the two callbacks stable so React.memo's shallow comparison holds.
  *
  * Tapping the pin selects the onsen — the map screen opens an image-forward
- * preview half-sheet — rather than popping the native callout. `title`/
- * `description` are kept for VoiceOver/accessibility but the callout itself is
- * suppressed so the tap goes straight to the sheet.
+ * preview half-sheet over it. `title`/`description` feed the native callout (and
+ * VoiceOver); the callout sits behind the sheet's backdrop while it's open, and
+ * the map screen deselects the pin when the sheet closes so it doesn't linger —
+ * and so a re-tap reopens the sheet rather than no-opping on a still-selected pin.
  */
 function OnsenMarker({
   id,
@@ -73,8 +74,9 @@ function OnsenMarker({
       description={areaName}
       pinColor={visited ? colors.onsenVisited : undefined}
       tracksViewChanges={tracksViewChanges}
-      // Suppress the native callout: a pin tap selects the onsen and opens the
-      // preview half-sheet directly.
+      // A pin tap selects the onsen and opens the preview half-sheet; the native
+      // callout it pops is hidden behind the sheet, and the map screen deselects
+      // this pin when the sheet closes (so it doesn't linger and a re-tap works).
       onPress={handlePress}
       stopPropagation
     />
