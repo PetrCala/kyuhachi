@@ -4,10 +4,9 @@ import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import {
+import BottomSheet, {
   BottomSheetBackdrop,
   type BottomSheetBackdropProps,
-  BottomSheetModal,
   BottomSheetScrollView,
   BottomSheetView,
 } from '@gorhom/bottom-sheet';
@@ -62,7 +61,7 @@ export default function OnsenPreviewSheet({
 }: OnsenPreviewSheetProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const sheetRef = useRef<BottomSheetModal>(null);
+  const sheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => SNAP_POINTS, []);
 
   // Keep showing the last onsen while the sheet animates out, so content doesn't
@@ -91,15 +90,15 @@ export default function OnsenPreviewSheet({
     console.log('[preview] onsen prop:', onsen?.id ?? null, '| sheetRef set?', !!sheetRef.current);
     if (onsen) {
       setShown(onsen);
-      console.log('[preview] calling present()');
+      console.log('[preview] calling snapToIndex(0) [inline BottomSheet]');
       try {
-        sheetRef.current?.present();
-        console.log('[preview] present() returned (no throw)');
+        sheetRef.current?.snapToIndex(0);
+        console.log('[preview] snapToIndex returned (no throw)');
       } catch (e) {
-        console.log('[preview] present() THREW:', String(e));
+        console.log('[preview] snapToIndex THREW:', String(e));
       }
     } else {
-      sheetRef.current?.dismiss();
+      sheetRef.current?.close();
     }
   }, [onsen]);
 
@@ -134,12 +133,13 @@ export default function OnsenPreviewSheet({
     : undefined;
 
   return (
-    <BottomSheetModal
+    <BottomSheet
       ref={sheetRef}
+      index={-1}
       snapPoints={snapPoints}
       enableDynamicSizing={false}
       enablePanDownToClose
-      onDismiss={handleDismiss}
+      onClose={handleDismiss}
       onChange={(index) => console.log('[preview] sheet onChange index:', index)}
       onAnimate={(from, to) => console.log('[preview] sheet onAnimate:', from, '->', to)}
       backdropComponent={renderBackdrop}
@@ -186,7 +186,7 @@ export default function OnsenPreviewSheet({
             </Text>
             <Pressable
               style={[styles.closeButton, shadows.sm]}
-              onPress={() => sheetRef.current?.dismiss()}
+              onPress={() => sheetRef.current?.close()}
               accessibilityRole="button"
               accessibilityLabel={t('onsenPreview.close')}
               hitSlop={spacing[2]}
@@ -252,7 +252,7 @@ export default function OnsenPreviewSheet({
           </>
         ) : null}
       </BottomSheetView>
-    </BottomSheetModal>
+    </BottomSheet>
   );
 }
 
