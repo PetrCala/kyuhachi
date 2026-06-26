@@ -29,8 +29,8 @@ import {
  */
 export interface DragRowState {
   /** The pan gesture for this row's grab handle. Wrap the handle in
-   *  `<GestureDetector gesture={gesture}>` so a drag started there reorders this
-   *  row. */
+   *  `<GestureDetector gesture={gesture}>` so a press-and-hold-then-drag there
+   *  reorders this row. */
   gesture: PanGesture;
   /** True while this row is the one being dragged. */
   isActive: boolean;
@@ -62,6 +62,13 @@ interface DraggableListProps<T> {
 // 2·√(stiffness·mass) keeps it on the no-bounce side of critical.
 const SPRING = { mass: 1, stiffness: 300, damping: 35 } as const;
 
+// Hold this long on the handle before the drag takes over. A brief press-and-hold
+// claims the gesture decisively: the surrounding scroll (a NativeViewGestureHandler
+// with disallowInterruption) can't steal the first few pixels, so a quick swipe
+// still scrolls while a deliberate hold starts a reorder. It also means the finger
+// is stationary at activation, so the row lifts in place with no jump.
+const DRAG_HOLD_MS = 200;
+
 /**
  * A vertically drag-reorderable list built on `react-native-gesture-handler`
  * (`Gesture.Pan`) + `react-native-reanimated` shared values. Rows keep a stable
@@ -69,10 +76,11 @@ const SPRING = { mass: 1, stiffness: 300, damping: 35 } as const;
  * `translateY`, so reordering never remounts a row. Assumes every row is exactly
  * `rowHeight` tall.
  *
- * The drag is started from a handle (the `gesture` in `DragRowState`), not the
- * whole row, so it never competes with a row's own tap target; passing the
- * surrounding scroll's `scrollableRef` lets the drag take precedence over the
- * scroll without ever disabling scrolling.
+ * The drag is started by a press-and-hold on a handle (the `gesture` in
+ * `DragRowState`), not the whole row, so it never competes with a row's own tap
+ * target and a quick swipe still scrolls. Passing the surrounding scroll's
+ * `scrollableRef` lets the drag take precedence over the scroll once it starts,
+ * without ever disabling scrolling.
  */
 export default function DraggableList<T>({
   items,
@@ -142,6 +150,7 @@ export default function DraggableList<T>({
     let gesture = gestures.get(key);
     if (!gesture) {
       let pan = Gesture.Pan()
+        .activateAfterLongPress(DRAG_HOLD_MS)
         .onStart(() => {
           'worklet';
           activeKey.value = key;
