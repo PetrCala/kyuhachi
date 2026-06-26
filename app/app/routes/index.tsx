@@ -24,6 +24,7 @@ import {
   type FirebaseFirestoreTypes,
 } from '@react-native-firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import type { RouteDocument } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
@@ -85,9 +86,10 @@ export default function RoutesList() {
     done: number;
     total: number;
   } | null>(null);
-  // Locks the surrounding ScrollView while a route is being dragged so the page
-  // doesn't scroll out from under the gesture.
-  const [dragging, setDragging] = useState(false);
+  // The surrounding scroll's gesture. A route drag is given precedence over it
+  // (see DraggableList's `scrollGesture`), so the page never scrolls out from
+  // under an in-progress drag — without ever disabling scrolling.
+  const scrollGesture = useMemo(() => Gesture.Native(), []);
   // The route whose SVG preview is currently playing (tap-to-open). Null = none.
   const [drawing, setDrawing] = useState<{
     name: string;
@@ -398,14 +400,15 @@ export default function RoutesList() {
         key={id}
         style={[styles.card, drag.isActive && styles.cardActive, drag.isActive && shadows.md]}
       >
-        <View
-          style={styles.dragHandle}
-          accessibilityRole="button"
-          accessibilityLabel={t('routes.dragHandle')}
-          {...drag.dragHandleProps}
-        >
-          <Ionicons name="reorder-three" size={HANDLE_ICON_SIZE} color={colors.textTertiary} />
-        </View>
+        <GestureDetector gesture={drag.gesture}>
+          <View
+            style={styles.dragHandle}
+            accessibilityRole="button"
+            accessibilityLabel={t('routes.dragHandle')}
+          >
+            <Ionicons name="reorder-three" size={HANDLE_ICON_SIZE} color={colors.textTertiary} />
+          </View>
+        </GestureDetector>
         <Pressable
           style={styles.cardMain}
           disabled={drawing != null}
@@ -445,46 +448,44 @@ export default function RoutesList() {
   return (
     <>
       <Stack.Screen options={{ title, headerShown: true }} />
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.content}
-        scrollEnabled={!dragging}
-      >
-        {challengeId != null && sorted.length > 0 && (
-          <Text style={styles.tapHint}>{t('routes.tapHint')}</Text>
-        )}
-        {sorted.length > 1 && <Text style={styles.reorderHint}>{t('routes.reorderHint')}</Text>}
+      <GestureDetector gesture={scrollGesture}>
+        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+          {challengeId != null && sorted.length > 0 && (
+            <Text style={styles.tapHint}>{t('routes.tapHint')}</Text>
+          )}
+          {sorted.length > 1 && <Text style={styles.reorderHint}>{t('routes.reorderHint')}</Text>}
 
-        {sorted.length === 0 ? (
-          <Text style={styles.empty}>{t('routes.empty')}</Text>
-        ) : (
-          <DraggableList
-            items={sorted}
-            keyExtractor={(row) => row.id}
-            rowHeight={ROW_HEIGHT}
-            onOrderChange={persistOrder}
-            onDraggingChange={setDragging}
-            renderItem={renderCard}
-          />
-        )}
+          {sorted.length === 0 ? (
+            <Text style={styles.empty}>{t('routes.empty')}</Text>
+          ) : (
+            <DraggableList
+              items={sorted}
+              keyExtractor={(row) => row.id}
+              rowHeight={ROW_HEIGHT}
+              onOrderChange={persistOrder}
+              scrollGesture={scrollGesture}
+              renderItem={renderCard}
+            />
+          )}
 
-        <Pressable
-          style={[styles.importButton, importing && styles.importButtonDisabled]}
-          onPress={handleImport}
-          disabled={importing}
-        >
-          <Text style={styles.importButtonText}>
-            {!importing
-              ? t('routes.import')
-              : importProgress && importProgress.total > 1
-                ? t('routes.importingProgress', {
-                    done: importProgress.done,
-                    total: importProgress.total,
-                  })
-                : t('routes.importing')}
-          </Text>
-        </Pressable>
-      </ScrollView>
+          <Pressable
+            style={[styles.importButton, importing && styles.importButtonDisabled]}
+            onPress={handleImport}
+            disabled={importing}
+          >
+            <Text style={styles.importButtonText}>
+              {!importing
+                ? t('routes.import')
+                : importProgress && importProgress.total > 1
+                  ? t('routes.importingProgress', {
+                      done: importProgress.done,
+                      total: importProgress.total,
+                    })
+                  : t('routes.importing')}
+            </Text>
+          </Pressable>
+        </ScrollView>
+      </GestureDetector>
       {drawing && (
         <RouteDrawLoader name={drawing.name} points={drawing.points} onSkip={goToMap} />
       )}
