@@ -1,9 +1,12 @@
 /**
- * Pure drag-reorder math for `DraggableList`. Kept here so the slot/clamp and
- * key-reorder logic can be unit-tested without React, gesture-handler, or
- * reanimated — and shared verbatim with the gesture worklet that runs them on
- * the UI thread (hence the `'worklet'` directives, which leave the functions
- * plain-callable on the JS thread too).
+ * Pure drag-reorder math for `DraggableList`, so the slot/clamp and key-reorder
+ * logic can be unit-tested without React, gesture-handler, or reanimated.
+ *
+ * These run on the JS thread: `positionsFromKeys` builds the initial/synced
+ * layout, and the rest document and verify the math that `DraggableList`'s pan
+ * worklet inlines (a worklet must be self-contained on the UI thread, so it
+ * can't call across module boundaries — keeping the canonical version here keeps
+ * it tested).
  *
  * `positions` is the canonical layout: a map of row key -> slot index
  * (0 = top), always a contiguous `0..n-1` range.
@@ -11,7 +14,6 @@
 
 /** Clamp a (possibly out-of-range) slot index into `[0, count - 1]`. */
 export function clampSlot(slot: number, count: number): number {
-  'worklet';
   if (count <= 0) return 0;
   // `<= 0` (not `< 0`) so a `Math.round(-0.x)` of `-0` normalizes to `+0`.
   if (slot <= 0) return 0;
@@ -26,13 +28,11 @@ export function clampSlot(slot: number, count: number): number {
  * drag past either end settles into the first/last slot instead of running off.
  */
 export function slotForOffset(offsetY: number, rowHeight: number, count: number): number {
-  'worklet';
   return clampSlot(Math.round(offsetY / rowHeight), count);
 }
 
 /** Build a `positions` map from keys already in display order (0 = top). */
 export function positionsFromKeys(keys: string[]): Record<string, number> {
-  'worklet';
   const positions: Record<string, number> = {};
   for (let i = 0; i < keys.length; i++) positions[keys[i]] = i;
   return positions;
@@ -40,7 +40,6 @@ export function positionsFromKeys(keys: string[]): Record<string, number> {
 
 /** Keys in slot order (0 = top) — the array form of a `positions` map. */
 export function keysInSlotOrder(positions: Record<string, number>): string[] {
-  'worklet';
   return Object.keys(positions).sort((a, b) => positions[a] - positions[b]);
 }
 
@@ -56,7 +55,6 @@ export function reorderByMovingKey(
   key: string,
   target: number
 ): Record<string, number> {
-  'worklet';
   const order = keysInSlotOrder(positions);
   const from = order.indexOf(key);
   if (from === -1 || from === target) return positions;

@@ -16,12 +16,7 @@ import Animated, {
   withSpring,
   type SharedValue,
 } from 'react-native-reanimated';
-import {
-  keysInSlotOrder,
-  positionsFromKeys,
-  reorderByMovingKey,
-  slotForOffset,
-} from '@/lib/drag-reorder';
+import { positionsFromKeys } from '@/lib/drag-reorder';
 
 /**
  * What `renderItem` receives so a row can wire up its own grab handle and react
@@ -161,17 +156,34 @@ export default function DraggableList<T>({
         })
         .onUpdate((event) => {
           'worklet';
+          // The active row follows the finger directly; set this FIRST and keep
+          // this worklet self-contained (no cross-module calls) so nothing can
+          // throw before the translate lands. The slot/reorder math below mirrors
+          // slotForOffset + reorderByMovingKey in lib/drag-reorder.ts (unit-tested
+          // there); it's inlined because worklets must run on the UI thread.
           const top = activeStartTop.value + event.translationY;
           activeTranslateY.value = top;
           animateReorder.value = true;
-          const target = slotForOffset(top, rowHeightSV.value, countSV.value);
-          positions.value = reorderByMovingKey(positions.value, key, target);
+          const count = countSV.value;
+          const raw = Math.round(top / rowHeightSV.value);
+          const target = raw < 0 ? 0 : raw > count - 1 ? count - 1 : raw;
+          const current = positions.value;
+          const order = Object.keys(current).sort((a, b) => current[a] - current[b]);
+          const from = order.indexOf(key);
+          if (from !== -1 && from !== target) {
+            order.splice(from, 1);
+            order.splice(target, 0, key);
+            const next: Record<string, number> = {};
+            for (let i = 0; i < order.length; i++) next[order[i]] = i;
+            positions.value = next;
+          }
         })
         .onFinalize(() => {
           'worklet';
           if (activeKey.value !== key) return;
-          const finalOrder = keysInSlotOrder(positions.value);
-          const finalSlot = positions.value[key] ?? 0;
+          const current = positions.value;
+          const finalOrder = Object.keys(current).sort((a, b) => current[a] - current[b]);
+          const finalSlot = current[key] ?? 0;
           // Settle the dropped row into its slot, then (and only then) clear the
           // active state and report the new order — the lift persists through the
           // settle, exactly as the old PanResponder version did.
