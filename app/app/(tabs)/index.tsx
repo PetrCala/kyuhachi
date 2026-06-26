@@ -8,9 +8,14 @@ import {
   ActivityIndicator,
   SafeAreaView,
   AccessibilityInfo,
-  Animated,
-  Easing,
 } from 'react-native';
+import {
+  Easing,
+  runOnJS,
+  useAnimatedReaction,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useActiveChallengeProgress } from '@/hooks/useActiveChallengeProgress';
@@ -202,27 +207,37 @@ export default function Home() {
     };
   }, []);
 
-  // The integer shown in the hero string; driven by visitedAnim while counting up.
+  // The integer shown in the hero string; mirrored from visitedAnim as it counts up.
   const [displayVisited, setDisplayVisited] = useState(eligibleVisitCount);
   // Whether the bar should tween to its new fill for this particular change.
   const [animateFill, setAnimateFill] = useState(false);
-  const visitedAnim = useRef(new Animated.Value(eligibleVisitCount)).current;
+  // Reanimated shared value that tweens the visited count on the UI thread.
+  const visitedAnim = useSharedValue(eligibleVisitCount);
   const seenVisitRef = useRef<{ challengeId: string | null; count: number | null }>({
     challengeId: null,
     count: null,
   });
 
-  useEffect(() => {
-    const id = visitedAnim.addListener(({ value }) => setDisplayVisited(Math.round(value)));
-    return () => visitedAnim.removeListener(id);
-  }, [visitedAnim]);
+  // Surface the animated count to the rendered string without a per-frame React
+  // update: react only when the rounded value crosses to a new integer, then hop
+  // to the JS thread so the hero keeps its localized `t()` formatting. A typical
+  // +1 visit fires this exactly once.
+  useAnimatedReaction(
+    () => Math.round(visitedAnim.value),
+    (rounded, previous) => {
+      if (previous !== null && rounded !== previous) {
+        runOnJS(setDisplayVisited)(rounded);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     const prev = seenVisitRef.current;
     if (prev.challengeId !== challengeId) {
       // Switched challenge (or first observation) — show the final value at once.
       seenVisitRef.current = { challengeId, count: eligibleVisitCount };
-      visitedAnim.setValue(eligibleVisitCount);
+      visitedAnim.value = eligibleVisitCount;
       setDisplayVisited(eligibleVisitCount);
       setAnimateFill(false);
       return;
@@ -230,19 +245,17 @@ export default function Home() {
     const increased = prev.count != null && eligibleVisitCount > prev.count;
     if (increased && animateProgress && !reduceMotionRef.current) {
       setAnimateFill(true);
-      visitedAnim.setValue(prev.count as number);
-      Animated.timing(visitedAnim, {
-        toValue: eligibleVisitCount,
+      // Snap to the old count, then tween up to the new one; the reaction above
+      // mirrors each whole-number step into the localized hero string.
+      visitedAnim.value = prev.count as number;
+      visitedAnim.value = withTiming(eligibleVisitCount, {
         duration: COUNT_UP_DURATION,
         easing: Easing.out(Easing.cubic),
-        // Listener-driven numeric tween — the native driver can't surface the
-        // intermediate values we read to update the localized string.
-        useNativeDriver: false,
-      }).start();
+      });
     } else {
       // Decrease, no change, or motion off: land on the final value immediately.
       setAnimateFill(false);
-      visitedAnim.setValue(eligibleVisitCount);
+      visitedAnim.value = eligibleVisitCount;
       setDisplayVisited(eligibleVisitCount);
     }
     seenVisitRef.current = { challengeId, count: eligibleVisitCount };
