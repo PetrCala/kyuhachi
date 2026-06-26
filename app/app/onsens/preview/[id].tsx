@@ -23,17 +23,18 @@ const HERO_HEIGHT = 200;
 const PLACEHOLDER_GLYPH = 56;
 
 /**
- * Image-forward onsen preview, presented as a native iOS sheet (a fixed-detent
- * `formSheet` registered in the root layout). A large hero image (or a themed
+ * Image-forward onsen preview, presented as a native iOS page sheet (registered
+ * as a `pageSheet` route in the root layout). A large hero image (or a themed
  * placeholder) anchors the top with the name overlaid on a scrim; below it a
  * scrollable info area mirrors the detail screen's rows, and a pinned CTA opens
  * the full detail screen.
  *
- * The native sheet supplies the grabber, rounded corners, dim backdrop, and
- * swipe-to-dismiss (with scroll/drag coordination), so this route only renders
- * content. The selected onsen is re-fetched by id from Firestore — offline
- * persistence serves it from cache instantly (the map already subscribed to the
- * same collection), so opening is effectively immediate.
+ * The native page sheet is edge-to-edge and bottom-pinned, supplying its own
+ * rounded top corners, dim backdrop, and swipe-to-dismiss (with scroll/drag
+ * coordination), so this route only renders content. The selected onsen is
+ * re-fetched by id from Firestore — offline persistence serves it from cache
+ * instantly (the map already subscribed to the same collection), so opening is
+ * effectively immediate.
  */
 export default function OnsenPreviewScreen() {
   const { t } = useTranslation();
@@ -167,11 +168,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    // Round the top corners to match the native sheet, so a full-bleed hero
-    // image never pokes square corners past the sheet's rounding.
-    borderTopLeftRadius: radii.xl,
-    borderTopRightRadius: radii.xl,
-    overflow: 'hidden',
+    // No top-corner rounding here: the native page sheet supplies its own
+    // rounded top corners and clips this content to them. Rounding again with a
+    // different radius would leave slivers of sheet background at the corners.
   },
   hero: {
     height: HERO_HEIGHT,

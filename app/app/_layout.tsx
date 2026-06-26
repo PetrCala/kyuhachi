@@ -6,7 +6,6 @@ import { useFonts, KleeOne_600SemiBold } from '@expo-google-fonts/klee-one';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { PreferencesProvider } from '@/context/PreferencesContext';
 import { StampCelebrationProvider } from '@/context/StampCelebrationContext';
-import { radii } from '@/theme';
 
 // Keep the native splash visible until the brand font has loaded, so the
 // 九八 mark never flashes in a fallback face.
@@ -72,17 +71,17 @@ export default function RootLayout() {
               name="onsens/edit-visit"
               options={{ presentation: 'modal', headerShown: true }}
             />
-            {/* Onsen map preview: a native iOS sheet at a single fixed detent, so
-                it can't resize to its content. The lone detent also gives native
-                swipe-to-dismiss from anywhere (dragging down dismisses when the
-                content is scrolled to the top, scrolls otherwise). */}
+            {/* Onsen map preview: a native iOS page sheet — edge-to-edge and
+                bottom-pinned (not the inset floating card that `formSheet` renders
+                on iOS 26), with the system top-corner radius and native
+                swipe-to-dismiss. We use pageSheet over formSheet deliberately:
+                react-native-screens only honors sheet detents/grabber/corner-radius
+                for formSheet, and the edge-to-edge fill matters more than a custom
+                detent height here, so the sheet sits at the system's tall default. */}
             <Stack.Screen
               name="onsens/preview/[id]"
               options={{
-                presentation: 'formSheet',
-                sheetAllowedDetents: [0.55],
-                sheetGrabberVisible: true,
-                sheetCornerRadius: radii.xl,
+                presentation: 'pageSheet',
                 headerShown: false,
               }}
             />
