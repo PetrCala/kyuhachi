@@ -165,6 +165,10 @@ export default function OnsenPreviewSheet({
             contentContainerStyle={{ paddingBottom: footerHeight + spacing[2] }}
             stickyHeaderIndices={[0]}
             showsVerticalScrollIndicator={false}
+            // No rubber-band overscroll at the top: when the body reaches its
+            // top the sticky hero (and the sheet itself) stay put instead of
+            // bouncing. Swipe-down-to-close still fires from the handle/backdrop.
+            bounces={false}
           >
             <View style={styles.hero}>
               {shown.imageUrl ? (
