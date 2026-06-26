@@ -25,8 +25,8 @@ const RAIL_WIDTH = 3;
 // the camera `zoom` field is Google-Maps-only and a no-op on PROVIDER_DEFAULT.
 // Lower altitude = closer in. The slider clamps to a comfortable browsing band;
 // pinch can still reach beyond it.
-const MIN_ALTITUDE = 1_000; // knob at top — streets
-const MAX_ALTITUDE = 2_000_000; // knob at bottom — the whole region
+export const MIN_ALTITUDE = 1_000; // knob at top — streets
+export const MAX_ALTITUDE = 2_000_000; // knob at bottom — the whole region
 const STEP_FACTOR = 2; // each +/- tap halves / doubles the altitude
 
 const clampAltitude = (a: number) => Math.min(MAX_ALTITUDE, Math.max(MIN_ALTITUDE, a));
