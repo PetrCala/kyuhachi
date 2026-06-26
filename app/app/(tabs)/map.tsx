@@ -47,6 +47,10 @@ const KYUSHU_REGION = {
 /** Roughly city-level zoom used when recentering the map on the user. */
 const USER_LOCATION_DELTA = 0.05;
 
+/** Tight, street-level zoom used when focusing a single onsen via "Show on map".
+ *  ~85% closer than {@link USER_LOCATION_DELTA} so the pin really fills the view. */
+const FOCUS_ONSEN_DELTA = 0.0075;
+
 /** Idle time (ms) with no map interaction before the on-map controls (filter
  *  pill, zoom slider, recenter button) fade out together, and how long that fade
  *  takes. They reappear on any map touch or when a control is used. */
@@ -401,8 +405,8 @@ export default function MapScreen() {
     mapRef.current?.animateToRegion({
       latitude: target.lat,
       longitude: target.lng,
-      latitudeDelta: USER_LOCATION_DELTA,
-      longitudeDelta: USER_LOCATION_DELTA,
+      latitudeDelta: FOCUS_ONSEN_DELTA,
+      longitudeDelta: FOCUS_ONSEN_DELTA,
     });
   }, [focusOnsenId, focusTs, onsens]);
 
