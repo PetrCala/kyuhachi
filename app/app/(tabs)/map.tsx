@@ -385,12 +385,13 @@ export default function MapScreen() {
     mapRef.current?.animateToRegion(regionForBounds(route.bounds));
   }, [route]);
 
-  // Arriving from an onsen's "Show on map": center on that pin and, once the
-  // camera has settled, open its preview half-sheet. `focusTs` is a per-tap nonce
-  // so tapping again re-focuses the same onsen (an unchanging id alone wouldn't
-  // re-fire the effect); the guard stops a re-run on unrelated re-renders or when
-  // returning to this tab. Runs after the route-framing effect above so a focused
-  // onsen wins the camera.
+  // Arriving from an onsen's "Show on map": center on that pin. We don't open the
+  // preview half-sheet — the user came straight from this onsen's detail screen,
+  // so the sheet would just repeat what they already saw. `focusTs` is a per-tap
+  // nonce so tapping again re-focuses the same onsen (an unchanging id alone
+  // wouldn't re-fire the effect); the guard stops a re-run on unrelated re-renders
+  // or when returning to this tab. Runs after the route-framing effect above so a
+  // focused onsen wins the camera.
   const focusedTokenRef = useRef<string | null>(null);
   useEffect(() => {
     if (!focusOnsenId || !focusTs || focusedTokenRef.current === focusTs) return;
@@ -403,8 +404,6 @@ export default function MapScreen() {
       latitudeDelta: USER_LOCATION_DELTA,
       longitudeDelta: USER_LOCATION_DELTA,
     });
-    const timer = setTimeout(() => setSelectedOnsen(target), 650);
-    return () => clearTimeout(timer);
   }, [focusOnsenId, focusTs, onsens]);
 
   if (loading) {
