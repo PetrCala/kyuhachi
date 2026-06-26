@@ -69,6 +69,14 @@ function estimateAltitude(latitudeDelta: number): number {
   return latitudeDelta * 111_000;
 }
 
+/** Where the "Show on map" fly-in starts: the whole-Kyushu overview, so the zoom
+ *  always reads as a descent from the full map down to the pin. */
+const KYUSHU_OVERVIEW_ALTITUDE = estimateAltitude(KYUSHU_REGION.latitudeDelta);
+
+/** Duration (ms) of that fly-in. Long enough to watch the eased descent (Apple
+ *  Maps animates the camera on its own ease-in-out curve), not a snap. */
+const FOCUS_FLY_IN_MS = 1200;
+
 /** A map region that frames the route's bounding box with a little padding. */
 function regionForBounds(bounds: RouteDocument['bounds']): Region {
   return {
@@ -406,14 +414,21 @@ export default function MapScreen() {
     mapRef.current?.animateToRegion(regionForBounds(route.bounds));
   }, [route, focusOnsenId, focusTs]);
 
-  // Arriving from an onsen's "Show on map": center on that pin. We don't open the
-  // preview half-sheet — the user came straight from this onsen's detail screen,
-  // so the sheet would just repeat what they already saw. `focusTs` is a per-tap
-  // nonce so tapping again re-focuses the same onsen (an unchanging id alone
-  // wouldn't re-fire the effect); the guard stops a re-run on unrelated re-renders
-  // or when returning to this tab. Waits on `mapReady` so the move isn't a no-op
-  // against an unmounted map, and the route-framing effect above yields whenever
-  // these focus params are present, so a late-loading route can't override us.
+  // Arriving from an onsen's "Show on map": fly in to that pin. We snap to the
+  // whole-Kyushu overview first, then ease the camera down to the onsen so the
+  // zoom plays as a deliberate descent (Apple Maps' built-in ease-in-out curve)
+  // rather than an instant jump — whatever the map happened to be framing. The
+  // snap and the animation are split across a frame so MapKit starts the descent
+  // from the overview instead of coalescing both into one move from the old view.
+  //
+  // We don't open the preview half-sheet — the user came straight from this
+  // onsen's detail screen, so the sheet would just repeat what they already saw.
+  // `focusTs` is a per-tap nonce so tapping again re-flies to the same onsen (an
+  // unchanging id alone wouldn't re-fire the effect); the guard stops a re-run on
+  // unrelated re-renders or when returning to this tab. Waits on `mapReady` so the
+  // move isn't a no-op against an unmounted map, and the route-framing effect above
+  // yields whenever these focus params are present, so a late-loading route can't
+  // override us.
   const focusedTokenRef = useRef<string | null>(null);
   useEffect(() => {
     if (!mapReady || !focusOnsenId || !focusTs || focusedTokenRef.current === focusTs) {
@@ -422,10 +437,20 @@ export default function MapScreen() {
     const target = onsens.find((o) => o.id === focusOnsenId);
     if (!target) return; // onsen list not loaded yet; re-runs when it arrives
     focusedTokenRef.current = focusTs;
-    mapRef.current?.animateCamera({
-      center: { latitude: target.lat, longitude: target.lng },
-      altitude: FOCUS_ONSEN_ALTITUDE,
+    mapRef.current?.setCamera({
+      center: { latitude: KYUSHU_REGION.latitude, longitude: KYUSHU_REGION.longitude },
+      altitude: KYUSHU_OVERVIEW_ALTITUDE,
     });
+    const raf = requestAnimationFrame(() => {
+      mapRef.current?.animateCamera(
+        {
+          center: { latitude: target.lat, longitude: target.lng },
+          altitude: FOCUS_ONSEN_ALTITUDE,
+        },
+        { duration: FOCUS_FLY_IN_MS }
+      );
+    });
+    return () => cancelAnimationFrame(raf);
   }, [mapReady, focusOnsenId, focusTs, onsens]);
 
   if (loading) {
