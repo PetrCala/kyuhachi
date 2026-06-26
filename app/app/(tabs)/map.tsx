@@ -119,6 +119,11 @@ export default function MapScreen() {
   // Live camera altitude (Apple Maps), read after each gesture settles so the
   // zoom slider's knob tracks pinch as well as its own drags.
   const [altitude, setAltitude] = useState<number | undefined>(undefined);
+  // Flips true once the MapView reports ready. A "Show on map" focus waits on this
+  // so its camera move actually lands: with an active route the screen stays in its
+  // loading state until the route resolves, so onsens, the route, and the map can
+  // become ready in any order — animating before the map exists would be a no-op.
+  const [mapReady, setMapReady] = useState(false);
 
   // The on-map controls auto-hide together after a spell of no interaction and
   // reappear on any map touch or control use. `controlsVisible` drives both their
@@ -224,6 +229,7 @@ export default function MapScreen() {
   // Read the actual camera altitude once a gesture settles (and on first ready)
   // to keep the slider knob in sync with pinch. getCamera can reject in teardown.
   const handleCameraSettle = useCallback(async () => {
+    setMapReady(true);
     try {
       const camera = await mapRef.current?.getCamera();
       if (camera?.altitude !== undefined) setAltitude(camera.altitude);
@@ -384,26 +390,35 @@ export default function MapScreen() {
   // a route attached or switched while the Map tab stayed mounted — which a
   // static `initialRegion` can't. Keyed on the bounds so it animates once per
   // distinct route, not on every snapshot.
+  //
+  // Exception: a "Show on map" navigation (focus params present) is an explicit
+  // request to view one onsen, so it owns the camera. The active route loads
+  // asynchronously and would otherwise fire this effect *after* the focus zoom,
+  // yanking the camera back out to frame the whole route — so we yield here and
+  // let the focus effect below win.
   const framedBoundsRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!route) return;
+    if (!route || (focusOnsenId && focusTs)) return;
     const { minLat, minLng, maxLat, maxLng } = route.bounds;
     const key = `${minLat},${minLng},${maxLat},${maxLng}`;
     if (key === framedBoundsRef.current) return;
     framedBoundsRef.current = key;
     mapRef.current?.animateToRegion(regionForBounds(route.bounds));
-  }, [route]);
+  }, [route, focusOnsenId, focusTs]);
 
   // Arriving from an onsen's "Show on map": center on that pin. We don't open the
   // preview half-sheet — the user came straight from this onsen's detail screen,
   // so the sheet would just repeat what they already saw. `focusTs` is a per-tap
   // nonce so tapping again re-focuses the same onsen (an unchanging id alone
   // wouldn't re-fire the effect); the guard stops a re-run on unrelated re-renders
-  // or when returning to this tab. Runs after the route-framing effect above so a
-  // focused onsen wins the camera.
+  // or when returning to this tab. Waits on `mapReady` so the move isn't a no-op
+  // against an unmounted map, and the route-framing effect above yields whenever
+  // these focus params are present, so a late-loading route can't override us.
   const focusedTokenRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!focusOnsenId || !focusTs || focusedTokenRef.current === focusTs) return;
+    if (!mapReady || !focusOnsenId || !focusTs || focusedTokenRef.current === focusTs) {
+      return;
+    }
     const target = onsens.find((o) => o.id === focusOnsenId);
     if (!target) return; // onsen list not loaded yet; re-runs when it arrives
     focusedTokenRef.current = focusTs;
@@ -411,7 +426,7 @@ export default function MapScreen() {
       center: { latitude: target.lat, longitude: target.lng },
       altitude: FOCUS_ONSEN_ALTITUDE,
     });
-  }, [focusOnsenId, focusTs, onsens]);
+  }, [mapReady, focusOnsenId, focusTs, onsens]);
 
   if (loading) {
     return (
