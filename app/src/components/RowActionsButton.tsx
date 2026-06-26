@@ -1,29 +1,18 @@
-import { useEffect, useRef, useState } from 'react';
-import {
-  Pressable,
-  View,
-  Text,
-  StyleSheet,
-  Modal,
-  Animated,
-  Easing,
-  Dimensions,
-} from 'react-native';
+import { useCallback, useRef } from 'react';
+import { Pressable, View, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import {
+  BottomSheetBackdrop,
+  type BottomSheetBackdropProps,
+  BottomSheetModal,
+  BottomSheetView,
+} from '@gorhom/bottom-sheet';
 import { colors, spacing, typography, radii } from '@/theme';
 
 // Fixed glyph size for the ⋯ trigger — a tap-target dimension, not part of the
 // type scale (mirrors the geometry constants in RecordVisitFab).
 const ICON_SIZE = 22;
-// The sheet starts a full screen height below its resting place so it is always
-// off-screen at rest regardless of its measured height; the ease-out curve makes
-// the visible final stretch decelerate into place, like the native sheet.
-const SCREEN_HEIGHT = Dimensions.get('window').height;
-const ENTER_DURATION = 260;
-const EXIT_DURATION = 200;
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export interface RowAction {
   /** Visible label in the sheet. */
@@ -44,13 +33,18 @@ interface RowActionsButtonProps {
 }
 
 /**
- * A three-dot (⋯) row affordance that opens a custom bottom-sheet modal of
- * per-item actions (rename / delete / …). The backdrop fades in while the sheet
- * slides up from the bottom — the two are animated independently so it feels
- * like the native iOS action sheet rather than the whole surface sliding.
+ * A three-dot (⋯) row affordance that opens a bottom-sheet of per-item actions
+ * (rename / delete / …), opened by tapping the ⋯ button.
  *
- * Experimental alternative to ActionSheetIOS — kept behind the same props so the
- * list screens don't need to change.
+ * Built on `@gorhom/bottom-sheet` (`BottomSheetModal`) for native-quality
+ * slide-up, backdrop, and swipe/grabber dismissal. The sheet sizes to its
+ * contents (the action count varies per row) and pins to the bottom with
+ * safe-area padding; the backdrop, the grabber, a downward swipe, and the
+ * cancel row all dismiss it.
+ *
+ * A chosen item's `onPress` runs *after* the sheet finishes dismissing, so any
+ * surface the action drives (an alert, a navigation) appears over a settled UI
+ * rather than fighting the slide-down — mirroring the native iOS action sheet.
  */
 export default function RowActionsButton({
   accessibilityLabel,
@@ -58,39 +52,33 @@ export default function RowActionsButton({
   title,
   actions,
 }: RowActionsButtonProps) {
-  const [visible, setVisible] = useState(false);
   const insets = useSafeAreaInsets();
-  // 0 = dismissed (backdrop clear, sheet off-screen), 1 = presented.
-  const anim = useRef(new Animated.Value(0)).current;
+  const sheetRef = useRef<BottomSheetModal>(null);
+  // The item picked before the dismiss animation; run once the sheet settles.
+  const pendingAction = useRef<(() => void) | null>(null);
 
-  useEffect(() => {
-    if (!visible) return;
-    anim.setValue(0);
-    Animated.timing(anim, {
-      toValue: 1,
-      duration: ENTER_DURATION,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [visible, anim]);
+  const selectAction = useCallback((onPress: () => void) => {
+    pendingAction.current = onPress;
+    sheetRef.current?.dismiss();
+  }, []);
 
-  function close(after?: () => void) {
-    Animated.timing(anim, {
-      toValue: 0,
-      duration: EXIT_DURATION,
-      easing: Easing.in(Easing.cubic),
-      useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (!finished) return;
-      setVisible(false);
-      after?.();
-    });
-  }
+  const handleDismiss = useCallback(() => {
+    const action = pendingAction.current;
+    pendingAction.current = null;
+    action?.();
+  }, []);
 
-  const translateY = anim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [SCREEN_HEIGHT, 0],
-  });
+  const renderBackdrop = useCallback(
+    (props: BottomSheetBackdropProps) => (
+      <BottomSheetBackdrop
+        {...props}
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
+        pressBehavior="close"
+      />
+    ),
+    []
+  );
 
   return (
     <>
@@ -98,62 +86,59 @@ export default function RowActionsButton({
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
         hitSlop={spacing[2]}
-        onPress={() => setVisible(true)}
+        onPress={() => sheetRef.current?.present()}
         style={({ pressed }) => [styles.trigger, pressed && styles.pressed]}
       >
         <Ionicons name="ellipsis-horizontal" size={ICON_SIZE} color={colors.textTertiary} />
       </Pressable>
 
-      <Modal visible={visible} transparent animationType="none" onRequestClose={() => close()}>
-        <View style={styles.root}>
-          <AnimatedPressable
-            accessibilityRole="button"
-            accessibilityLabel={cancelLabel}
-            style={[styles.backdrop, { opacity: anim }]}
-            onPress={() => close()}
-          />
-          <Animated.View
-            style={[
-              styles.sheet,
-              { paddingBottom: insets.bottom + spacing[2], transform: [{ translateY }] },
-            ]}
-          >
-            <View style={styles.group}>
-              {title ? (
-                <View style={styles.titleRow}>
-                  <Text style={styles.titleText} numberOfLines={1}>
-                    {title}
-                  </Text>
-                </View>
-              ) : null}
-              {actions.map((action, index) => (
-                <Pressable
-                  key={action.label}
-                  onPress={() => close(action.onPress)}
-                  style={({ pressed }) => [
-                    styles.option,
-                    (title || index > 0) && styles.optionDivider,
-                    pressed && styles.optionPressed,
-                  ]}
-                >
-                  <Text
-                    style={[styles.optionText, action.destructive && styles.optionTextDestructive]}
-                  >
-                    {action.label}
-                  </Text>
-                </Pressable>
-              ))}
+      <BottomSheetModal
+        ref={sheetRef}
+        enableDynamicSizing
+        enablePanDownToClose
+        onDismiss={handleDismiss}
+        backdropComponent={renderBackdrop}
+        backgroundStyle={styles.sheetBackground}
+        handleIndicatorStyle={styles.handleIndicator}
+      >
+        <BottomSheetView style={{ paddingBottom: insets.bottom + spacing[2] }}>
+          {title ? (
+            <View style={styles.titleRow}>
+              <Text style={styles.titleText} numberOfLines={1}>
+                {title}
+              </Text>
             </View>
-
+          ) : null}
+          {actions.map((action, index) => (
             <Pressable
-              onPress={() => close()}
-              style={({ pressed }) => [styles.cancel, pressed && styles.optionPressed]}
+              key={action.label}
+              accessibilityRole="button"
+              onPress={() => selectAction(action.onPress)}
+              style={({ pressed }) => [
+                styles.option,
+                (title || index > 0) && styles.optionDivider,
+                pressed && styles.optionPressed,
+              ]}
             >
-              <Text style={styles.cancelText}>{cancelLabel}</Text>
+              <Text
+                style={[styles.optionText, action.destructive && styles.optionTextDestructive]}
+              >
+                {action.label}
+              </Text>
             </Pressable>
-          </Animated.View>
-        </View>
-      </Modal>
+          ))}
+
+          <View style={styles.groupGap} />
+
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => sheetRef.current?.dismiss()}
+            style={({ pressed }) => [styles.cancel, pressed && styles.optionPressed]}
+          >
+            <Text style={styles.cancelText}>{cancelLabel}</Text>
+          </Pressable>
+        </BottomSheetView>
+      </BottomSheetModal>
     </>
   );
 }
@@ -166,22 +151,15 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.5,
   },
-  root: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.overlay,
-  },
-  sheet: {
-    paddingHorizontal: spacing[2],
-  },
-  group: {
+  // The sheet surface: app background with rounded top corners; the grabber sits
+  // above the content so the first row never meets the rounded edge.
+  sheetBackground: {
     backgroundColor: colors.background,
-    borderRadius: radii.lg,
-    overflow: 'hidden',
-    marginBottom: spacing[2],
+    borderTopLeftRadius: radii.xl,
+    borderTopRightRadius: radii.xl,
+  },
+  handleIndicator: {
+    backgroundColor: colors.separator,
   },
   titleRow: {
     paddingVertical: spacing[3],
@@ -212,9 +190,13 @@ const styles = StyleSheet.create({
   optionTextDestructive: {
     color: colors.destructive,
   },
+  // Grouped-list gap separating the actions from the cancel affordance — the
+  // single-surface stand-in for the iOS action sheet's two stacked cards.
+  groupGap: {
+    height: spacing[2],
+    backgroundColor: colors.backgroundSecondary,
+  },
   cancel: {
-    backgroundColor: colors.background,
-    borderRadius: radii.lg,
     paddingVertical: spacing[4],
     alignItems: 'center',
   },
