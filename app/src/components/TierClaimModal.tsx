@@ -75,7 +75,10 @@ export function TierClaimModal({ celebration, onDismiss }: TierClaimModalProps) 
   const visible = celebration != null;
 
   // Backdrop + card opacity (timing); badge scale (spring, for the pop); the
-  // gleam sweep across the medallion.
+  // gleam sweep across the medallion. These use the JS driver
+  // (useNativeDriver: false): under the New Architecture the native animation
+  // driver doesn't reliably bind to views inside a <Modal>'s detached surface,
+  // which left the card invisible and the badge un-popped. See StampClaimModal.
   const fade = useRef(new Animated.Value(0)).current;
   const pop = useRef(new Animated.Value(0)).current;
   const shine = useRef(new Animated.Value(0)).current;
@@ -97,7 +100,7 @@ export function TierClaimModal({ celebration, onDismiss }: TierClaimModalProps) 
         toValue: 1,
         duration: ENTER_DURATION,
         easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
+        useNativeDriver: false,
       }).start();
 
       if (!reduceMotion) {
@@ -105,14 +108,14 @@ export function TierClaimModal({ celebration, onDismiss }: TierClaimModalProps) 
           toValue: 1,
           friction: 6,
           tension: 90,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }).start();
         Animated.timing(shine, {
           toValue: 1,
           duration: SHINE_DURATION,
           delay: ENTER_DURATION,
           easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
+          useNativeDriver: false,
         }).start();
       }
 
@@ -129,7 +132,7 @@ export function TierClaimModal({ celebration, onDismiss }: TierClaimModalProps) 
       toValue: 0,
       duration: EXIT_DURATION,
       easing: Easing.in(Easing.cubic),
-      useNativeDriver: true,
+      useNativeDriver: false,
     }).start(({ finished }) => {
       if (finished) onDismiss();
     });

@@ -73,8 +73,8 @@ function buildSparkles(): Sparkle[] {
 /**
  * The radial sparkle burst that fans out from behind the stamp as it lands. One
  * Animated driver (0 → 1) feeds every mote through interpolation, so the whole
- * burst rides a single native-thread timing — same vanilla-RN approach as
- * Confetti. Purely cosmetic and non-interactive.
+ * burst rides a single timing — same vanilla-RN approach as Confetti. Purely
+ * cosmetic and non-interactive.
  */
 function Sparkles({ burst }: { burst: Animated.Value }) {
   const sparkles = useMemo(() => buildSparkles(), []);
@@ -154,6 +154,13 @@ export function StampClaimModal({ reward, animationsEnabled, onDismiss }: StampC
 
   // Backdrop + card opacity (timing); the seal's vertical descent (drop) and the
   // impact squash; the resting glow pulse (loop); the one-shot sparkle burst.
+  //
+  // These run on the JS driver (useNativeDriver: false). Under the New
+  // Architecture the native animation driver doesn't reliably bind to views
+  // inside a <Modal>'s detached surface, so native-driven opacity/transform here
+  // either never applied (card invisible) or left the seal stuck at its pre-drop
+  // offset (clipped). The JS driver works correctly across the Modal boundary;
+  // this is a short one-shot celebration, so the JS-thread cost is immaterial.
   const fade = useRef(new Animated.Value(0)).current;
   const drop = useRef(new Animated.Value(0)).current;
   const squash = useRef(new Animated.Value(0)).current;
@@ -183,7 +190,7 @@ export function StampClaimModal({ reward, animationsEnabled, onDismiss }: StampC
         toValue: 1,
         duration: animate ? ENTER_DURATION : INSTANT_DURATION,
         easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
+        useNativeDriver: false,
       }).start();
 
       if (!animate) {
@@ -198,7 +205,7 @@ export function StampClaimModal({ reward, animationsEnabled, onDismiss }: StampC
         toValue: 1,
         duration: DROP_DURATION,
         easing: Easing.in(Easing.cubic),
-        useNativeDriver: true,
+        useNativeDriver: false,
       }).start(({ finished }) => {
         if (!finished || cancelled) return;
 
@@ -208,7 +215,7 @@ export function StampClaimModal({ reward, animationsEnabled, onDismiss }: StampC
           toValue: 1,
           duration: SPARKLE_DURATION,
           easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
+          useNativeDriver: false,
         }).start();
 
         Animated.sequence([
@@ -216,13 +223,13 @@ export function StampClaimModal({ reward, animationsEnabled, onDismiss }: StampC
             toValue: 1,
             duration: IMPACT_DURATION,
             easing: Easing.out(Easing.quad),
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
           Animated.spring(squash, {
             toValue: 0,
             friction: 4,
             tension: 140,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
         ]).start();
 
@@ -232,13 +239,13 @@ export function StampClaimModal({ reward, animationsEnabled, onDismiss }: StampC
               toValue: 1,
               duration: GLOW_HALF_CYCLE,
               easing: Easing.inOut(Easing.quad),
-              useNativeDriver: true,
+              useNativeDriver: false,
             }),
             Animated.timing(glow, {
               toValue: 0,
               duration: GLOW_HALF_CYCLE,
               easing: Easing.inOut(Easing.quad),
-              useNativeDriver: true,
+              useNativeDriver: false,
             }),
           ])
         );
@@ -257,7 +264,7 @@ export function StampClaimModal({ reward, animationsEnabled, onDismiss }: StampC
       toValue: 0,
       duration: EXIT_DURATION,
       easing: Easing.in(Easing.cubic),
-      useNativeDriver: true,
+      useNativeDriver: false,
     }).start(({ finished }) => {
       if (finished) onDismiss();
     });
