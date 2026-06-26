@@ -11,6 +11,7 @@ import {
   BottomSheetScrollView,
   BottomSheetView,
 } from '@gorhom/bottom-sheet';
+import { useSharedValue, withTiming } from 'react-native-reanimated';
 import type { OnsenDocument } from '@kyuhachi/shared';
 import { OnsenInfoRow } from '@/components/OnsenInfoRow';
 import { OnsenFee } from '@/components/OnsenFee';
@@ -68,9 +69,22 @@ export default function OnsenPreviewSheet({
   // blank before the slide-down finishes.
   const [shown, setShown] = useState<OnsenRow | null>(onsen);
 
+  // DEBUG: is Reanimated alive at all? Animate a shared value 0->100 and poll it
+  // from JS. If it climbs over ~600ms, Reanimated drives animations (so the gorhom
+  // no-op is layout/portal). If it stays 0 (or jumps instantly), Reanimated's
+  // worklets aren't running — which is why gorhom never animates.
+  const probe = useSharedValue(0);
   useEffect(() => {
     console.log('[preview] OnsenPreviewSheet mounted (provider context present)');
-  }, []);
+    console.log('[reanimated-test] starting withTiming on shared value');
+    probe.value = withTiming(100, { duration: 600 });
+    let n = 0;
+    const id = setInterval(() => {
+      console.log('[reanimated-test] probe.value =', probe.value);
+      if (++n >= 6) clearInterval(id);
+    }, 150);
+    return () => clearInterval(id);
+  }, [probe]);
 
   // Present when an onsen is selected, dismiss when cleared.
   useEffect(() => {
@@ -78,7 +92,12 @@ export default function OnsenPreviewSheet({
     if (onsen) {
       setShown(onsen);
       console.log('[preview] calling present()');
-      sheetRef.current?.present();
+      try {
+        sheetRef.current?.present();
+        console.log('[preview] present() returned (no throw)');
+      } catch (e) {
+        console.log('[preview] present() THREW:', String(e));
+      }
     } else {
       sheetRef.current?.dismiss();
     }
