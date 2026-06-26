@@ -50,22 +50,22 @@ export function OnsenHours({ hours }: OnsenHoursProps) {
       {schedule ? (
         <>
           <View style={styles.hoursTodayRow}>
-            <Text style={styles.hoursLabel}>{t('onsenDetail.today')}</Text>
-            <Text style={styles.hoursTodayValue} selectable>
-              {todayLabel}
-            </Text>
-            {/* Expand the full weekly grid. */}
+            {/* Today's line — label, time, and list icon — is one button that
+                expands the week, so the whole opening-times group reads as tappable. */}
             <Pressable
-              style={styles.hoursWeekIcon}
+              style={styles.hoursTodayMain}
               onPress={() => setShowWeek((v) => !v)}
               accessibilityRole="button"
               accessibilityLabel={t(showWeek ? 'onsenDetail.hideHours' : 'onsenDetail.showHours')}
-              hitSlop={spacing[2]}
+              hitSlop={spacing[1]}
             >
+              <Text style={styles.hoursLabel}>{t('onsenDetail.today')}</Text>
+              <Text style={styles.hoursTodayValue}>{todayLabel}</Text>
               <Ionicons
                 name="list-outline"
                 size={typography.sizes.md}
                 color={showWeek ? colors.actionPrimary : colors.textMuted}
+                style={styles.hoursWeekIcon}
               />
             </Pressable>
             {/* Reveal the verbatim source text. */}
@@ -135,6 +135,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing[1],
+  },
+  hoursTodayMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   hoursLabel: {
     width: spacing[12] + spacing[8],
