@@ -160,84 +160,95 @@ export default function OnsenPreviewSheet({
       handleIndicatorStyle={styles.handleIndicator}
     >
       {shown && directionsAction ? (
-        <BottomSheetScrollView
-          contentContainerStyle={{ paddingBottom: footerHeight + spacing[2] }}
-          stickyHeaderIndices={[0]}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.hero}>
-            {shown.imageUrl ? (
-              <Image
-                source={shown.imageUrl}
-                style={styles.heroImage}
-                contentFit="cover"
-                transition={200}
-                cachePolicy="memory-disk"
-                placeholder={shown.blurhash ? { blurhash: shown.blurhash } : undefined}
-                placeholderContentFit="cover"
-              />
-            ) : (
-              <View style={styles.heroPlaceholder}>
-                <Ionicons
-                  name="image-outline"
-                  size={PLACEHOLDER_GLYPH}
-                  color={colors.textMuted}
-                  accessibilityLabel={t('onsenPreview.imagePlaceholder')}
+        <>
+          <BottomSheetScrollView
+            contentContainerStyle={{ paddingBottom: footerHeight + spacing[2] }}
+            stickyHeaderIndices={[0]}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.hero}>
+              {shown.imageUrl ? (
+                <Image
+                  source={shown.imageUrl}
+                  style={styles.heroImage}
+                  contentFit="cover"
+                  transition={200}
+                  cachePolicy="memory-disk"
+                  placeholder={shown.blurhash ? { blurhash: shown.blurhash } : undefined}
+                  placeholderContentFit="cover"
                 />
-              </View>
-            )}
-            <View style={styles.heroScrim} pointerEvents="none" />
-            <Text style={styles.heroName} numberOfLines={2}>
-              {shown.name}
-            </Text>
-            <Pressable
-              style={[styles.closeButton, shadows.sm]}
-              onPress={() => sheetRef.current?.close()}
-              accessibilityRole="button"
-              accessibilityLabel={t('onsenPreview.close')}
-              hitSlop={spacing[2]}
-            >
-              <Ionicons name="close" size={typography.sizes.xl} color={colors.textPrimary} />
-            </Pressable>
-          </View>
-
-          <View style={styles.info}>
-            <View style={styles.subheader}>
-              <Text style={styles.area} selectable>
-                {t('onsenPreview.areaPrefecture', {
-                  area: shown.areaName,
-                  prefecture: shown.prefecture,
-                })}
-              </Text>
-              {visited && (
-                <View style={styles.visitedBadge}>
-                  <Text style={styles.visitedText}>{t('onsenPreview.visited')}</Text>
+              ) : (
+                <View style={styles.heroPlaceholder}>
                   <Ionicons
-                    name="checkmark-circle"
-                    size={typography.sizes.md}
-                    color={colors.stampInk}
+                    name="image-outline"
+                    size={PLACEHOLDER_GLYPH}
+                    color={colors.textMuted}
+                    accessibilityLabel={t('onsenPreview.imagePlaceholder')}
                   />
                 </View>
               )}
+              <View style={styles.heroScrim} pointerEvents="none" />
+              <Text style={styles.heroName} numberOfLines={2}>
+                {shown.name}
+              </Text>
             </View>
 
-            <View style={styles.section}>
-              <OnsenInfoRow
-                label={t('onsenDetail.labelAddress')}
-                value={shown.address}
-                action={directionsAction}
-              />
-              <OnsenFee admissionFee={shown.admissionFee} adultFee={shown.adultFee} />
-              {shown.springQuality && (
+            <View style={styles.info}>
+              <View style={styles.subheader}>
+                <Text style={styles.area} selectable>
+                  {t('onsenPreview.areaPrefecture', {
+                    area: shown.areaName,
+                    prefecture: shown.prefecture,
+                  })}
+                </Text>
+                {visited && (
+                  <View style={styles.visitedBadge}>
+                    <Text style={styles.visitedText}>{t('onsenPreview.visited')}</Text>
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={typography.sizes.md}
+                      color={colors.stampInk}
+                    />
+                  </View>
+                )}
+              </View>
+
+              <View style={styles.section}>
                 <OnsenInfoRow
-                  label={t('onsenDetail.labelSpringQuality')}
-                  value={shown.springQuality}
+                  label={t('onsenDetail.labelAddress')}
+                  value={shown.address}
+                  action={directionsAction}
                 />
-              )}
-              {shown.businessHours && <OnsenHours hours={shown.businessHours} />}
+                <OnsenFee admissionFee={shown.admissionFee} adultFee={shown.adultFee} />
+                {shown.springQuality && (
+                  <OnsenInfoRow
+                    label={t('onsenDetail.labelSpringQuality')}
+                    value={shown.springQuality}
+                  />
+                )}
+                {shown.businessHours && <OnsenHours hours={shown.businessHours} />}
+              </View>
             </View>
-          </View>
-        </BottomSheetScrollView>
+          </BottomSheetScrollView>
+
+          {/*
+           * Close affordance, rendered as a sibling overlay of the scroll body
+           * rather than inside the (sticky) hero. Inside the scroll view a tap
+           * during deceleration is swallowed to stop the scroll instead of firing
+           * the press; lifted out, it always takes priority so dismissal never
+           * misses. It still sits over the hero's top-right because the hero rests
+           * at scroll offset 0.
+           */}
+          <Pressable
+            style={[styles.closeButton, shadows.sm]}
+            onPress={() => sheetRef.current?.close()}
+            accessibilityRole="button"
+            accessibilityLabel={t('onsenPreview.close')}
+            hitSlop={spacing[2]}
+          >
+            <Ionicons name="close" size={typography.sizes.xl} color={colors.textPrimary} />
+          </Pressable>
+        </>
       ) : null}
     </BottomSheet>
   );
