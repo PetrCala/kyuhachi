@@ -1,6 +1,14 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ComponentType,
+  type ReactNode,
+  type RefObject,
+} from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Gesture, type GestureType, type PanGesture } from 'react-native-gesture-handler';
+import { Gesture, type PanGesture } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -38,14 +46,15 @@ interface DraggableListProps<T> {
   /** Fired once on drop with the new key order, only when it actually changed. */
   onOrderChange: (orderedKeys: string[]) => void;
   /** Fired when a drag starts (true) and ends (false). Scroll coordination no
-   *  longer needs this (see `scrollGesture`); kept for callers that want to
+   *  longer needs this (see `scrollableRef`); kept for callers that want to
    *  react to a drag (e.g. haptics, chrome). */
   onDraggingChange?: (dragging: boolean) => void;
-  /** The surrounding scrollable's gesture (`Gesture.Native()`). A row drag is
-   *  given precedence over it (`blocksExternalGesture`), so the page doesn't
-   *  scroll out from under the gesture — and scrolling never has to be disabled.
-   *  Must be a stable reference across renders. */
-  scrollGesture?: GestureType;
+  /** Ref to the surrounding gesture-handler `ScrollView` (the one from
+   *  `react-native-gesture-handler`, not RN core). A row drag is given precedence
+   *  over it via `blocksExternalGesture`, so the page doesn't scroll out from
+   *  under the gesture — and scrolling never has to be disabled. Must reference an
+   *  RNGH-managed scrollable for the relation to attach to the real scroll. */
+  scrollableRef?: RefObject<ComponentType | undefined | null>;
 }
 
 // Critically damped spring (no overshoot): neighbours shuffling aside and the
@@ -62,8 +71,8 @@ const SPRING = { mass: 1, stiffness: 300, damping: 35 } as const;
  *
  * The drag is started from a handle (the `gesture` in `DragRowState`), not the
  * whole row, so it never competes with a row's own tap target; passing the
- * surrounding scroll's `scrollGesture` lets the drag and the scroll arbitrate
- * without ever disabling scrolling.
+ * surrounding scroll's `scrollableRef` lets the drag take precedence over the
+ * scroll without ever disabling scrolling.
  */
 export default function DraggableList<T>({
   items,
@@ -72,7 +81,7 @@ export default function DraggableList<T>({
   renderItem,
   onOrderChange,
   onDraggingChange,
-  scrollGesture,
+  scrollableRef,
 }: DraggableListProps<T>) {
   const keys = items.map(keyExtractor);
   const keySignature = keys.join(' ');
@@ -165,7 +174,7 @@ export default function DraggableList<T>({
           });
         });
       // Take precedence over the surrounding scroll while a handle drag is live.
-      if (scrollGesture) pan = pan.blocksExternalGesture(scrollGesture);
+      if (scrollableRef) pan = pan.blocksExternalGesture(scrollableRef);
       gesture = pan;
       gestures.set(key, gesture);
     }
