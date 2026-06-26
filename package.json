@@ -5,6 +5,9 @@
 		"app",
 		"shared"
 	],
+	"dependencies": {
+		"react-native-worklets": "0.7.2"
+	},
 	"scripts": {
 		"build:legal": "node scripts/build-legal-html.mjs",
 		"deploy:functions": "firebase deploy --only functions",
