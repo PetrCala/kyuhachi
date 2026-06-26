@@ -18,14 +18,14 @@ interface OnsenFeeProps {
  * sheet, so both render the fee the same way.
  *
  * When a single adult fee parsed out (`adultFee`), it shows that one clean figure
- * with an inline "details" toggle — mirroring the hours block's "today" line — that
- * reveals the verbatim source text (other rates, weekend/holiday pricing, etc.) only
- * on demand, so the collapsed row stays one line. Without a parsed fee it falls back
- * to the verbatim text, exactly like `OnsenHours` falls back to its raw string.
+ * with a chevron that reveals the verbatim source text (other rates, weekend/holiday
+ * pricing) on demand — the same reveal-icon vocabulary as `OnsenHours`, so the
+ * collapsed row stays one line. Without a parsed fee it falls back to the verbatim
+ * text, exactly like `OnsenHours` falls back to its raw string.
  */
 export function OnsenFee({ admissionFee, adultFee }: OnsenFeeProps) {
   const { t } = useTranslation();
-  const [showDetails, setShowDetails] = useState(false);
+  const [showOriginal, setShowOriginal] = useState(false);
 
   // No parsed fee: render the verbatim text as a plain row (or nothing).
   if (adultFee == null) {
@@ -46,21 +46,23 @@ export function OnsenFee({ admissionFee, adultFee }: OnsenFeeProps) {
         {/* Reveal the verbatim text for the full rate breakdown, on demand. */}
         {admissionFee && (
           <Pressable
-            style={styles.feeDetails}
-            onPress={() => setShowDetails((v) => !v)}
+            style={styles.feeIcon}
+            onPress={() => setShowOriginal((v) => !v)}
             accessibilityRole="button"
-            hitSlop={spacing[1]}
+            accessibilityLabel={t(
+              showOriginal ? 'onsenDetail.hideOriginal' : 'onsenDetail.showOriginal',
+            )}
+            hitSlop={spacing[2]}
           >
-            <Text style={styles.feeDetailsText}>{t('onsenDetail.feeDetails')}</Text>
             <Ionicons
-              name={showDetails ? 'chevron-up' : 'chevron-down'}
-              size={typography.sizes.sm}
-              color={colors.actionPrimary}
+              name={showOriginal ? 'chevron-up' : 'chevron-down'}
+              size={typography.sizes.md}
+              color={showOriginal ? colors.actionPrimary : colors.textMuted}
             />
           </Pressable>
         )}
       </View>
-      {showDetails && admissionFee && (
+      {showOriginal && admissionFee && (
         <Text style={styles.feeRaw} selectable>
           {admissionFee}
         </Text>
@@ -87,16 +89,8 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     lineHeight: typography.sizes.xl,
   },
-  feeDetails: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1] / 2,
+  feeIcon: {
     marginLeft: spacing[2],
-  },
-  feeDetailsText: {
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.medium,
-    color: colors.actionPrimary,
   },
   feeRaw: {
     fontSize: typography.sizes.sm,

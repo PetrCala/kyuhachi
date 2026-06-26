@@ -16,10 +16,12 @@ interface OnsenHoursProps {
  * The business-hours block shared by the onsen detail screen and the map-pin
  * preview sheet, so both render the same parsed schedule the same way.
  *
- * When the hours parsed into a clean weekly grid (`schedule`), it shows a tappable
- * "today" line that expands into the grouped week; otherwise it falls back to the
- * verbatim source text. Schedule exceptions and a low-confidence hint render as
- * captions beneath, and the user can always reveal the original text.
+ * When the hours parsed into a clean weekly grid (`schedule`), it shows today's line
+ * with two reveal icons — a list icon that expands the grouped week, and a chevron
+ * that reveals the verbatim source text — so the collapsed row stays one line and
+ * each reveal opens beneath it. This is the same reveal-icon vocabulary as `OnsenFee`.
+ * Without a clean grid it falls back to the verbatim text. Schedule exceptions and a
+ * low-confidence hint render as always-visible captions beneath.
  */
 export function OnsenHours({ hours }: OnsenHoursProps) {
   const { t, i18n } = useTranslation();
@@ -44,25 +46,45 @@ export function OnsenHours({ hours }: OnsenHoursProps) {
 
   return (
     <>
-      {/* Base hours: the weekly grid when structured, else the raw text. */}
+      {/* Base hours: today's line with reveal icons when structured, else raw text. */}
       {schedule ? (
         <>
-          <Pressable
-            style={styles.hoursTodayRow}
-            onPress={() => setShowWeek((v) => !v)}
-            accessibilityRole="button"
-            hitSlop={spacing[1]}
-          >
+          <View style={styles.hoursTodayRow}>
             <Text style={styles.hoursLabel}>{t('onsenDetail.today')}</Text>
             <Text style={styles.hoursTodayValue} selectable>
               {todayLabel}
             </Text>
-            <Ionicons
-              name={showWeek ? 'chevron-up' : 'chevron-down'}
-              size={typography.sizes.md}
-              color={colors.textMuted}
-            />
-          </Pressable>
+            {/* Expand the full weekly grid. */}
+            <Pressable
+              style={styles.hoursIcon}
+              onPress={() => setShowWeek((v) => !v)}
+              accessibilityRole="button"
+              accessibilityLabel={t(showWeek ? 'onsenDetail.hideHours' : 'onsenDetail.showHours')}
+              hitSlop={spacing[2]}
+            >
+              <Ionicons
+                name="list-outline"
+                size={typography.sizes.md}
+                color={showWeek ? colors.actionPrimary : colors.textMuted}
+              />
+            </Pressable>
+            {/* Reveal the verbatim source text. */}
+            <Pressable
+              style={styles.hoursIcon}
+              onPress={() => setShowOriginal((v) => !v)}
+              accessibilityRole="button"
+              accessibilityLabel={t(
+                showOriginal ? 'onsenDetail.hideOriginal' : 'onsenDetail.showOriginal',
+              )}
+              hitSlop={spacing[2]}
+            >
+              <Ionicons
+                name={showOriginal ? 'chevron-up' : 'chevron-down'}
+                size={typography.sizes.md}
+                color={showOriginal ? colors.actionPrimary : colors.textMuted}
+              />
+            </Pressable>
+          </View>
           {showWeek &&
             groupSchedule(schedule).map((g, i) => {
               const isToday = g.days.includes(todayKey);
@@ -77,12 +99,17 @@ export function OnsenHours({ hours }: OnsenHoursProps) {
                 </View>
               );
             })}
+          {showOriginal && (
+            <Text style={styles.hoursRaw} selectable>
+              {hours.raw}
+            </Text>
+          )}
         </>
       ) : (
         <OnsenInfoRow label={t('onsenDetail.labelHours')} value={hours.raw} />
       )}
 
-      {/* Schedule exceptions / irregularities — factual notes, not warnings. */}
+      {/* Schedule exceptions / irregularities — always-visible factual notes. */}
       {exceptions.map((ex, i) => (
         <View key={i} style={styles.hoursExceptionRow}>
           <Ionicons
@@ -98,26 +125,6 @@ export function OnsenHours({ hours }: OnsenHoursProps) {
       ))}
       {confidence && confidence !== 'high' && (
         <Text style={styles.hoursHint}>{t('onsenDetail.hoursVary')}</Text>
-      )}
-
-      {/* Let the user fall back to the verbatim source text. */}
-      {schedule && (
-        <>
-          <Pressable
-            style={styles.hoursToggle}
-            onPress={() => setShowOriginal((v) => !v)}
-            hitSlop={spacing[1]}
-          >
-            <Text style={styles.hoursToggleText}>
-              {showOriginal ? t('onsenDetail.hideOriginal') : t('onsenDetail.showOriginal')}
-            </Text>
-          </Pressable>
-          {showOriginal && (
-            <Text style={styles.hoursRaw} selectable>
-              {hours.raw}
-            </Text>
-          )}
-        </>
       )}
     </>
   );
@@ -141,6 +148,9 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     color: colors.textPrimary,
     lineHeight: typography.sizes.xl,
+  },
+  hoursIcon: {
+    marginLeft: spacing[2],
   },
   dayRow: {
     flexDirection: 'row',
@@ -181,14 +191,6 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontStyle: 'italic',
     paddingTop: spacing[1],
-  },
-  hoursToggle: {
-    paddingVertical: spacing[2],
-  },
-  hoursToggleText: {
-    fontSize: typography.sizes.sm,
-    fontWeight: typography.weights.medium,
-    color: colors.actionPrimary,
   },
   hoursRaw: {
     fontSize: typography.sizes.sm,
