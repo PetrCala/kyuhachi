@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import BottomSheet, {
@@ -67,7 +66,6 @@ export default function OnsenPreviewSheet({
   onViewDetails,
 }: OnsenPreviewSheetProps) {
   const { t } = useTranslation();
-  const insets = useSafeAreaInsets();
   const sheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => SNAP_POINTS, []);
   // Measured height of the pinned footer, so the scroll body can clear it (the
@@ -113,7 +111,10 @@ export default function OnsenPreviewSheet({
   const renderFooter = useCallback(
     (props: BottomSheetFooterProps) =>
       shown ? (
-        <BottomSheetFooter {...props} bottomInset={insets.bottom}>
+        // No bottomInset: the sheet sits inside the map tab, above the tab bar,
+        // which already owns the home-indicator safe area — so the CTA hugs the
+        // tab bar instead of floating a safe-area gap above it.
+        <BottomSheetFooter {...props}>
           <View
             style={styles.footer}
             onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)}
@@ -134,7 +135,7 @@ export default function OnsenPreviewSheet({
           </View>
         </BottomSheetFooter>
       ) : null,
-    [shown, onViewDetails, insets.bottom, t]
+    [shown, onViewDetails, t]
   );
 
   const directionsAction = shown
@@ -160,7 +161,7 @@ export default function OnsenPreviewSheet({
     >
       {shown && directionsAction ? (
         <BottomSheetScrollView
-          contentContainerStyle={{ paddingBottom: footerHeight + insets.bottom }}
+          contentContainerStyle={{ paddingBottom: footerHeight + spacing[2] }}
           stickyHeaderIndices={[0]}
           showsVerticalScrollIndicator={false}
         >
@@ -256,7 +257,6 @@ const styles = StyleSheet.create({
   // Pinned hero (sticky first row of the scroll body); full-bleed, so no padding.
   hero: {
     height: HERO_HEIGHT,
-    justifyContent: 'flex-end',
     backgroundColor: colors.background,
   },
   heroImage: {
@@ -283,7 +283,13 @@ const styles = StyleSheet.create({
     height: HERO_HEIGHT / 2,
     backgroundColor: colors.overlay,
   },
+  // Pinned to the bottom of the hero so it sits over the dark scrim, regardless of
+  // the sheet's sticky-header layout.
   heroName: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     paddingHorizontal: spacing[4],
     paddingBottom: spacing[3],
     fontSize: typography.sizes.xxl,
@@ -338,7 +344,7 @@ const styles = StyleSheet.create({
   // doesn't show through behind the button.
   footer: {
     paddingHorizontal: spacing[4],
-    paddingTop: spacing[3],
+    paddingVertical: spacing[3],
     backgroundColor: colors.background,
   },
   cta: {
