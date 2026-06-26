@@ -1,21 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Animated,
-  Dimensions,
-  Easing,
-  Linking,
-  Modal,
-  PanResponder,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import {
+  BottomSheetBackdrop,
+  type BottomSheetBackdropProps,
+  BottomSheetModal,
+  BottomSheetScrollView,
+  BottomSheetView,
+} from '@gorhom/bottom-sheet';
 import type { OnsenDocument } from '@kyuhachi/shared';
 import { OnsenInfoRow } from '@/components/OnsenInfoRow';
 import { OnsenFee } from '@/components/OnsenFee';
@@ -24,16 +19,9 @@ import { colors, radii, shadows, spacing, typography } from '@/theme';
 
 type OnsenRow = OnsenDocument & { id: string };
 
-// The sheet starts a full screen height below its resting place so it is always
-// off-screen at rest regardless of its measured height; the ease-out curve lets
-// the visible final stretch decelerate into place, like a native sheet.
-const SCREEN_HEIGHT = Dimensions.get('window').height;
-const ENTER_DURATION = 260;
-const EXIT_DURATION = 200;
-// A downward drag on the handle/hero region past this distance (px) or faster
-// than this velocity flings the sheet away; anything less springs it back.
-const DISMISS_DRAG_PX = 80;
-const DISMISS_VELOCITY = 0.6;
+// The sheet rests at a single fixed height — image-forward, with room for a few
+// info rows and the CTA without resizing to content.
+const SNAP_POINTS = ['78%'];
 // Hero image height — the image-forward focal point of the sheet.
 const HERO_HEIGHT = 200;
 // Glyph size for the placeholder mark when an onsen has no photo; a layout
@@ -45,26 +33,25 @@ interface OnsenPreviewSheetProps {
   onsen: OnsenRow | null;
   /** Whether the selected onsen is visited in the active challenge. */
   visited: boolean;
-  /** Dismiss the sheet (backdrop tap, close affordance, hardware back). */
+  /** Dismiss the sheet (backdrop tap, close affordance, swipe-down). */
   onClose: () => void;
   /** Open the full onsen detail screen for the given id (the "enlarge" action). */
   onViewDetails: (id: string) => void;
 }
 
 /**
- * An image-forward half-sheet preview shown when a map marker is tapped. A large
- * hero image (or a themed placeholder when the onsen has no photo) anchors the
- * top, with the onsen name overlaid on a scrim; below it a scrollable info area
- * mirrors the detail screen's rows, and a pinned primary CTA opens the full
- * detail screen.
+ * An image-forward bottom-sheet preview shown when a map marker is tapped. A
+ * large hero image (or a themed placeholder when the onsen has no photo) anchors
+ * the top with the name overlaid on a scrim and a close affordance; below it a
+ * scrollable info area mirrors the detail screen's rows, and a pinned primary CTA
+ * opens the full detail screen.
  *
- * Built on React Native's native Modal with an independently-animated backdrop
- * and an upward-sliding sheet (the RowActionsButton / TierClaimModal pattern) so
- * it feels like the native iOS sheet without pulling in a bottom-sheet library.
- *
- * The Modal stays mounted across dismiss so the exit animation can play; it is
- * driven by `onsen` (non-null = presented). The last non-null onsen is retained
- * while the sheet animates out so its content doesn't blank mid-exit.
+ * Built on `@gorhom/bottom-sheet` (`BottomSheetModal`) for a fixed-height sheet
+ * with smooth, native-quality swipe-to-dismiss and scroll/drag coordination — the
+ * grabber, the backdrop, the hero close button, and a downward swipe all dismiss
+ * it. The modal is driven by the `onsen` prop (non-null = presented), keeping the
+ * map the single source of truth; the last onsen is retained while it animates out
+ * so the content doesn't blank mid-exit.
  */
 export default function OnsenPreviewSheet({
   onsen,
@@ -74,148 +61,100 @@ export default function OnsenPreviewSheet({
 }: OnsenPreviewSheetProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  // The sheet's vertical offset in pixels: 0 = resting (presented), SCREEN_HEIGHT
-  // = fully off-screen below. Driving the position directly (rather than a 0→1
-  // progress) lets the drag-to-dismiss gesture track the finger 1:1.
-  const sheetY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-  // Backdrop dims in step with the sheet's travel, so a drag-down fades it too.
-  const backdropOpacity = sheetY.interpolate({
-    inputRange: [0, SCREEN_HEIGHT],
-    outputRange: [1, 0],
-    extrapolate: 'clamp',
-  });
+  const sheetRef = useRef<BottomSheetModal>(null);
+  const snapPoints = useMemo(() => SNAP_POINTS, []);
+
   // Keep showing the last onsen while the sheet animates out, so content doesn't
   // blank before the slide-down finishes.
   const [shown, setShown] = useState<OnsenRow | null>(onsen);
 
-  // Latest onClose, read from inside the (stable) PanResponder without rebuilding it.
+  // Present when an onsen is selected, dismiss when cleared.
+  useEffect(() => {
+    if (onsen) {
+      setShown(onsen);
+      sheetRef.current?.present();
+    } else {
+      sheetRef.current?.dismiss();
+    }
+  }, [onsen]);
+
+  // Latest onClose, read from the (stable) dismiss handler without rebuilding it.
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  // Any dismissal — swipe, backdrop, close button, or programmatic — clears the
+  // map's selection so its state matches the closed sheet.
+  const handleDismiss = useCallback(() => onCloseRef.current(), []);
 
-  useEffect(() => {
-    if (!onsen) return;
-    setShown(onsen);
-    sheetY.setValue(SCREEN_HEIGHT);
-    Animated.timing(sheetY, {
-      toValue: 0,
-      duration: ENTER_DURATION,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [onsen, sheetY]);
-
-  // Run the slide-down, then clear the retained onsen so the Modal can unmount its
-  // content. Picks up from wherever the sheet currently sits — including a partial
-  // drag — so a fling continues smoothly into the dismissal.
-  useEffect(() => {
-    if (onsen || !shown) return;
-    Animated.timing(sheetY, {
-      toValue: SCREEN_HEIGHT,
-      duration: EXIT_DURATION,
-      easing: Easing.in(Easing.cubic),
-      useNativeDriver: true,
-    }).start(({ finished }) => {
-      if (finished) setShown(null);
-    });
-  }, [onsen, shown, sheetY]);
-
-  // Drag-to-dismiss, attached to the handle + hero region only. The scrollable
-  // info area below is a sibling and keeps its own gestures, so swiping the text
-  // scrolls it while a downward drag on the image (or handle) flings the whole
-  // sheet away. The responder claims only a clear downward drag, so taps fall
-  // through and the close button still works; releasing short of the threshold
-  // springs the sheet back to rest.
-  const panResponder = useMemo(
-    () =>
-      PanResponder.create({
-        onMoveShouldSetPanResponder: (_e, g) => g.dy > 4 && g.dy > Math.abs(g.dx),
-        onPanResponderMove: (_e, g) => {
-          if (g.dy > 0) sheetY.setValue(g.dy);
-        },
-        onPanResponderRelease: (_e, g) => {
-          if (g.dy > DISMISS_DRAG_PX || g.vy > DISMISS_VELOCITY) {
-            onCloseRef.current();
-          } else {
-            Animated.spring(sheetY, { toValue: 0, useNativeDriver: true, bounciness: 0 }).start();
-          }
-        },
-        onPanResponderTerminate: () => {
-          Animated.spring(sheetY, { toValue: 0, useNativeDriver: true, bounciness: 0 }).start();
-        },
-      }),
-    [sheetY]
+  const renderBackdrop = useCallback(
+    (props: BottomSheetBackdropProps) => (
+      <BottomSheetBackdrop
+        {...props}
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
+        pressBehavior="close"
+      />
+    ),
+    []
   );
 
-  if (!shown) {
-    return <Modal visible={false} transparent />;
-  }
-
-  const directionsAction = {
-    icon: 'navigate' as const,
-    onPress: () => Linking.openURL(`https://maps.apple.com/?daddr=${shown.lat},${shown.lng}`),
-    accessibilityLabel: t('onsenDetail.getDirections'),
-  };
+  const directionsAction = shown
+    ? {
+        icon: 'navigate' as const,
+        onPress: () => Linking.openURL(`https://maps.apple.com/?daddr=${shown.lat},${shown.lng}`),
+        accessibilityLabel: t('onsenDetail.getDirections'),
+      }
+    : undefined;
 
   return (
-    <Modal visible transparent animationType="none" onRequestClose={onClose}>
-      <View style={styles.root}>
-        <Animated.View style={[styles.backdrop, { opacity: backdropOpacity }]}>
-          <Pressable
-            style={StyleSheet.absoluteFill}
-            accessibilityRole="button"
-            accessibilityLabel={t('onsenPreview.close')}
-            onPress={onClose}
-          />
-        </Animated.View>
-
-        <Animated.View
-          style={[
-            styles.sheet,
-            shadows.lg,
-            { paddingBottom: insets.bottom + spacing[4], transform: [{ translateY: sheetY }] },
-          ]}
-        >
-          <View {...panResponder.panHandlers}>
-            <View style={styles.handle} />
-
-            <View style={styles.hero}>
-              {shown.imageUrl ? (
-                <Image
-                  source={shown.imageUrl}
-                  style={styles.heroImage}
-                  contentFit="cover"
-                  transition={200}
-                  cachePolicy="memory-disk"
-                  placeholder={shown.blurhash ? { blurhash: shown.blurhash } : undefined}
-                  placeholderContentFit="cover"
+    <BottomSheetModal
+      ref={sheetRef}
+      snapPoints={snapPoints}
+      enableDynamicSizing={false}
+      enablePanDownToClose
+      onDismiss={handleDismiss}
+      backdropComponent={renderBackdrop}
+      backgroundStyle={styles.sheetBackground}
+      handleIndicatorStyle={styles.handleIndicator}
+    >
+      {shown && directionsAction && (
+        <BottomSheetView style={[styles.content, { paddingBottom: insets.bottom + spacing[4] }]}>
+          <View style={styles.hero}>
+            {shown.imageUrl ? (
+              <Image
+                source={shown.imageUrl}
+                style={styles.heroImage}
+                contentFit="cover"
+                transition={200}
+                cachePolicy="memory-disk"
+                placeholder={shown.blurhash ? { blurhash: shown.blurhash } : undefined}
+                placeholderContentFit="cover"
+              />
+            ) : (
+              <View style={styles.heroPlaceholder}>
+                <Ionicons
+                  name="image-outline"
+                  size={PLACEHOLDER_GLYPH}
+                  color={colors.textMuted}
+                  accessibilityLabel={t('onsenPreview.imagePlaceholder')}
                 />
-              ) : (
-                <View style={styles.heroPlaceholder}>
-                  <Ionicons
-                    name="image-outline"
-                    size={PLACEHOLDER_GLYPH}
-                    color={colors.textMuted}
-                    accessibilityLabel={t('onsenPreview.imagePlaceholder')}
-                  />
-                </View>
-              )}
-              <View style={styles.heroScrim} pointerEvents="none" />
-              <Text style={styles.heroName} numberOfLines={2}>
-                {shown.name}
-              </Text>
-              <Pressable
-                style={[styles.closeButton, shadows.sm]}
-                onPress={onClose}
-                accessibilityRole="button"
-                accessibilityLabel={t('onsenPreview.close')}
-                hitSlop={spacing[2]}
-              >
-                <Ionicons name="close" size={typography.sizes.xl} color={colors.textPrimary} />
-              </Pressable>
-            </View>
+              </View>
+            )}
+            <View style={styles.heroScrim} pointerEvents="none" />
+            <Text style={styles.heroName} numberOfLines={2}>
+              {shown.name}
+            </Text>
+            <Pressable
+              style={[styles.closeButton, shadows.sm]}
+              onPress={() => sheetRef.current?.dismiss()}
+              accessibilityRole="button"
+              accessibilityLabel={t('onsenPreview.close')}
+              hitSlop={spacing[2]}
+            >
+              <Ionicons name="close" size={typography.sizes.xl} color={colors.textPrimary} />
+            </Pressable>
           </View>
 
-          <ScrollView
+          <BottomSheetScrollView
             style={styles.body}
             contentContainerStyle={styles.bodyContent}
             showsVerticalScrollIndicator={false}
@@ -254,7 +193,7 @@ export default function OnsenPreviewSheet({
               )}
               {shown.businessHours && <OnsenHours hours={shown.businessHours} />}
             </View>
-          </ScrollView>
+          </BottomSheetScrollView>
 
           <Pressable
             style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
@@ -269,38 +208,25 @@ export default function OnsenPreviewSheet({
               color={colors.actionPrimaryText}
             />
           </Pressable>
-        </Animated.View>
-      </View>
-    </Modal>
+        </BottomSheetView>
+      )}
+    </BottomSheetModal>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.overlay,
-  },
-  sheet: {
+  // The sheet surface: app background with rounded top corners. The grabber sits
+  // above the content on this surface, so the hero never meets the rounded edge.
+  sheetBackground: {
     backgroundColor: colors.background,
     borderTopLeftRadius: radii.xl,
     borderTopRightRadius: radii.xl,
-    overflow: 'hidden',
-    maxHeight: '80%',
   },
-  // Grab affordance centered above the hero image.
-  handle: {
-    alignSelf: 'center',
-    width: spacing[10],
-    height: spacing[1],
-    borderRadius: radii.full,
+  handleIndicator: {
     backgroundColor: colors.separator,
-    marginTop: spacing[2],
-    marginBottom: spacing[2],
-    zIndex: 1,
+  },
+  content: {
+    flex: 1,
   },
   hero: {
     height: HERO_HEIGHT,
@@ -320,7 +246,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // Bottom-up dark gradient stand-in so the overlaid name stays legible over any
+  // Bottom-up dark band stand-in so the overlaid name stays legible over any
   // image. A solid translucent band rather than a true gradient (no gradient lib).
   heroScrim: {
     position: 'absolute',
@@ -349,7 +275,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   body: {
-    flexGrow: 0,
+    flex: 1,
   },
   bodyContent: {
     paddingHorizontal: spacing[4],
