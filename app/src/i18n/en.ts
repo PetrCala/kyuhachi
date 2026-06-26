@@ -548,6 +548,8 @@ const en = {
   'onsenDetail.labelAddress': 'Address',
   'onsenDetail.labelPhone': 'Phone',
   'onsenDetail.labelFee': 'Admission Fee',
+  'onsenDetail.feeAdult': 'Adults {{amount}}',
+  'onsenDetail.feeDetails': 'Details',
   'onsenDetail.labelSpringQuality': 'Spring Quality',
   'onsenDetail.labelHours': 'Business Hours',
   'onsenDetail.getDirections': 'Get directions',
