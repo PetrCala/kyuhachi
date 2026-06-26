@@ -330,6 +330,9 @@ const en = {
   'finder.locationNeededTitle': 'Location needed',
   'finder.locationNeededBody':
     'Turn on location access to find places along your route.',
+  'finder.unavailableTitle': 'Search unavailable',
+  'finder.unavailableBody':
+    'Place search needs the latest app build. Please update Kyuhachi.',
 
   // stamp-collection celebration (shown after recording a new visit)
   'stampClaim.title': 'New stamp!',

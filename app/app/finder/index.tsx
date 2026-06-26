@@ -36,7 +36,7 @@ import {
   userAlongRouteKm,
   type FinderResult,
 } from '@/lib/finder';
-import { searchPois } from '@/lib/poi-provider';
+import { searchPois, finderSearchAvailable } from '@/lib/poi-provider';
 import FinderMap from '@/components/FinderMap';
 import { colors, spacing, typography, radii, shadows } from '@/theme';
 
@@ -211,7 +211,7 @@ export default function FinderScreen() {
         <Text style={styles.note}>{t('finder.noRouteNote')}</Text>
       ) : null}
 
-      {coords && (
+      {coords && finderSearchAvailable && (
         <FinderMap
           results={results}
           userCoord={coords}
@@ -225,6 +225,7 @@ export default function FinderScreen() {
       )}
 
       <FinderBody
+        available={finderSearchAvailable}
         coords={coords}
         category={category}
         results={results}
@@ -240,6 +241,7 @@ export default function FinderScreen() {
 }
 
 function FinderBody({
+  available,
   coords,
   category,
   results,
@@ -250,6 +252,7 @@ function FinderBody({
   onSelectRow,
   onScrollToIndexFailed,
 }: {
+  available: boolean;
   coords: LatLng | null;
   category: PoiCategory;
   results: FinderResult[];
@@ -263,7 +266,15 @@ function FinderBody({
   const { t } = useTranslation();
 
   let content: ReactNode;
-  if (!coords) {
+  if (!available) {
+    content = (
+      <View style={styles.centered}>
+        <Ionicons name="cloud-offline-outline" size={40} color={colors.textPlaceholder} />
+        <Text style={styles.stateTitle}>{t('finder.unavailableTitle')}</Text>
+        <Text style={styles.stateBody}>{t('finder.unavailableBody')}</Text>
+      </View>
+    );
+  } else if (!coords) {
     content = (
       <View style={styles.centered}>
         <Ionicons name="location-outline" size={40} color={colors.textPlaceholder} />
