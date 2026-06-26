@@ -32,6 +32,7 @@ import { distanceToPolylineKm } from '@/lib/geo';
 import { useActiveChallengeProgress } from '@/hooks/useActiveChallengeProgress';
 import MapZoomControl from '@/components/MapZoomControl';
 import OnsenMarker from '@/components/OnsenMarker';
+import OnsenPreviewSheet from '@/components/OnsenPreviewSheet';
 import { colors, spacing, radii, typography, shadows } from '@/theme';
 
 type OnsenRow = OnsenDocument & { id: string };
@@ -89,6 +90,9 @@ export default function MapScreen() {
   const markerRefs = useRef<Record<string, ElementRef<typeof Marker> | null>>({});
   const [onsens, setOnsens] = useState<OnsenRow[]>([]);
   const [onsensLoading, setOnsensLoading] = useState(true);
+  // The onsen whose image-forward preview half-sheet is open, or null. Tapping a
+  // pin selects it; the sheet is rendered once at the bottom of this screen.
+  const [selectedOnsen, setSelectedOnsen] = useState<OnsenRow | null>(null);
   // An explicit `routeId` param (a just-imported route, or "View route on map")
   // draws that specific route; otherwise the map draws the active challenge's
   // route. Both are live subscriptions, and `route` is derived rather than
@@ -276,11 +280,21 @@ export default function MapScreen() {
     },
     []
   );
-  // Tapping a pin opens its preview as a native sheet route rather than
-  // navigating away. Needs only the id, so the callback stays stable across
-  // renders (the memoized markers never re-render to re-bind it).
+  // Tapping a pin opens its preview half-sheet rather than navigating away.
+  // Resolved against the latest onsen list via the functional setter so this
+  // callback stays stable (the memoized markers never re-render to re-bind it).
   const handleOnsenPress = useCallback((id: string) => {
-    router.push(`/onsens/preview/${id}`);
+    setOnsens((current) => {
+      setSelectedOnsen(current.find((o) => o.id === id) ?? null);
+      return current;
+    });
+  }, []);
+  const handleCloseSheet = useCallback(() => setSelectedOnsen(null), []);
+  // The preview's "View full details" CTA: dismiss the sheet, then open the
+  // detail screen — the "enlarge" action.
+  const handleViewDetails = useCallback((id: string) => {
+    setSelectedOnsen(null);
+    router.push(`/onsens/${id}`);
   }, []);
 
   useEffect(() => {
@@ -372,11 +386,11 @@ export default function MapScreen() {
   }, [route]);
 
   // Arriving from an onsen's "Show on map": center on that pin and, once the
-  // camera has settled, open its preview sheet (the native sheet route). `focusTs`
-  // is a per-tap nonce so tapping again re-focuses the same onsen (an unchanging id
-  // alone wouldn't re-fire the effect); the guard stops a re-run on unrelated
-  // re-renders or when returning to this tab. Runs after the route-framing effect
-  // above so a focused onsen wins the camera.
+  // camera has settled, open its preview half-sheet. `focusTs` is a per-tap nonce
+  // so tapping again re-focuses the same onsen (an unchanging id alone wouldn't
+  // re-fire the effect); the guard stops a re-run on unrelated re-renders or when
+  // returning to this tab. Runs after the route-framing effect above so a focused
+  // onsen wins the camera.
   const focusedTokenRef = useRef<string | null>(null);
   useEffect(() => {
     if (!focusOnsenId || !focusTs || focusedTokenRef.current === focusTs) return;
@@ -389,7 +403,7 @@ export default function MapScreen() {
       latitudeDelta: USER_LOCATION_DELTA,
       longitudeDelta: USER_LOCATION_DELTA,
     });
-    const timer = setTimeout(() => router.push(`/onsens/preview/${target.id}`), 650);
+    const timer = setTimeout(() => setSelectedOnsen(target), 650);
     return () => clearTimeout(timer);
   }, [focusOnsenId, focusTs, onsens]);
 
@@ -527,6 +541,12 @@ export default function MapScreen() {
           <Ionicons name="locate" size={spacing[6]} color={colors.actionPrimary} />
         </Pressable>
       </Animated.View>
+      <OnsenPreviewSheet
+        onsen={selectedOnsen}
+        visited={selectedOnsen ? visitedIds.has(selectedOnsen.id) : false}
+        onClose={handleCloseSheet}
+        onViewDetails={handleViewDetails}
+      />
     </View>
   );
 }

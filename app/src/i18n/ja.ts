@@ -53,6 +53,7 @@ const ja: Record<keyof typeof en, string> = {
   'onsenPreview.areaPrefecture': '{{area}} ・ {{prefecture}}',
   'onsenPreview.imagePlaceholder': '写真はありません',
   'onsenPreview.viewFullDetails': '詳細を見る',
+  'onsenPreview.close': '閉じる',
   'onsenPreview.visited': '訪問済み',
 
   // onsen list

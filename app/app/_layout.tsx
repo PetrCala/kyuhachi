@@ -1,8 +1,11 @@
 import { loadStoredLanguage } from '../src/i18n';
 import { useEffect, useState } from 'react';
+import { StyleSheet } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, KleeOne_600SemiBold } from '@expo-google-fonts/klee-one';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { PreferencesProvider } from '@/context/PreferencesContext';
 import { StampCelebrationProvider } from '@/context/StampCelebrationContext';
@@ -62,32 +65,31 @@ export default function RootLayout() {
   if (!ready) return null;
 
   return (
-    <AuthProvider>
-      <PreferencesProvider>
-        <StampCelebrationProvider>
-          <NavigationController />
-          <Stack screenOptions={{ headerShown: false, headerBackButtonDisplayMode: 'minimal' }}>
-            <Stack.Screen
-              name="onsens/edit-visit"
-              options={{ presentation: 'modal', headerShown: true }}
-            />
-            {/* Onsen map preview: a native iOS page sheet — edge-to-edge and
-                bottom-pinned (not the inset floating card that `formSheet` renders
-                on iOS 26), with the system top-corner radius and native
-                swipe-to-dismiss. We use pageSheet over formSheet deliberately:
-                react-native-screens only honors sheet detents/grabber/corner-radius
-                for formSheet, and the edge-to-edge fill matters more than a custom
-                detent height here, so the sheet sits at the system's tall default. */}
-            <Stack.Screen
-              name="onsens/preview/[id]"
-              options={{
-                presentation: 'pageSheet',
-                headerShown: false,
-              }}
-            />
-          </Stack>
-        </StampCelebrationProvider>
-      </PreferencesProvider>
-    </AuthProvider>
+    // GestureHandlerRootView must wrap the app for gesture-handler (and the
+    // bottom-sheet preview built on it) to receive touches; BottomSheetModalProvider
+    // lets any screen present the onsen preview sheet.
+    <GestureHandlerRootView style={styles.root}>
+      <BottomSheetModalProvider>
+        <AuthProvider>
+          <PreferencesProvider>
+            <StampCelebrationProvider>
+              <NavigationController />
+              <Stack screenOptions={{ headerShown: false, headerBackButtonDisplayMode: 'minimal' }}>
+                <Stack.Screen
+                  name="onsens/edit-visit"
+                  options={{ presentation: 'modal', headerShown: true }}
+                />
+              </Stack>
+            </StampCelebrationProvider>
+          </PreferencesProvider>
+        </AuthProvider>
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+});
