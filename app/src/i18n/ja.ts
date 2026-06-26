@@ -537,7 +537,6 @@ const ja: Record<keyof typeof en, string> = {
   'onsenDetail.labelPhone': '電話',
   'onsenDetail.labelFee': '料金',
   'onsenDetail.feeAdult': '大人 {{amount}}',
-  'onsenDetail.feeDetails': '詳細',
   'onsenDetail.labelSpringQuality': '泉質',
   'onsenDetail.labelHours': '営業時間',
   'onsenDetail.getDirections': '経路を表示',
