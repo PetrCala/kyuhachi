@@ -10,9 +10,11 @@ module.exports = function (api) {
       // require.context() receives a string literal — is never added.
       // Add it here explicitly to work around the hoisting gap.
       require('babel-preset-expo/build/expo-router-plugin').expoRouterBabelPlugin,
-      // react-native-reanimated v4 moved its worklets transform into
-      // react-native-worklets. This plugin MUST be listed last.
-      'react-native-worklets/plugin',
+      // Do NOT add 'react-native-worklets/plugin' here. Unlike expo-router,
+      // react-native-worklets resolves from the workspace root, so babel-preset-expo
+      // already adds it automatically (in the required last position). Adding it
+      // again double-applies the worklet transform and silently breaks Reanimated
+      // animations — e.g. the gorhom onsen-preview sheet stops opening.
     ],
   };
 };
