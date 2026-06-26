@@ -5,7 +5,6 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, KleeOne_600SemiBold } from '@expo-google-fonts/klee-one';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { PreferencesProvider } from '@/context/PreferencesContext';
 import { StampCelebrationProvider } from '@/context/StampCelebrationContext';
@@ -66,24 +65,21 @@ export default function RootLayout() {
 
   return (
     // GestureHandlerRootView must wrap the app for gesture-handler (and the
-    // bottom-sheet preview built on it) to receive touches; BottomSheetModalProvider
-    // lets any screen present the onsen preview sheet.
+    // bottom-sheet preview built on it) to receive touches.
     <GestureHandlerRootView style={styles.root}>
-      <BottomSheetModalProvider>
-        <AuthProvider>
-          <PreferencesProvider>
-            <StampCelebrationProvider>
-              <NavigationController />
-              <Stack screenOptions={{ headerShown: false, headerBackButtonDisplayMode: 'minimal' }}>
-                <Stack.Screen
-                  name="onsens/edit-visit"
-                  options={{ presentation: 'modal', headerShown: true }}
-                />
-              </Stack>
-            </StampCelebrationProvider>
-          </PreferencesProvider>
-        </AuthProvider>
-      </BottomSheetModalProvider>
+      <AuthProvider>
+        <PreferencesProvider>
+          <StampCelebrationProvider>
+            <NavigationController />
+            <Stack screenOptions={{ headerShown: false, headerBackButtonDisplayMode: 'minimal' }}>
+              <Stack.Screen
+                name="onsens/edit-visit"
+                options={{ presentation: 'modal', headerShown: true }}
+              />
+            </Stack>
+          </StampCelebrationProvider>
+        </PreferencesProvider>
+      </AuthProvider>
     </GestureHandlerRootView>
   );
 }
