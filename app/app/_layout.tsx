@@ -1,8 +1,11 @@
 import { loadStoredLanguage } from '../src/i18n';
 import { useEffect, useState } from 'react';
+import { StyleSheet } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, KleeOne_600SemiBold } from '@expo-google-fonts/klee-one';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { PreferencesProvider } from '@/context/PreferencesContext';
 import { StampCelebrationProvider } from '@/context/StampCelebrationContext';
@@ -62,18 +65,31 @@ export default function RootLayout() {
   if (!ready) return null;
 
   return (
-    <AuthProvider>
-      <PreferencesProvider>
-        <StampCelebrationProvider>
-          <NavigationController />
-          <Stack screenOptions={{ headerShown: false, headerBackButtonDisplayMode: 'minimal' }}>
-            <Stack.Screen
-              name="onsens/edit-visit"
-              options={{ presentation: 'modal', headerShown: true }}
-            />
-          </Stack>
-        </StampCelebrationProvider>
-      </PreferencesProvider>
-    </AuthProvider>
+    // GestureHandlerRootView must wrap the app for gesture-handler (and the
+    // bottom-sheet preview built on it) to receive touches; BottomSheetModalProvider
+    // lets any screen present the onsen preview sheet.
+    <GestureHandlerRootView style={styles.root}>
+      <BottomSheetModalProvider>
+        <AuthProvider>
+          <PreferencesProvider>
+            <StampCelebrationProvider>
+              <NavigationController />
+              <Stack screenOptions={{ headerShown: false, headerBackButtonDisplayMode: 'minimal' }}>
+                <Stack.Screen
+                  name="onsens/edit-visit"
+                  options={{ presentation: 'modal', headerShown: true }}
+                />
+              </Stack>
+            </StampCelebrationProvider>
+          </PreferencesProvider>
+        </AuthProvider>
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+});

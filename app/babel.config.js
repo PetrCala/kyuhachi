@@ -10,6 +10,9 @@ module.exports = function (api) {
       // require.context() receives a string literal — is never added.
       // Add it here explicitly to work around the hoisting gap.
       require('babel-preset-expo/build/expo-router-plugin').expoRouterBabelPlugin,
+      // react-native-reanimated v4 moved its worklets transform into
+      // react-native-worklets. This plugin MUST be listed last.
+      'react-native-worklets/plugin',
     ],
   };
 };
