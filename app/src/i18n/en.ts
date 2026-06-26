@@ -51,7 +51,6 @@ const en = {
   'onsenPreview.areaPrefecture': '{{area}} ・ {{prefecture}}',
   'onsenPreview.imagePlaceholder': 'No photo available',
   'onsenPreview.viewFullDetails': 'View full details',
-  'onsenPreview.close': 'Close',
   // The check icon beside this label carries the tick, so the text omits it.
   'onsenPreview.visited': 'Visited',
 

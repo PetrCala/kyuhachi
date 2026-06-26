@@ -6,6 +6,7 @@ import { useFonts, KleeOne_600SemiBold } from '@expo-google-fonts/klee-one';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { PreferencesProvider } from '@/context/PreferencesContext';
 import { StampCelebrationProvider } from '@/context/StampCelebrationContext';
+import { radii } from '@/theme';
 
 // Keep the native splash visible until the brand font has loaded, so the
 // 九八 mark never flashes in a fallback face.
@@ -70,6 +71,20 @@ export default function RootLayout() {
             <Stack.Screen
               name="onsens/edit-visit"
               options={{ presentation: 'modal', headerShown: true }}
+            />
+            {/* Onsen map preview: a native iOS sheet at a single fixed detent, so
+                it can't resize to its content. The lone detent also gives native
+                swipe-to-dismiss from anywhere (dragging down dismisses when the
+                content is scrolled to the top, scrolls otherwise). */}
+            <Stack.Screen
+              name="onsens/preview/[id]"
+              options={{
+                presentation: 'formSheet',
+                sheetAllowedDetents: [0.55],
+                sheetGrabberVisible: true,
+                sheetCornerRadius: radii.xl,
+                headerShown: false,
+              }}
             />
           </Stack>
         </StampCelebrationProvider>
