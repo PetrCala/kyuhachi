@@ -8,6 +8,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { PreferencesProvider } from '@/context/PreferencesContext';
 import { StampCelebrationProvider } from '@/context/StampCelebrationContext';
+import { RowActionsSheetProvider } from '@/components/RowActionsSheet';
 
 // Keep the native splash visible until the brand font has loaded, so the
 // 九八 mark never flashes in a fallback face.
@@ -70,13 +71,15 @@ export default function RootLayout() {
       <AuthProvider>
         <PreferencesProvider>
           <StampCelebrationProvider>
-            <NavigationController />
-            <Stack screenOptions={{ headerShown: false, headerBackButtonDisplayMode: 'minimal' }}>
-              <Stack.Screen
-                name="onsens/edit-visit"
-                options={{ presentation: 'modal', headerShown: true }}
-              />
-            </Stack>
+            <RowActionsSheetProvider>
+              <NavigationController />
+              <Stack screenOptions={{ headerShown: false, headerBackButtonDisplayMode: 'minimal' }}>
+                <Stack.Screen
+                  name="onsens/edit-visit"
+                  options={{ presentation: 'modal', headerShown: true }}
+                />
+              </Stack>
+            </RowActionsSheetProvider>
           </StampCelebrationProvider>
         </PreferencesProvider>
       </AuthProvider>
