@@ -15,6 +15,7 @@ import { usePreferences } from '@/context/PreferencesContext';
 import { useUserLocation } from '@/hooks/useUserLocation';
 import { haversineKm } from '@/lib/geo';
 import { simulatedCoordinate } from '@/lib/dev-location';
+import { onsenReading } from '@/lib/onsen-name';
 import { colors, spacing, typography, radii } from '@/theme';
 
 export interface OnsenListItem {
@@ -22,6 +23,8 @@ export interface OnsenListItem {
   name: string;
   /** Hiragana reading of `name`; the within-prefecture sort key. null → fall back to `name`. */
   nameKana: string | null;
+  /** Hepburn reading of `name`, shown under the kanji in non-JP UI. null = none published. */
+  nameRomaji: string | null;
   areaName: string;
   prefecture: string;
   lat: number;
@@ -65,11 +68,14 @@ const OnsenListRow = memo(function OnsenListRow({
   item,
   unvisitedVariant,
   distanceLabel,
+  reading,
   onPress,
 }: {
   item: OnsenListItem;
   unvisitedVariant: 'chevron' | 'circle';
   distanceLabel?: string;
+  /** Romaji reading shown under the name in non-JP UI; omitted when there's none. */
+  reading?: string;
   onPress?: (item: OnsenListItem) => void;
 }) {
   return (
@@ -79,6 +85,7 @@ const OnsenListRow = memo(function OnsenListRow({
     >
       <View style={styles.rowText}>
         <Text style={styles.rowName}>{item.name}</Text>
+        {reading ? <Text style={styles.rowReading}>{reading}</Text> : null}
       </View>
       {distanceLabel ? <Text style={styles.distance}>{distanceLabel}</Text> : null}
       {item.visited ? (
@@ -107,7 +114,7 @@ const OnsenListRow = memo(function OnsenListRow({
  * small (~8), which is what makes the scroll feel smooth.
  */
 export function OnsenList({ data, loading, unvisitedVariant, onItemPress }: OnsenListProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { showNearby, nearRadiusKm, loaded: prefsLoaded } = usePreferences();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -134,6 +141,9 @@ export function OnsenList({ data, loading, unvisitedVariant, onItemPress }: Onse
       ? data.filter(
           (o) =>
             o.name.toLowerCase().includes(q) ||
+            // Romaji so a non-JP user can find an onsen by typing its reading
+            // (e.g. "beppu") rather than its kanji.
+            (o.nameRomaji?.toLowerCase().includes(q) ?? false) ||
             o.prefecture.toLowerCase().includes(q) ||
             o.areaName.toLowerCase().includes(q)
         )
@@ -225,6 +235,7 @@ export function OnsenList({ data, loading, unvisitedVariant, onItemPress }: Onse
         item={item}
         unvisitedVariant={unvisitedVariant}
         onPress={onItemPress}
+        reading={onsenReading(item.nameRomaji, i18n.language) ?? undefined}
         distanceLabel={
           section.near && item.distanceKm !== undefined
             ? t('onsenList.distanceKm', { km: item.distanceKm.toFixed(1) })
@@ -232,7 +243,7 @@ export function OnsenList({ data, loading, unvisitedVariant, onItemPress }: Onse
         }
       />
     ),
-    [unvisitedVariant, onItemPress, t]
+    [unvisitedVariant, onItemPress, t, i18n.language]
   );
 
   const renderSectionHeader = useCallback(
@@ -342,6 +353,11 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.medium,
     color: colors.textPrimary,
+  },
+  rowReading: {
+    marginTop: spacing[1],
+    fontSize: typography.sizes.sm,
+    color: colors.textMuted,
   },
   distance: {
     fontSize: typography.sizes.sm,

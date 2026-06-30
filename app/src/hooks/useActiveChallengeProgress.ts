@@ -39,6 +39,8 @@ export interface OnsenRow {
   name: string;
   /** Hiragana reading of `name`; the within-prefecture sort key. null → fall back to `name`. */
   nameKana: string | null;
+  /** Hepburn reading of `name`, shown under the kanji in non-JP UI. null = none published. */
+  nameRomaji: string | null;
   areaName: string;
   prefecture: string;
   lat: number;
@@ -51,6 +53,8 @@ export interface OnsenDisplayInfo {
   name: string;
   /** Hiragana reading of `name`; the within-prefecture sort key. null → fall back to `name`. */
   nameKana: string | null;
+  /** Hepburn reading of `name`, shown under the kanji in non-JP UI. null = none published. */
+  nameRomaji: string | null;
   areaName: string;
   prefecture: string;
   lat: number;
@@ -283,6 +287,7 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
             collected.set(d.id, {
               name: data.name,
               nameKana: data.nameKana,
+              nameRomaji: data.nameRomaji,
               areaName: data.areaName,
               prefecture: data.prefecture,
               lat: data.lat,
@@ -328,6 +333,7 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
         id,
         name: info?.name ?? id,
         nameKana: info?.nameKana ?? null,
+        nameRomaji: info?.nameRomaji ?? null,
         areaName: info?.areaName ?? '',
         prefecture: info?.prefecture ?? '',
         // 0/0 is far from Kyushu, so an onsen whose info hasn't loaded just

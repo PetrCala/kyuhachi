@@ -14,6 +14,7 @@ import type { OnsenDocument } from '@kyuhachi/shared';
 import { OnsenInfoRow } from '@/components/OnsenInfoRow';
 import { OnsenFee } from '@/components/OnsenFee';
 import { OnsenHours } from '@/components/OnsenHours';
+import { onsenReading } from '@/lib/onsen-name';
 import { colors, radii, shadows, spacing, typography } from '@/theme';
 
 type OnsenRow = OnsenDocument & { id: string };
@@ -65,7 +66,7 @@ export default function OnsenPreviewSheet({
   onClose,
   onViewDetails,
 }: OnsenPreviewSheetProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const sheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => SNAP_POINTS, []);
   // Measured height of the pinned footer, so the scroll body can clear it (the
@@ -146,6 +147,9 @@ export default function OnsenPreviewSheet({
       }
     : undefined;
 
+  // Romaji reading shown under the hero name for non-Japanese UI; null otherwise.
+  const reading = onsenReading(shown?.nameRomaji, i18n.language);
+
   return (
     <BottomSheet
       ref={sheetRef}
@@ -192,9 +196,16 @@ export default function OnsenPreviewSheet({
                 </View>
               )}
               <View style={styles.heroScrim} pointerEvents="none" />
-              <Text style={styles.heroName} numberOfLines={2}>
-                {shown.name}
-              </Text>
+              <View style={styles.heroText} pointerEvents="none">
+                <Text style={styles.heroName} numberOfLines={2}>
+                  {shown.name}
+                </Text>
+                {reading && (
+                  <Text style={styles.heroReading} numberOfLines={1}>
+                    {reading}
+                  </Text>
+                )}
+              </View>
             </View>
 
             <View style={styles.info}>
@@ -298,18 +309,29 @@ const styles = StyleSheet.create({
     height: HERO_HEIGHT / 2,
     backgroundColor: colors.overlay,
   },
-  // Pinned to the bottom of the hero so it sits over the dark scrim, regardless of
-  // the sheet's sticky-header layout.
-  heroName: {
+  // Name + reading block, pinned to the bottom of the hero so it sits over the
+  // dark scrim, regardless of the sheet's sticky-header layout.
+  heroText: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
     paddingHorizontal: spacing[4],
     paddingBottom: spacing[3],
+  },
+  heroName: {
     fontSize: typography.sizes.xxl,
     fontWeight: typography.weights.bold,
     color: colors.textInverted,
+  },
+  // Romaji reading under the name; same inverted ink, lighter and smaller so the
+  // kanji name stays the focal point.
+  heroReading: {
+    marginTop: spacing[1],
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.medium,
+    color: colors.textInverted,
+    opacity: 0.9,
   },
   closeButton: {
     position: 'absolute',

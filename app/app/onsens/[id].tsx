@@ -28,6 +28,7 @@ import { OnsenFee } from '@/components/OnsenFee';
 import { OnsenHours } from '@/components/OnsenHours';
 import RecordVisitFab from '@/components/RecordVisitFab';
 import { useVisit } from '@/hooks/useVisit';
+import { onsenReading } from '@/lib/onsen-name';
 import { usePreferences } from '@/context/PreferencesContext';
 import { db } from '@/firebase';
 import { colors, spacing, typography, radii } from '@/theme';
@@ -35,7 +36,7 @@ import { colors, spacing, typography, radii } from '@/theme';
 type OnsenWithId = OnsenDocument & { id: string };
 
 export default function OnsenDetail() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   // Whether onsen pages embed a tappable map preview (default) or instead show a
   // compact map icon in the header. Both routes focus this onsen on the Map tab.
@@ -112,6 +113,8 @@ export default function OnsenDetail() {
     : null;
 
   const showVisitButton = !!challengeId && !visit && !visitLoading;
+  // Romaji reading shown under the kanji for non-Japanese UI; null otherwise.
+  const reading = onsenReading(onsen.nameRomaji, i18n.language);
 
   return (
     <View style={styles.flex}>
@@ -159,6 +162,11 @@ export default function OnsenDetail() {
           <Text style={styles.name} selectable>
             {onsen.name}
           </Text>
+          {reading && (
+            <Text style={styles.reading} selectable>
+              {reading}
+            </Text>
+          )}
           <Text style={styles.area} selectable>
             {onsen.areaName}　{onsen.prefecture}
           </Text>
@@ -295,6 +303,11 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.xl,
     fontWeight: typography.weights.bold,
     color: colors.textPrimary,
+    marginBottom: spacing[1],
+  },
+  reading: {
+    fontSize: typography.sizes.md,
+    color: colors.textSecondary,
     marginBottom: spacing[1],
   },
   area: {
