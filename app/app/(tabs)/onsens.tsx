@@ -47,6 +47,7 @@ export default function OnsenBrowse() {
         id: o.id,
         name: o.name,
         nameKana: o.nameKana,
+        nameRomaji: o.nameRomaji,
         areaName: o.areaName,
         prefecture: o.prefecture,
         lat: o.lat,

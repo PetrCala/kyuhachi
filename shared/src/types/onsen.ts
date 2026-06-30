@@ -53,6 +53,16 @@ export interface OnsenDocument {
    * it, or when the analyzer produces no reading — the app falls back to `name`.
    */
   nameKana: string | null;
+  /**
+   * Hepburn romanization (rōmaji) of `name`, derived by the data-repo pipeline
+   * from the same reading as `nameKana`. A pronunciation aid: the app shows it
+   * beneath the kanji name for users whose UI language is not Japanese, so a
+   * non-Japanese reader can pronounce and search the onsen. Never a translation
+   * — the kanji `name` is always the primary display. null until the catalog
+   * publishes it, or when the analyzer produces no reading — the app then shows
+   * the kanji alone.
+   */
+  nameRomaji: string | null;
   areaName: string;
   address: string;
   prefecture: string;
