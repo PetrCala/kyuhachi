@@ -3,7 +3,7 @@ import { View, Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
-import MapZoomControl from '@/components/MapZoomControl';
+import MapZoomControl, { MIN_ALTITUDE, MAX_ALTITUDE } from '@/components/MapZoomControl';
 import FinderMarker from '@/components/FinderMarker';
 import { finderResultKey, type FinderResult } from '@/lib/finder';
 import type { LatLng } from '@/lib/geo';
@@ -16,7 +16,18 @@ const FALLBACK_DELTA = 0.08;
 const CORNER_BUTTON = 36;
 // Metres per degree of latitude — seeds the zoom slider before the map reports a camera.
 const INITIAL_ALTITUDE = FALLBACK_DELTA * 111_000;
-const CENTER_DURATION_MS = 350;
+
+// Selecting a result flies the map in to it, like the onsen page's "Show on map".
+// Same 0.85 log-scale fraction as the onsen page's FOCUS_ONSEN_ALTITUDE — a strongly
+// zoomed-in, neighborhood-level view of the focused facility.
+const FOCUS_ZOOM_FRACTION = 0.85;
+const FOCUS_ALTITUDE = Math.exp(
+  Math.log(MAX_ALTITUDE) -
+    FOCUS_ZOOM_FRACTION * (Math.log(MAX_ALTITUDE) - Math.log(MIN_ALTITUDE))
+);
+// Long enough to read as a descent, shorter than the onsen's 1200ms since this
+// isn't a full-Kyushu drop.
+const FOCUS_FLY_IN_MS = 700;
 const FIT_EDGE_PADDING = {
   top: spacing[6],
   right: spacing[6],
@@ -111,14 +122,15 @@ export default function FinderMap({
     });
   }, [markers, userCoord.lat, userCoord.lng]);
 
-  // Recentre on the selected pin.
+  // Fly in to the selected pin (zoom + recentre), like the onsen "Show on map" flow.
+  // The card stays at its collapsed size — selecting never enlarges the map.
   useEffect(() => {
     if (!selectedKey) return;
     const m = markers.find((x) => x.key === selectedKey);
     if (!m) return;
     mapRef.current?.animateCamera(
-      { center: { latitude: m.lat, longitude: m.lng } },
-      { duration: CENTER_DURATION_MS }
+      { center: { latitude: m.lat, longitude: m.lng }, altitude: FOCUS_ALTITUDE },
+      { duration: FOCUS_FLY_IN_MS }
     );
   }, [selectedKey, markers]);
 
