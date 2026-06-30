@@ -289,6 +289,9 @@ const ja: Record<keyof typeof en, string> = {
   'preferences.onsenMapPreview': '地図プレビューを表示',
   'preferences.onsenMapPreviewHint':
     '温泉ページにタップできる地図プレビューを表示します。オフにすると、代わりに右上にコンパクトな地図ボタンを表示します。',
+  'preferences.showRomaji': 'ローマ字読みを表示',
+  'preferences.showRomajiHint':
+    '各温泉の名前の下にローマ字読みを表示します。オフにすると、漢字の名前のみを表示します。',
   'preferences.nearRouteRadiusTitle': 'ルート付近の距離（km）',
   'preferences.nearRouteRadiusHint':
     '「ルート付近」をオンにすると、選択中のルートから{{km}}kmより離れた温泉を地図上で非表示にします。',

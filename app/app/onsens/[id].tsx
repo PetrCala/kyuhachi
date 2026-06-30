@@ -40,7 +40,7 @@ export default function OnsenDetail() {
   const router = useRouter();
   // Whether onsen pages embed a tappable map preview (default) or instead show a
   // compact map icon in the header. Both routes focus this onsen on the Map tab.
-  const { showOnsenMapPreview } = usePreferences();
+  const { showOnsenMapPreview, showRomaji } = usePreferences();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [onsen, setOnsen] = useState<OnsenWithId | null>(null);
@@ -114,7 +114,7 @@ export default function OnsenDetail() {
 
   const showVisitButton = !!challengeId && !visit && !visitLoading;
   // Romaji reading shown under the kanji for non-Japanese UI; null otherwise.
-  const reading = onsenReading(onsen.nameRomaji, i18n.language);
+  const reading = onsenReading(onsen.nameRomaji, i18n.language, showRomaji);
 
   return (
     <View style={styles.flex}>

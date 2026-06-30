@@ -14,6 +14,7 @@ import type { OnsenDocument } from '@kyuhachi/shared';
 import { OnsenInfoRow } from '@/components/OnsenInfoRow';
 import { OnsenFee } from '@/components/OnsenFee';
 import { OnsenHours } from '@/components/OnsenHours';
+import { usePreferences } from '@/context/PreferencesContext';
 import { onsenReading } from '@/lib/onsen-name';
 import { colors, radii, shadows, spacing, typography } from '@/theme';
 
@@ -67,6 +68,7 @@ export default function OnsenPreviewSheet({
   onViewDetails,
 }: OnsenPreviewSheetProps) {
   const { t, i18n } = useTranslation();
+  const { showRomaji } = usePreferences();
   const sheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => SNAP_POINTS, []);
   // Measured height of the pinned footer, so the scroll body can clear it (the
@@ -148,7 +150,7 @@ export default function OnsenPreviewSheet({
     : undefined;
 
   // Romaji reading shown under the hero name for non-Japanese UI; null otherwise.
-  const reading = onsenReading(shown?.nameRomaji, i18n.language);
+  const reading = onsenReading(shown?.nameRomaji, i18n.language, showRomaji);
 
   return (
     <BottomSheet
