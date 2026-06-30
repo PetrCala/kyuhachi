@@ -143,6 +143,18 @@ export default function FinderMap({
     }
   }, []);
 
+  // Recentre the (expanded) map on the user, like the main map's locate button.
+  // `userCoord` is already the live (or dev-simulated) location, so this just
+  // frames it at a city-level zoom — no permission prompt needed here.
+  const handleRecenter = useCallback(() => {
+    mapRef.current?.animateToRegion({
+      latitude: userCoord.lat,
+      longitude: userCoord.lng,
+      latitudeDelta: FALLBACK_DELTA,
+      longitudeDelta: FALLBACK_DELTA,
+    });
+  }, [userCoord.lat, userCoord.lng]);
+
   return (
     <View style={expanded ? styles.expanded : styles.collapsed}>
       <MapView
@@ -207,14 +219,27 @@ export default function FinderMap({
       </Pressable>
 
       {expanded && (
-        <MapZoomControl
-          mapRef={mapRef}
-          initialAltitude={INITIAL_ALTITUDE}
-          altitude={altitude}
-          zoomInLabel={t('map.zoomIn')}
-          zoomOutLabel={t('map.zoomOut')}
-          style={styles.zoom}
-        />
+        <>
+          {/* Full-height right-edge column so the zoom slider centers vertically,
+              and a locate button bottom-right — matching the main map screen. */}
+          <View style={styles.zoomControlWrap} pointerEvents="box-none">
+            <MapZoomControl
+              mapRef={mapRef}
+              initialAltitude={INITIAL_ALTITUDE}
+              altitude={altitude}
+              zoomInLabel={t('map.zoomIn')}
+              zoomOutLabel={t('map.zoomOut')}
+            />
+          </View>
+          <Pressable
+            style={[styles.recenterButton, shadows.md]}
+            onPress={handleRecenter}
+            accessibilityRole="button"
+            accessibilityLabel={t('map.recenter')}
+          >
+            <Ionicons name="locate" size={spacing[6]} color={colors.actionPrimary} />
+          </Pressable>
+        </>
       )}
     </View>
   );
@@ -248,10 +273,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...shadows.sm,
   },
-  zoom: {
+  zoomControlWrap: {
+    position: 'absolute',
+    right: spacing[3],
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+  },
+  recenterButton: {
     position: 'absolute',
     right: spacing[3],
     bottom: spacing[6],
+    width: spacing[12],
+    height: spacing[12],
+    borderRadius: radii.full,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   simDot: {
     width: spacing[4],
