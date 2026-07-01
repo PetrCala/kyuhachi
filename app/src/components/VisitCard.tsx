@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { TransportMode } from '@kyuhachi/shared';
 import OnsenIcon from '@/components/OnsenIcon';
 import { formatVisitDate } from '@/lib/format-visit-date';
+import { onsenReading } from '@/lib/onsen-name';
 import type { VisitFeedItem } from '@/lib/visit-feed';
 import { colors, spacing, typography, radii, shadows } from '@/theme';
 
@@ -41,7 +42,9 @@ export function VisitCard({
   completed = false,
 }: VisitCardProps) {
   const { t, i18n } = useTranslation();
-  const { visit, onsenName, areaName, prefecture } = item;
+  const { visit, onsenName, nameRomaji, areaName, prefecture } = item;
+  // Romaji reading shown under the kanji name in non-JP UI; null otherwise.
+  const reading = onsenReading(nameRomaji, i18n.language);
   const { rating, transportMode, duration, waterTemp, wouldReturn } = visit.structuredData;
 
   const photoUrls = visit.photoUrls ?? [];
@@ -87,6 +90,11 @@ export function VisitCard({
               <Text style={styles.onsenName} numberOfLines={1}>
                 {onsenName}
               </Text>
+              {reading ? (
+                <Text style={styles.reading} numberOfLines={1}>
+                  {reading}
+                </Text>
+              ) : null}
               {location ? (
                 <Text style={styles.location} numberOfLines={1}>
                   {location}
@@ -237,6 +245,12 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
     color: colors.textPrimary,
+  },
+  // Romaji reading under the name in non-JP UI; omitted when there's none.
+  reading: {
+    fontSize: typography.sizes.xs,
+    color: colors.textMuted,
+    marginTop: spacing[1],
   },
   location: {
     fontSize: typography.sizes.xs,

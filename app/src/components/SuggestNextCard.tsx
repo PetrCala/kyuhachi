@@ -6,6 +6,7 @@ import * as Location from 'expo-location';
 import type { RouteDocument } from '@kyuhachi/shared';
 import { simulatedCoordinate } from '@/lib/dev-location';
 import { selectNearest, type NextOnsenCandidate } from '@/lib/next-onsen';
+import { onsenReading } from '@/lib/onsen-name';
 import { colors, spacing, typography, radii } from '@/theme';
 
 // How many of the closest unvisited onsens the card lists. Three gives the user
@@ -29,7 +30,7 @@ interface SuggestNextCardProps {
  * because the question here is "where next?", not "what's within walking range?".
  */
 export function SuggestNextCard({ candidates, activeRoute }: SuggestNextCardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [deviceCoords, setDeviceCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [denied, setDenied] = useState(false);
 
@@ -145,7 +146,9 @@ export function SuggestNextCard({ candidates, activeRoute }: SuggestNextCardProp
   return (
     <View style={styles.card}>
       <Text style={styles.heading}>{t('home.suggestNext.heading')}</Text>
-      {nearest.map((onsen) => (
+      {nearest.map((onsen) => {
+        const reading = onsenReading(onsen.nameRomaji, i18n.language);
+        return (
         <Pressable
           key={onsen.id}
           style={styles.row}
@@ -156,6 +159,11 @@ export function SuggestNextCard({ candidates, activeRoute }: SuggestNextCardProp
             <Text style={styles.rowName} numberOfLines={1}>
               {onsen.name}
             </Text>
+            {reading ? (
+              <Text style={styles.rowReading} numberOfLines={1}>
+                {reading}
+              </Text>
+            ) : null}
             <Text style={styles.rowArea} numberOfLines={1}>
               {onsen.areaName}　{onsen.prefecture}
             </Text>
@@ -165,7 +173,8 @@ export function SuggestNextCard({ candidates, activeRoute }: SuggestNextCardProp
           </Text>
           <Text style={styles.chevron}>›</Text>
         </Pressable>
-      ))}
+        );
+      })}
     </View>
   );
 }
@@ -226,6 +235,12 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.medium,
     color: colors.textPrimary,
+  },
+  // Romaji reading under the name in non-JP UI; omitted when there's none.
+  rowReading: {
+    fontSize: typography.sizes.sm,
+    color: colors.textMuted,
+    marginTop: spacing[1],
   },
   rowArea: {
     fontSize: typography.sizes.sm,
