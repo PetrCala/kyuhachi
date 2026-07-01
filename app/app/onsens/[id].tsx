@@ -106,6 +106,7 @@ export default function OnsenDetail() {
     ? {
         onsenId: onsen.id,
         onsenName: onsen.name,
+        nameRomaji: onsen.nameRomaji,
         areaName: onsen.areaName,
         prefecture: onsen.prefecture,
         visit,
