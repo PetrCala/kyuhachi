@@ -68,7 +68,7 @@ export default function OnsenPreviewSheet({
   onViewDetails,
 }: OnsenPreviewSheetProps) {
   const { t, i18n } = useTranslation();
-  const { showRomaji } = usePreferences();
+  const { showReadings } = usePreferences();
   const sheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => SNAP_POINTS, []);
   // Measured height of the pinned footer, so the scroll body can clear it (the
@@ -149,8 +149,13 @@ export default function OnsenPreviewSheet({
       }
     : undefined;
 
-  // Romaji reading shown under the hero name for non-Japanese UI; null otherwise.
-  const reading = onsenReading(shown?.nameRomaji, i18n.language, showRomaji);
+  // Reading shown under the hero name — romaji in a non-JP UI, kana in Japanese.
+  const reading = onsenReading({
+    nameRomaji: shown?.nameRomaji,
+    nameKana: shown?.nameKana,
+    language: i18n.language,
+    showReadings,
+  });
 
   return (
     <BottomSheet

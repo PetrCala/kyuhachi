@@ -2,6 +2,7 @@ import { buildNextCandidates, selectNearest } from '@/lib/next-onsen';
 
 type Info = {
   name: string;
+  nameKana: string | null;
   nameRomaji: string | null;
   areaName: string;
   prefecture: string;
@@ -10,7 +11,15 @@ type Info = {
 };
 
 function info(name: string, lat: number, lng: number): Info {
-  return { name, nameRomaji: name, areaName: `${name} area`, prefecture: 'Oita', lat, lng };
+  return {
+    name,
+    nameKana: null,
+    nameRomaji: name,
+    areaName: `${name} area`,
+    prefecture: 'Oita',
+    lat,
+    lng,
+  };
 }
 
 // A few real-ish Kyushu coordinates so distances are plausible.

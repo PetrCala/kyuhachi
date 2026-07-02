@@ -1,24 +1,26 @@
 /**
- * Whether — and what — to show as an onsen's romaji reading beneath its kanji
- * name.
+ * Whether — and what — to show as an onsen's reading beneath its kanji name.
  *
- * The reading is a pronunciation aid for users who can't read kanji. It is
- * shown only when the user has the romaji preference on (`showRomaji`) and the
- * app's UI language is not Japanese (a Japanese reader gets the kanji directly
- * and the extra line is just clutter, so it's hidden there regardless of the
- * preference). Returns the trimmed romaji to render, or null when there is
- * nothing to show — the preference is off, no reading has been published yet,
- * or the UI is in Japanese.
+ * The reading is a pronunciation aid whose script follows the UI language: a
+ * Japanese UI shows the hiragana yomi (`nameKana`, effectively furigana), any
+ * other UI shows the Hepburn romaji (`nameRomaji`). One preference
+ * (`showReadings`, default on) controls whether readings show at all, in both
+ * languages. Returns the trimmed reading to render, or null when there is
+ * nothing to show — the preference is off, or no reading has been published
+ * for the active language's script.
  *
  * The kanji `name` is always the primary display; this never replaces it.
  */
-export function onsenReading(
-  nameRomaji: string | null | undefined,
-  language: string,
-  showRomaji: boolean
-): string | null {
-  if (!showRomaji) return null;
-  if (language === 'ja') return null;
-  const reading = nameRomaji?.trim();
+export function onsenReading(args: {
+  nameRomaji: string | null | undefined;
+  nameKana: string | null | undefined;
+  /** The active UI language (`i18n.language`) — `'ja'` selects the kana. */
+  language: string;
+  /** The `showReadings` preference. */
+  showReadings: boolean;
+}): string | null {
+  if (!args.showReadings) return null;
+  const source = args.language === 'ja' ? args.nameKana : args.nameRomaji;
+  const reading = source?.trim();
   return reading ? reading : null;
 }

@@ -115,7 +115,7 @@ const OnsenListRow = memo(function OnsenListRow({
  */
 export function OnsenList({ data, loading, unvisitedVariant, onItemPress }: OnsenListProps) {
   const { t, i18n } = useTranslation();
-  const { showNearby, nearRadiusKm, showRomaji, loaded: prefsLoaded } = usePreferences();
+  const { showNearby, nearRadiusKm, showReadings, loaded: prefsLoaded } = usePreferences();
   const [searchQuery, setSearchQuery] = useState('');
 
   // Real device location in production; a fixed Kyushu spot in dev so the nearby
@@ -235,7 +235,14 @@ export function OnsenList({ data, loading, unvisitedVariant, onItemPress }: Onse
         item={item}
         unvisitedVariant={unvisitedVariant}
         onPress={onItemPress}
-        reading={onsenReading(item.nameRomaji, i18n.language, showRomaji) ?? undefined}
+        reading={
+          onsenReading({
+            nameRomaji: item.nameRomaji,
+            nameKana: item.nameKana,
+            language: i18n.language,
+            showReadings,
+          }) ?? undefined
+        }
         distanceLabel={
           section.near && item.distanceKm !== undefined
             ? t('onsenList.distanceKm', { km: item.distanceKm.toFixed(1) })
@@ -243,7 +250,7 @@ export function OnsenList({ data, loading, unvisitedVariant, onItemPress }: Onse
         }
       />
     ),
-    [unvisitedVariant, onItemPress, t, i18n.language, showRomaji]
+    [unvisitedVariant, onItemPress, t, i18n.language, showReadings]
   );
 
   const renderSectionHeader = useCallback(

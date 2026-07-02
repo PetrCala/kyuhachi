@@ -20,12 +20,12 @@ import { colors, spacing, typography, radii, shadows } from '@/theme';
  * the toggle is on.
  */
 export default function Preferences() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const {
     showNearby,
     nearRadiusKm,
     showOnsenMapPreview,
-    showRomaji,
+    showReadings,
     nearRouteRadiusKm,
     finderCorridorKm,
     finderLookAheadKm,
@@ -34,17 +34,13 @@ export default function Preferences() {
     setShowNearby,
     setNearRadiusKm,
     setShowOnsenMapPreview,
-    setShowRomaji,
+    setShowReadings,
     setNearRouteRadiusKm,
     setFinderCorridorKm,
     setFinderLookAheadKm,
     setAnimateStampCollect,
     setAnimateProgress,
   } = usePreferences();
-
-  // Romaji readings are always hidden in a Japanese UI, so the toggle would do
-  // nothing there — hide it rather than show a control with no effect.
-  const showRomajiToggle = i18n.language !== 'ja';
 
   // Animate the distance row in/out as the toggle reveals/hides it.
   const toggleShowNearby = (value: boolean) => {
@@ -84,14 +80,12 @@ export default function Preferences() {
         value={showOnsenMapPreview}
         onValueChange={setShowOnsenMapPreview}
       />
-      {showRomajiToggle ? (
-        <ToggleRow
-          label={t('preferences.showRomaji')}
-          hint={t('preferences.showRomajiHint')}
-          value={showRomaji}
-          onValueChange={setShowRomaji}
-        />
-      ) : null}
+      <ToggleRow
+        label={t('preferences.showReadings')}
+        hint={t('preferences.showReadingsHint')}
+        value={showReadings}
+        onValueChange={setShowReadings}
+      />
 
       <RadiusField
         title={t('preferences.nearRouteRadiusTitle')}
