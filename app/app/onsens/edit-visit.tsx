@@ -22,7 +22,6 @@ import {
   updateDoc,
   deleteDoc,
   serverTimestamp,
-  onSnapshot,
   type FirebaseFirestoreTypes,
 } from '@react-native-firebase/firestore';
 import {
@@ -39,7 +38,6 @@ import type {
   PerceivedHeat,
   CrowdLevel,
   VisitedWith,
-  OnsenDocument,
 } from '@kyuhachi/shared';
 import {
   COLLECTIONS,
@@ -51,6 +49,7 @@ import {
   EMPTY_VISIT_STRUCTURED_DATA,
 } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
+import { useOnsenCatalog } from '@/context/OnsenCatalogContext';
 import { useStampCelebration } from '@/context/StampCelebrationContext';
 import { useVisit } from '@/hooks/useVisit';
 import { db, storage } from '@/firebase';
@@ -64,12 +63,13 @@ import { colors, spacing, typography, radii } from '@/theme';
 
 const MAX_PHOTOS = 6;
 
-// A new visit usually lands instantly off Firestore's offline cache, which would
-// flash the saving overlay for a frame or two. Hold it open long enough for the
+// A save applies to Firestore's local cache instantly, which would flash the
+// saving overlay for a frame or two. Hold it open long enough for the
 // stamp-press loader to play its full press-lift-reveal story once, so the
-// moment reads as deliberate. Photo uploads still run detached afterwards, so
-// this only paces the visible hand-off, never the actual write.
-const MIN_SAVE_VISIBLE_MS = STAMP_PRESS_CYCLE_MS;
+// moment reads as deliberate. This timer alone paces the overlay — never the
+// write's backend acknowledgment, which offline may be days away. Photo
+// uploads still run detached afterwards.
+const SAVE_VISIBLE_MS = STAMP_PRESS_CYCLE_MS;
 
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -113,10 +113,11 @@ export default function EditVisit() {
   // them. `originalPhotoUrls` remembers what the doc had so Save can delete the
   // Storage objects for any the user removed.
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
-  // The onsen's catalog fields, kept only to ink the seal on the stamp-collection
-  // celebration when a first visit is recorded. Served from Firestore's offline
-  // cache, so it's ready by save time without a network round-trip.
-  const [onsen, setOnsen] = useState<OnsenDocument | null>(null);
+  // The onsen's catalog fields, used only to ink the seal on the stamp-collection
+  // celebration when a first visit is recorded. Served from the offline-first
+  // catalog store, so it's ready by save time without a network round-trip.
+  const { onsenMap } = useOnsenCatalog();
+  const onsen = id ? (onsenMap.get(id) ?? null) : null;
   const originalPhotoUrls = useRef<string[]>([]);
   const seeded = useRef(false);
   // Whether a visit doc ever existed here. In create mode it never does, so a
@@ -139,19 +140,6 @@ export default function EditVisit() {
     originalPhotoUrls.current = urls;
     setPhotos(urls.map((url) => ({ kind: 'existing', url })));
   }, [visit]);
-
-  // Track the onsen's catalog fields for the collection celebration's seal. The
-  // catalog is cached offline, so this resolves locally without a network wait.
-  useEffect(() => {
-    if (!id) return;
-    return onSnapshot(
-      doc(db, COLLECTIONS.ONSENS, id),
-      (snapshot: FirebaseFirestoreTypes.DocumentSnapshot) => {
-        setOnsen(snapshot.exists() ? (snapshot.data() as OnsenDocument) : null);
-      },
-      () => setOnsen(null)
-    );
-  }, [id]);
 
   // Leave the editor when there's nothing left to edit: no onsen id (the modal
   // was re-presented by navigation state restoration on reload), or the visit we
@@ -195,7 +183,6 @@ export default function EditVisit() {
     // the visit non-null before we navigate away.
     seeded.current = true;
     setSaving(true);
-    const startedAt = Date.now();
     const isCreate = !visit;
     const structuredData = {
       ...details,
@@ -207,35 +194,37 @@ export default function EditVisit() {
     // — lands instantly off Firestore's offline cache, with no Storage round-trip
     // on the critical path. Any new photos upload in the background (see
     // finalizeVisitPhotos) and patch onto the doc once they finish.
+    //
+    // The write is deliberately NOT awaited: Firestore applies it to the local
+    // cache at once and syncs when connectivity allows, but the returned promise
+    // resolves only on the backend's acknowledgment — awaiting it would hang this
+    // save (and its overlay) indefinitely at an onsen with no signal, which is
+    // exactly where visits get recorded. Snapshots deliver the pending write to
+    // every screen immediately; a genuine rejection (e.g. rules) surfaces through
+    // the alert.
     const existingUrls = photos.flatMap((p) => (p.kind === 'existing' ? [p.url] : []));
-    try {
-      if (isCreate) {
-        // First save records the visit — the only place a visit is created.
-        await setDoc(docRef, {
-          visitedAt: serverTimestamp(),
-          notes: notes.trim() || null,
-          photoUrls: existingUrls,
-          structuredData,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
-      } else {
-        await updateDoc(docRef, {
-          notes: notes.trim() || null,
-          photoUrls: existingUrls,
-          structuredData,
-          updatedAt: serverTimestamp(),
-        });
-      }
-    } catch (error) {
-      setSaving(false);
-      Alert.alert(t('common.errorTitle'), t(firebaseErrorKey(error)));
-      return;
+    if (isCreate) {
+      // First save records the visit — the only place a visit is created.
+      setDoc(docRef, {
+        visitedAt: serverTimestamp(),
+        notes: notes.trim() || null,
+        photoUrls: existingUrls,
+        structuredData,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }).catch((error) => Alert.alert(t('common.errorTitle'), t(firebaseErrorKey(error))));
+    } else {
+      updateDoc(docRef, {
+        notes: notes.trim() || null,
+        photoUrls: existingUrls,
+        structuredData,
+        updatedAt: serverTimestamp(),
+      }).catch((error) => Alert.alert(t('common.errorTitle'), t(firebaseErrorKey(error))));
     }
-    // Hold the saving overlay until the stamp-press loader has had time to land
-    // one press (see MIN_SAVE_VISIBLE_MS) — the write itself is usually instant.
-    const elapsed = Date.now() - startedAt;
-    if (elapsed < MIN_SAVE_VISIBLE_MS) await delay(MIN_SAVE_VISIBLE_MS - elapsed);
+    // Hold the saving overlay for one full stamp-press cycle (see
+    // SAVE_VISIBLE_MS) — the loader's press-lift-reveal is the save's visible
+    // beat, and this timer is its only pacer.
+    await delay(SAVE_VISIBLE_MS);
 
     // A brand-new visit earns a stamp: celebrate it now that the loader has played
     // out. The reveal waits for this editor to dismiss (see StampCelebrationContext),
@@ -294,19 +283,20 @@ export default function EditVisit() {
     }
   }
 
-  async function handleRemoveVisit() {
+  function handleRemoveVisit() {
     const docRef = visitRef();
     if (!docRef) return;
     setRemoving(true);
-    try {
-      await deleteDoc(docRef);
-      // The visit subscription drops to null, which dismisses the modal via the
-      // effect above. The onVisitDeleted Function cleans up any photos. Only
-      // re-enable the button on failure, since success unmounts this screen.
-    } catch (error) {
+    // Not awaited, same rationale as the save: the delete applies to the local
+    // cache instantly — the visit subscription drops to null, which dismisses
+    // the modal via the effect above — while the promise resolves only on the
+    // backend's acknowledgment and would deadlock this button offline. The
+    // onVisitDeleted Function cleans up any photos. Re-enable only on failure,
+    // since success unmounts this screen.
+    deleteDoc(docRef).catch((error) => {
       setRemoving(false);
       Alert.alert(t('onsenDetail.errorRemove'), t(firebaseErrorKey(error)));
-    }
+    });
   }
 
   function confirmRemoveVisit() {

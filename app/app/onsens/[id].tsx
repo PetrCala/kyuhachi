@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,13 +13,6 @@ import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  doc,
-  onSnapshot,
-  type FirebaseFirestoreTypes,
-} from '@react-native-firebase/firestore';
-import type { OnsenDocument } from '@kyuhachi/shared';
-import { COLLECTIONS } from '@kyuhachi/shared';
 import type { VisitFeedItem } from '@/lib/visit-feed';
 import { VisitCard } from '@/components/VisitCard';
 import { OnsenInfoRow } from '@/components/OnsenInfoRow';
@@ -29,11 +21,9 @@ import { OnsenHours } from '@/components/OnsenHours';
 import RecordVisitFab from '@/components/RecordVisitFab';
 import { useVisit } from '@/hooks/useVisit';
 import { onsenReading } from '@/lib/onsen-name';
+import { useOnsenCatalog } from '@/context/OnsenCatalogContext';
 import { usePreferences } from '@/context/PreferencesContext';
-import { db } from '@/firebase';
 import { colors, spacing, typography, radii } from '@/theme';
-
-type OnsenWithId = OnsenDocument & { id: string };
 
 export default function OnsenDetail() {
   const { t, i18n } = useTranslation();
@@ -43,27 +33,12 @@ export default function OnsenDetail() {
   const { showOnsenMapPreview, showReadings } = usePreferences();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [onsen, setOnsen] = useState<OnsenWithId | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Served from the offline-first catalog store — archived onsens included, so
+  // a visited-then-deprecated onsen still opens.
+  const { onsenMap, loading } = useOnsenCatalog();
+  const onsen = id ? (onsenMap.get(id) ?? null) : null;
 
   const { challengeId, visit, loading: visitLoading } = useVisit(id);
-
-  // Listen to onsen document
-  useEffect(() => {
-    if (!id) return;
-    const unsubscribe = onSnapshot(
-      doc(db, COLLECTIONS.ONSENS, id),
-      (snapshot: FirebaseFirestoreTypes.DocumentSnapshot) => {
-        setOnsen(snapshot.exists() ? { id: snapshot.id, ...(snapshot.data() as OnsenDocument) } : null);
-        setLoading(false);
-      },
-      () => {
-        setOnsen(null);
-        setLoading(false);
-      }
-    );
-    return unsubscribe;
-  }, [id]);
 
   // Opens the visit editor. The visit isn't created until the user saves there,
   // so reaching the editor — or tapping the button by accident — records nothing

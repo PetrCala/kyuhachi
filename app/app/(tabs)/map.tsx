@@ -15,16 +15,14 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT, type Region } from 'react-native-maps';
 import {
-  collection,
   doc,
-  query,
-  where,
   onSnapshot,
   type FirebaseFirestoreTypes,
 } from '@react-native-firebase/firestore';
-import type { OnsenDocument, RouteDocument } from '@kyuhachi/shared';
+import type { CachedOnsen, RouteDocument } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
+import { useOnsenCatalog } from '@/context/OnsenCatalogContext';
 import { usePreferences } from '@/context/PreferencesContext';
 import { db } from '@/firebase';
 import { simulatedCoordinate } from '@/lib/dev-location';
@@ -35,7 +33,7 @@ import OnsenMarker from '@/components/OnsenMarker';
 import OnsenPreviewSheet from '@/components/OnsenPreviewSheet';
 import { colors, spacing, radii, typography, shadows } from '@/theme';
 
-type OnsenRow = OnsenDocument & { id: string };
+type OnsenRow = CachedOnsen;
 
 const KYUSHU_REGION = {
   latitude: 32.8,
@@ -113,8 +111,9 @@ export default function MapScreen() {
   // its native callout) when its preview sheet closes — otherwise the tapped pin
   // stays selected and a re-tap wouldn't re-fire onPress to reopen the sheet.
   const markerRefs = useRef<Record<string, ElementRef<typeof Marker> | null>>({});
-  const [onsens, setOnsens] = useState<OnsenRow[]>([]);
-  const [onsensLoading, setOnsensLoading] = useState(true);
+  // Pins come from the offline-first catalog store, so the map (Apple Maps
+  // tiles aside) works with no network. Active onsens only, as before.
+  const { activeOnsens: onsens, loading: onsensLoading } = useOnsenCatalog();
   // The onsen whose image-forward preview half-sheet is open, or null. Tapping a
   // pin selects it; the sheet is rendered once at the bottom of this screen.
   const [selectedOnsen, setSelectedOnsen] = useState<OnsenRow | null>(null);
@@ -312,14 +311,14 @@ export default function MapScreen() {
     []
   );
   // Tapping a pin opens its preview half-sheet rather than navigating away.
-  // Resolved against the latest onsen list via the functional setter so this
-  // callback stays stable (the memoized markers never re-render to re-bind it).
-  const handleOnsenPress = useCallback((id: string) => {
-    setOnsens((current) => {
-      setSelectedOnsen(current.find((o) => o.id === id) ?? null);
-      return current;
-    });
-  }, []);
+  // Depends on the onsen list, which only changes when a new catalog version
+  // syncs — rare enough that the memoized markers re-binding then is fine.
+  const handleOnsenPress = useCallback(
+    (id: string) => {
+      setSelectedOnsen(onsens.find((o) => o.id === id) ?? null);
+    },
+    [onsens]
+  );
   // Dismiss the preview. The tapped pin is the iOS map's *selected* annotation,
   // its native callout hidden behind the sheet's backdrop; once the sheet slides
   // away that callout would be revealed, and — because MapKit only fires onPress
@@ -337,20 +336,6 @@ export default function MapScreen() {
     markerRefs.current[id]?.hideCallout();
     setSelectedOnsen(null);
     router.push(`/onsens/${id}`);
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = onSnapshot(
-      query(collection(db, COLLECTIONS.ONSENS), where('isActive', '==', true)),
-      (snapshot: FirebaseFirestoreTypes.QuerySnapshot) => {
-        setOnsens(
-          snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as OnsenDocument) }))
-        );
-        setOnsensLoading(false);
-      },
-      () => setOnsensLoading(false)
-    );
-    return unsubscribe;
   }, []);
 
   // Subscribe to the param route (when one is given) so it draws live — a rename
