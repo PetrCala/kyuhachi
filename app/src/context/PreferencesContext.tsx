@@ -90,7 +90,7 @@ const PreferencesContext = createContext<PreferencesContextValue>({
   showNearby: true,
   nearRadiusKm: DEFAULT_NEAR_RADIUS_KM,
   showOnsenMapPreview: true,
-  showReadings: true,
+  showReadings: false,
   nearRouteRadiusKm: DEFAULT_NEAR_ROUTE_RADIUS_KM,
   finderCorridorKm: DEFAULT_FINDER_CORRIDOR_KM,
   finderLookAheadKm: DEFAULT_FINDER_LOOKAHEAD_KM,
@@ -112,7 +112,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
   const [showNearby, setShowNearbyState] = useState(true);
   const [nearRadiusKm, setNearRadiusKmState] = useState<number>(DEFAULT_NEAR_RADIUS_KM);
   const [showOnsenMapPreview, setShowOnsenMapPreviewState] = useState(true);
-  const [showReadings, setShowReadingsState] = useState(true);
+  const [showReadings, setShowReadingsState] = useState(false);
   const [nearRouteRadiusKm, setNearRouteRadiusKmState] = useState<number>(
     DEFAULT_NEAR_ROUTE_RADIUS_KM
   );
