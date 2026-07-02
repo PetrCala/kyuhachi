@@ -10,7 +10,7 @@ import BottomSheet, {
   type BottomSheetFooterProps,
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
-import type { OnsenDocument } from '@kyuhachi/shared';
+import type { CachedOnsen } from '@kyuhachi/shared';
 import { OnsenInfoRow } from '@/components/OnsenInfoRow';
 import { OnsenFee } from '@/components/OnsenFee';
 import { OnsenHours } from '@/components/OnsenHours';
@@ -18,7 +18,7 @@ import { usePreferences } from '@/context/PreferencesContext';
 import { onsenReading } from '@/lib/onsen-name';
 import { colors, radii, shadows, spacing, typography } from '@/theme';
 
-type OnsenRow = OnsenDocument & { id: string };
+type OnsenRow = CachedOnsen;
 
 // The sheet rests at a single fixed height — image-forward, with room for a few
 // info rows and the CTA without resizing to content.

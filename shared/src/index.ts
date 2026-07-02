@@ -5,6 +5,8 @@ export type {
   LocalizedText,
   OnsenDocument,
   CatalogMetaDocument,
+  CachedOnsen,
+  CachedCatalog,
 } from './types/onsen';
 
 export type {

@@ -22,7 +22,6 @@ import {
   updateDoc,
   deleteDoc,
   serverTimestamp,
-  onSnapshot,
   type FirebaseFirestoreTypes,
 } from '@react-native-firebase/firestore';
 import {
@@ -39,7 +38,6 @@ import type {
   PerceivedHeat,
   CrowdLevel,
   VisitedWith,
-  OnsenDocument,
 } from '@kyuhachi/shared';
 import {
   COLLECTIONS,
@@ -51,6 +49,7 @@ import {
   EMPTY_VISIT_STRUCTURED_DATA,
 } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
+import { useOnsenCatalog } from '@/context/OnsenCatalogContext';
 import { useStampCelebration } from '@/context/StampCelebrationContext';
 import { useVisit } from '@/hooks/useVisit';
 import { db, storage } from '@/firebase';
@@ -58,7 +57,6 @@ import { firebaseErrorKey } from '@/lib/firebase-errors';
 import { RatingStars } from '@/components/visit/RatingStars';
 import { OptionChips, type ChipOption } from '@/components/visit/OptionChips';
 import { BoolChips } from '@/components/visit/BoolChips';
-import { LoadingOverlay } from '@/components/LoadingOverlay';
 import { colors, spacing, typography, radii } from '@/theme';
 
 const MAX_PHOTOS = 6;
@@ -97,16 +95,15 @@ export default function EditVisit() {
   const [details, setDetails] = useState<VisitStructuredData>({ ...EMPTY_VISIT_STRUCTURED_DATA });
   const [durationText, setDurationText] = useState('');
   const [showDetails, setShowDetails] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [removing, setRemoving] = useState(false);
   // Photos are staged locally and only uploaded/written on Save; Cancel discards
   // them. `originalPhotoUrls` remembers what the doc had so Save can delete the
   // Storage objects for any the user removed.
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
-  // The onsen's catalog fields, kept only to ink the seal on the stamp-collection
-  // celebration when a first visit is recorded. Served from Firestore's offline
-  // cache, so it's ready by save time without a network round-trip.
-  const [onsen, setOnsen] = useState<OnsenDocument | null>(null);
+  // The onsen's catalog fields, used only to ink the seal on the stamp-collection
+  // celebration when a first visit is recorded. Served from the offline-first
+  // catalog store, so it's ready by save time without a network round-trip.
+  const { onsenMap } = useOnsenCatalog();
+  const onsen = id ? (onsenMap.get(id) ?? null) : null;
   const originalPhotoUrls = useRef<string[]>([]);
   const seeded = useRef(false);
   // Whether a visit doc ever existed here. In create mode it never does, so a
@@ -129,19 +126,6 @@ export default function EditVisit() {
     originalPhotoUrls.current = urls;
     setPhotos(urls.map((url) => ({ kind: 'existing', url })));
   }, [visit]);
-
-  // Track the onsen's catalog fields for the collection celebration's seal. The
-  // catalog is cached offline, so this resolves locally without a network wait.
-  useEffect(() => {
-    if (!id) return;
-    return onSnapshot(
-      doc(db, COLLECTIONS.ONSENS, id),
-      (snapshot: FirebaseFirestoreTypes.DocumentSnapshot) => {
-        setOnsen(snapshot.exists() ? (snapshot.data() as OnsenDocument) : null);
-      },
-      () => setOnsen(null)
-    );
-  }, [id]);
 
   // Leave the editor when there's nothing left to edit: no onsen id (the modal
   // was re-presented by navigation state restoration on reload), or the visit we
@@ -178,13 +162,12 @@ export default function EditVisit() {
     setDetails((d) => ({ ...d, [key]: value }));
   }
 
-  async function handleSaveVisit() {
+  function handleSaveVisit() {
     const docRef = visitRef();
     if (!docRef) return;
     // Guard against a late snapshot re-seeding the form mid-save: a create makes
     // the visit non-null before we navigate away.
     seeded.current = true;
-    setSaving(true);
     const isCreate = !visit;
     const structuredData = {
       ...details,
@@ -196,45 +179,46 @@ export default function EditVisit() {
     // — lands instantly off Firestore's offline cache, with no Storage round-trip
     // on the critical path. Any new photos upload in the background (see
     // finalizeVisitPhotos) and patch onto the doc once they finish.
+    //
+    // The write is deliberately NOT awaited: Firestore applies it to the local
+    // cache at once and syncs when connectivity allows, but the returned promise
+    // resolves only on the backend's acknowledgment — awaiting it would hang the
+    // save indefinitely at an onsen with no signal, which is exactly where visits
+    // get recorded. Snapshots deliver the pending write to every screen
+    // immediately; a genuine rejection (e.g. rules) surfaces through the alert.
     const existingUrls = photos.flatMap((p) => (p.kind === 'existing' ? [p.url] : []));
-    try {
-      if (isCreate) {
-        // First save records the visit — the only place a visit is created.
-        await setDoc(docRef, {
-          visitedAt: serverTimestamp(),
-          notes: notes.trim() || null,
-          photoUrls: existingUrls,
-          structuredData,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
-        // A brand-new visit earns a stamp: celebrate it. The reveal waits for this
-        // modal to dismiss (see StampCelebrationContext), so firing it before
-        // navigating away is intentional. Editing an existing visit records no new
-        // stamp and stays silent.
-        celebrateStamp({
-          onsenId: id,
-          prefecture: onsen?.prefecture ?? '',
-          areaName: onsen?.areaName ?? '',
-          name: onsen?.name ?? '',
-          dateMs: Date.now(),
-        });
-      } else {
-        await updateDoc(docRef, {
-          notes: notes.trim() || null,
-          photoUrls: existingUrls,
-          structuredData,
-          updatedAt: serverTimestamp(),
-        });
-      }
-    } catch (error) {
-      setSaving(false);
-      Alert.alert(t('common.errorTitle'), t(firebaseErrorKey(error)));
-      return;
+    if (isCreate) {
+      // First save records the visit — the only place a visit is created.
+      setDoc(docRef, {
+        visitedAt: serverTimestamp(),
+        notes: notes.trim() || null,
+        photoUrls: existingUrls,
+        structuredData,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }).catch((error) => Alert.alert(t('common.errorTitle'), t(firebaseErrorKey(error))));
+      // A brand-new visit earns a stamp: celebrate it. The reveal waits for this
+      // modal to dismiss (see StampCelebrationContext), so firing it before
+      // navigating away is intentional. Editing an existing visit records no new
+      // stamp and stays silent.
+      celebrateStamp({
+        onsenId: id,
+        prefecture: onsen?.prefecture ?? '',
+        areaName: onsen?.areaName ?? '',
+        name: onsen?.name ?? '',
+        dateMs: Date.now(),
+      });
+    } else {
+      updateDoc(docRef, {
+        notes: notes.trim() || null,
+        photoUrls: existingUrls,
+        structuredData,
+        updatedAt: serverTimestamp(),
+      }).catch((error) => Alert.alert(t('common.errorTitle'), t(firebaseErrorKey(error))));
     }
-    // The visit is saved — leave the editor at once rather than holding the user
-    // on a disabled button while photos upload. The upload runs detached from this
-    // now-unmounting screen, then patches the doc and sweeps removed files.
+    // The visit is saved locally — leave the editor at once. The photo upload
+    // runs detached from this now-unmounting screen, then patches the doc and
+    // sweeps removed files.
     void finalizeVisitPhotos(docRef, existingUrls);
     if (dismissToHome) router.dismissAll();
     else router.back();
@@ -275,19 +259,16 @@ export default function EditVisit() {
     }
   }
 
-  async function handleRemoveVisit() {
+  function handleRemoveVisit() {
     const docRef = visitRef();
     if (!docRef) return;
-    setRemoving(true);
-    try {
-      await deleteDoc(docRef);
-      // The visit subscription drops to null, which dismisses the modal via the
-      // effect above. The onVisitDeleted Function cleans up any photos. Only
-      // re-enable the button on failure, since success unmounts this screen.
-    } catch (error) {
-      setRemoving(false);
-      Alert.alert(t('onsenDetail.errorRemove'), t(firebaseErrorKey(error)));
-    }
+    // Same no-await rationale as the save: the delete applies to the local cache
+    // instantly — the visit subscription drops to null, which dismisses the modal
+    // via the effect above — while awaiting the backend's acknowledgment would
+    // deadlock the button offline. The onVisitDeleted Function cleans up photos.
+    deleteDoc(docRef).catch((error) =>
+      Alert.alert(t('onsenDetail.errorRemove'), t(firebaseErrorKey(error)))
+    );
   }
 
   function confirmRemoveVisit() {
@@ -624,38 +605,18 @@ export default function EditVisit() {
 
           <View style={styles.spacer} />
 
-          <Pressable
-            style={[styles.saveButton, (saving || removing) && styles.buttonDisabled]}
-            onPress={handleSaveVisit}
-            disabled={saving || removing}
-          >
-            <Text style={styles.saveButtonText}>
-              {saving ? t('onsenDetail.saving') : t('onsenDetail.saveButton')}
-            </Text>
+          <Pressable style={styles.saveButton} onPress={handleSaveVisit}>
+            <Text style={styles.saveButtonText}>{t('onsenDetail.saveButton')}</Text>
           </Pressable>
-          <Pressable
-            style={styles.cancelButton}
-            onPress={() => router.back()}
-            disabled={saving || removing}
-          >
+          <Pressable style={styles.cancelButton} onPress={() => router.back()}>
             <Text style={styles.cancelButtonText}>{t('onsenDetail.cancel')}</Text>
           </Pressable>
           {visit && (
-            <Pressable
-              style={[styles.removeButton, removing && styles.buttonDisabled]}
-              onPress={confirmRemoveVisit}
-              disabled={saving || removing}
-            >
-              <Text style={styles.removeButtonText}>
-                {removing ? t('onsenDetail.removing') : t('onsenDetail.removeVisit')}
-              </Text>
+            <Pressable style={styles.removeButton} onPress={confirmRemoveVisit}>
+              <Text style={styles.removeButtonText}>{t('onsenDetail.removeVisit')}</Text>
             </Pressable>
           )}
         </ScrollView>
-        {/* Blocks the form for the brief save window so the user knows work is in
-            flight and isn't tempted to tap away (or catch the Remove button as the
-            just-created visit's snapshot lands). */}
-        <LoadingOverlay visible={saving} label={t('onsenDetail.savingVisit')} />
       </KeyboardAvoidingView>
     </>
   );
@@ -772,9 +733,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing[3],
     alignItems: 'center',
     marginTop: spacing[4],
-  },
-  buttonDisabled: {
-    opacity: 0.4,
   },
   saveButtonText: {
     color: colors.actionPrimaryText,
