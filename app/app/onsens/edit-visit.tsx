@@ -63,6 +63,15 @@ import { colors, spacing, typography, radii } from '@/theme';
 
 const MAX_PHOTOS = 6;
 
+// A new visit usually lands instantly off Firestore's offline cache, which would
+// flash the saving overlay for a frame or two. Hold it open long enough for the
+// stamp-press loader to complete a press so the moment reads as deliberate — one
+// full cycle of StampingLoader. Photo uploads still run detached afterwards, so
+// this only paces the visible hand-off, never the actual write.
+const MIN_SAVE_VISIBLE_MS = 1100;
+
+const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
 /**
  * A photo in the editor: one already stored on the visit, or one freshly picked
  * but not yet uploaded. New ones upload to Storage on Save; nothing is written
@@ -185,6 +194,7 @@ export default function EditVisit() {
     // the visit non-null before we navigate away.
     seeded.current = true;
     setSaving(true);
+    const startedAt = Date.now();
     const isCreate = !visit;
     const structuredData = {
       ...details,
@@ -208,17 +218,6 @@ export default function EditVisit() {
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
-        // A brand-new visit earns a stamp: celebrate it. The reveal waits for this
-        // modal to dismiss (see StampCelebrationContext), so firing it before
-        // navigating away is intentional. Editing an existing visit records no new
-        // stamp and stays silent.
-        celebrateStamp({
-          onsenId: id,
-          prefecture: onsen?.prefecture ?? '',
-          areaName: onsen?.areaName ?? '',
-          name: onsen?.name ?? '',
-          dateMs: Date.now(),
-        });
       } else {
         await updateDoc(docRef, {
           notes: notes.trim() || null,
@@ -232,8 +231,27 @@ export default function EditVisit() {
       Alert.alert(t('common.errorTitle'), t(firebaseErrorKey(error)));
       return;
     }
-    // The visit is saved — leave the editor at once rather than holding the user
-    // on a disabled button while photos upload. The upload runs detached from this
+    // Hold the saving overlay until the stamp-press loader has had time to land
+    // one press (see MIN_SAVE_VISIBLE_MS) — the write itself is usually instant.
+    const elapsed = Date.now() - startedAt;
+    if (elapsed < MIN_SAVE_VISIBLE_MS) await delay(MIN_SAVE_VISIBLE_MS - elapsed);
+
+    // A brand-new visit earns a stamp: celebrate it now that the loader has played
+    // out. The reveal waits for this editor to dismiss (see StampCelebrationContext),
+    // so firing it just before navigating away is intentional. Editing an existing
+    // visit records no new stamp and stays silent.
+    if (isCreate) {
+      celebrateStamp({
+        onsenId: id,
+        prefecture: onsen?.prefecture ?? '',
+        areaName: onsen?.areaName ?? '',
+        name: onsen?.name ?? '',
+        dateMs: Date.now(),
+      });
+    }
+
+    // The visit is saved — leave the editor rather than holding the user on a
+    // disabled button while photos upload. The upload runs detached from this
     // now-unmounting screen, then patches the doc and sweeps removed files.
     void finalizeVisitPhotos(docRef, existingUrls);
     if (dismissToHome) router.dismissAll();
