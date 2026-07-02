@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ScrollView, View, Text, Pressable, Switch, StyleSheet, LayoutAnimation } from 'react-native';
 import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -13,11 +13,12 @@ import {
 import { colors, spacing, typography, radii, shadows } from '@/theme';
 
 /**
- * Preferences screen (pushed from the Menu tab). Each control shows only its
- * label by default; the explanation lives behind a tappable ⓘ so the screen
- * stays scannable while the help text is one tap away. The "Near you" toggle
- * and its distance picker share one card, since the radius only matters while
- * the toggle is on.
+ * Preferences screen (pushed from the Menu tab). Settings are grouped into
+ * titled sections, each rendered as a single card; a section with more than one
+ * setting stacks its rows with hairline separators. Each control shows only its
+ * label by default, with the explanation behind a tappable ⓘ so the screen stays
+ * scannable. A radius picker whose value only matters while a toggle is on (the
+ * "Near you" distance) is revealed inside the same card as that toggle.
  */
 export default function Preferences() {
   const { t } = useTranslation();
@@ -52,7 +53,7 @@ export default function Preferences() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: t('preferences.title'), headerShown: true }} />
 
-      <View style={styles.group}>
+      <Section title={t('preferences.onsenListHeader')} first>
         <ToggleRowBody
           label={t('preferences.showNearby')}
           hint={t('preferences.showNearbyHint')}
@@ -71,60 +72,90 @@ export default function Preferences() {
             />
           </>
         ) : null}
-      </View>
+      </Section>
 
-      <Text style={styles.sectionHeader}>{t('preferences.onsenPageHeader')}</Text>
-      <ToggleRow
-        label={t('preferences.onsenMapPreview')}
-        hint={t('preferences.onsenMapPreviewHint')}
-        value={showOnsenMapPreview}
-        onValueChange={setShowOnsenMapPreview}
-      />
-      <ToggleRow
-        label={t('preferences.showReadings')}
-        hint={t('preferences.showReadingsHint')}
-        value={showReadings}
-        onValueChange={setShowReadings}
-      />
+      <Section title={t('preferences.displayHeader')}>
+        <ToggleRowBody
+          label={t('preferences.onsenMapPreview')}
+          hint={t('preferences.onsenMapPreviewHint')}
+          value={showOnsenMapPreview}
+          onValueChange={setShowOnsenMapPreview}
+        />
+        <Separator />
+        <ToggleRowBody
+          label={t('preferences.showReadings')}
+          hint={t('preferences.showReadingsHint')}
+          value={showReadings}
+          onValueChange={setShowReadings}
+        />
+      </Section>
 
-      <RadiusField
-        title={t('preferences.nearRouteRadiusTitle')}
-        hint={t('preferences.nearRouteRadiusHint', { km: nearRouteRadiusKm })}
-        options={NEAR_ROUTE_RADIUS_OPTIONS_KM}
-        value={nearRouteRadiusKm}
-        onSelect={setNearRouteRadiusKm}
-      />
+      <Section title={t('preferences.mapHeader')}>
+        <RadiusRowBody
+          label={t('preferences.nearRouteRadiusTitle')}
+          hint={t('preferences.nearRouteRadiusHint', { km: nearRouteRadiusKm })}
+          options={NEAR_ROUTE_RADIUS_OPTIONS_KM}
+          value={nearRouteRadiusKm}
+          onSelect={setNearRouteRadiusKm}
+        />
+      </Section>
 
-      <Text style={styles.sectionHeader}>{t('preferences.finderHeader')}</Text>
-      <RadiusField
-        title={t('preferences.finderCorridorTitle')}
-        hint={t('preferences.finderCorridorHint', { km: finderCorridorKm })}
-        options={FINDER_CORRIDOR_OPTIONS_KM}
-        value={finderCorridorKm}
-        onSelect={setFinderCorridorKm}
-      />
-      <RadiusField
-        title={t('preferences.finderLookAheadTitle')}
-        hint={t('preferences.finderLookAheadHint', { km: finderLookAheadKm })}
-        options={FINDER_LOOKAHEAD_OPTIONS_KM}
-        value={finderLookAheadKm}
-        onSelect={setFinderLookAheadKm}
-      />
+      <Section title={t('preferences.finderHeader')}>
+        <RadiusRowBody
+          label={t('preferences.finderCorridorTitle')}
+          hint={t('preferences.finderCorridorHint', { km: finderCorridorKm })}
+          options={FINDER_CORRIDOR_OPTIONS_KM}
+          value={finderCorridorKm}
+          onSelect={setFinderCorridorKm}
+        />
+        <Separator />
+        <RadiusRowBody
+          label={t('preferences.finderLookAheadTitle')}
+          hint={t('preferences.finderLookAheadHint', { km: finderLookAheadKm })}
+          options={FINDER_LOOKAHEAD_OPTIONS_KM}
+          value={finderLookAheadKm}
+          onSelect={setFinderLookAheadKm}
+        />
+      </Section>
 
-      <Text style={styles.sectionHeader}>{t('preferences.animationsHeader')}</Text>
-      <ToggleRow
-        label={t('preferences.stampCollectAnimation')}
-        hint={t('preferences.stampCollectAnimationHint')}
-        value={animateStampCollect}
-        onValueChange={setAnimateStampCollect}
-      />
-      <ToggleRow
-        label={t('preferences.progressAnimation')}
-        hint={t('preferences.progressAnimationHint')}
-        value={animateProgress}
-        onValueChange={setAnimateProgress}
-      />
+      <Section title={t('preferences.animationsHeader')}>
+        <ToggleRowBody
+          label={t('preferences.stampCollectAnimation')}
+          hint={t('preferences.stampCollectAnimationHint')}
+          value={animateStampCollect}
+          onValueChange={setAnimateStampCollect}
+        />
+        <Separator />
+        <ToggleRowBody
+          label={t('preferences.progressAnimation')}
+          hint={t('preferences.progressAnimationHint')}
+          value={animateProgress}
+          onValueChange={setAnimateProgress}
+        />
+      </Section>
     </ScrollView>
+  );
+}
+
+/**
+ * A titled settings section: a muted header above a single card that wraps the
+ * section's rows. `first` trims the top margin so the leading header sits near
+ * the top of the scroll view instead of below a full section gap.
+ */
+function Section({
+  title,
+  first = false,
+  children,
+}: {
+  title: string;
+  first?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <>
+      <Text style={[styles.sectionHeader, first && styles.sectionHeaderFirst]}>{title}</Text>
+      <View style={styles.group}>{children}</View>
+    </>
   );
 }
 
@@ -163,10 +194,7 @@ function Separator() {
   return <View style={styles.separator} />;
 }
 
-/**
- * A label + switch row with an on-tap hint, without its own card wrapper — so
- * it can stand alone (via ToggleRow) or sit alongside other rows in one card.
- */
+/** A label + switch row with an on-tap hint, sized to sit inside a section card. */
 function ToggleRowBody({
   label,
   hint,
@@ -196,23 +224,9 @@ function ToggleRowBody({
   );
 }
 
-/** ToggleRowBody wrapped in its own card. */
-function ToggleRow(props: {
-  label: string;
-  hint: string;
-  value: boolean;
-  onValueChange: (value: boolean) => void;
-}) {
-  return (
-    <View style={styles.group}>
-      <ToggleRowBody {...props} />
-    </View>
-  );
-}
-
 /**
- * A titled segmented radius picker with an on-tap hint, laid out as a row to
- * sit inside a shared card (label + ⓘ on one line, segmented control below).
+ * A titled segmented radius picker with an on-tap hint, sized to sit inside a
+ * section card (label + ⓘ on one line, segmented control below).
  */
 function RadiusRowBody({
   label,
@@ -239,41 +253,6 @@ function RadiusRowBody({
         <Segmented options={options} value={value} onSelect={onSelect} />
       </View>
       {open ? <Text style={styles.cardHint}>{hint}</Text> : null}
-    </>
-  );
-}
-
-/**
- * A standalone titled segmented radius picker: a muted header above its own
- * card, with the hint revealed below when ⓘ is tapped.
- */
-function RadiusField({
-  title,
-  hint,
-  options,
-  value,
-  onSelect,
-}: {
-  title: string;
-  hint: string;
-  options: readonly number[];
-  value: number;
-  onSelect: (km: number) => void;
-}) {
-  const { t } = useTranslation();
-  const { open, toggle } = useHintToggle();
-  return (
-    <>
-      <View style={styles.fieldHeaderRow}>
-        <Text style={styles.fieldTitle}>{title}</Text>
-        <InfoToggle open={open} onPress={toggle} label={t('preferences.explain', { label: title })} />
-      </View>
-      <View style={styles.group}>
-        <View style={styles.segmentedRow}>
-          <Segmented options={options} value={value} onSelect={onSelect} />
-        </View>
-      </View>
-      {open ? <Text style={styles.hint}>{hint}</Text> : null}
     </>
   );
 }
@@ -347,23 +326,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing[2],
     marginLeft: spacing[4],
   },
-  fieldHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing[6],
-    marginBottom: spacing[2],
-    marginHorizontal: spacing[4],
-  },
-  fieldTitle: {
-    flex: 1,
-    fontSize: typography.sizes.sm,
-    color: colors.textMuted,
-  },
-  hint: {
-    fontSize: typography.sizes.sm,
-    color: colors.textMuted,
-    marginTop: spacing[2],
-    marginHorizontal: spacing[4],
+  // The leading header sits near the top of the scroll view (the content padding
+  // already supplies the top inset), so it doesn't need a full section gap above.
+  sectionHeaderFirst: {
+    marginTop: 0,
   },
   cardHint: {
     fontSize: typography.sizes.sm,

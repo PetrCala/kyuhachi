@@ -281,18 +281,20 @@ const en = {
   // preferences
   'preferences.title': 'Preferences',
   'preferences.explain': 'Explain “{{label}}”',
+  'preferences.onsenListHeader': 'Onsen list',
   'preferences.showNearby': 'Show nearby onsens',
   'preferences.showNearbyHint':
     'Shows a section at the top of the onsen list with springs near your current location.',
   'preferences.radiusTitle': 'Distance (km)',
   'preferences.radiusHint': 'Onsens within {{km}} km of you appear in the “Near you” section.',
-  'preferences.onsenPageHeader': 'Onsen pages',
+  'preferences.displayHeader': 'Display',
   'preferences.onsenMapPreview': 'Show map preview',
   'preferences.onsenMapPreviewHint':
     'Each onsen page shows a tappable map preview. Turn this off to use a compact map button in the top-right corner instead.',
   'preferences.showReadings': 'Show name readings',
   'preferences.showReadingsHint':
     "Show a reading under each onsen's name — romaji in English, kana in Japanese. Turn this off to show the kanji name on its own.",
+  'preferences.mapHeader': 'Map',
   'preferences.nearRouteRadiusTitle': 'Near-route distance (km)',
   'preferences.nearRouteRadiusHint':
     'When “Near route” is on, the map hides onsens farther than {{km}} km from the selected route.',
