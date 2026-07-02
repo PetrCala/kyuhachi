@@ -180,7 +180,16 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
             }
 
             const challengeData = challengeDoc.data() as ChallengeDocument;
-            setChallenge(challengeData);
+            // Same pending-write fill as the visits below: a challenge created
+            // offline reports its serverTimestamp() fields as null until the
+            // write syncs, and consumers read them unguarded (Stats calls
+            // startDate.toMillis()).
+            const challengeEstimate = Timestamp.now();
+            setChallenge({
+              ...challengeData,
+              startDate: challengeData.startDate ?? challengeEstimate,
+              createdAt: challengeData.createdAt ?? challengeEstimate,
+            });
 
             unsubVisits?.();
             unsubVisits = onSnapshot(
