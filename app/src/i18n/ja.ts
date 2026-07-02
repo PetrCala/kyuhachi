@@ -281,17 +281,19 @@ const ja: Record<keyof typeof en, string> = {
   // preferences
   'preferences.title': '設定',
   'preferences.explain': '「{{label}}」の説明',
+  'preferences.onsenListHeader': '温泉リスト',
   'preferences.showNearby': '近くの温泉を表示',
   'preferences.showNearbyHint': '温泉一覧の上部に、現在地の近くにある温泉のセクションを表示します。',
   'preferences.radiusTitle': '距離（km）',
   'preferences.radiusHint': '現在地から{{km}}km以内の温泉が「近くの温泉」に表示されます。',
-  'preferences.onsenPageHeader': '温泉ページ',
+  'preferences.displayHeader': '表示',
   'preferences.onsenMapPreview': '地図プレビューを表示',
   'preferences.onsenMapPreviewHint':
     '温泉ページにタップできる地図プレビューを表示します。オフにすると、代わりに右上にコンパクトな地図ボタンを表示します。',
   'preferences.showReadings': '読み仮名を表示',
   'preferences.showReadingsHint':
     '各温泉の名前の下にひらがなの読み仮名を表示します。オフにすると、漢字の名前のみを表示します。',
+  'preferences.mapHeader': '地図',
   'preferences.nearRouteRadiusTitle': 'ルート付近の距離（km）',
   'preferences.nearRouteRadiusHint':
     '「ルート付近」をオンにすると、選択中のルートから{{km}}kmより離れた温泉を地図上で非表示にします。',
