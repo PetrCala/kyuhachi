@@ -290,6 +290,9 @@ const en = {
   'preferences.onsenMapPreview': 'Show map preview',
   'preferences.onsenMapPreviewHint':
     'Each onsen page shows a tappable map preview. Turn this off to use a compact map button in the top-right corner instead.',
+  'preferences.showRomaji': 'Show romaji readings',
+  'preferences.showRomajiHint':
+    "Show the romanized reading under each onsen's name. Turn this off to show the kanji name on its own.",
   'preferences.nearRouteRadiusTitle': 'Near-route distance (km)',
   'preferences.nearRouteRadiusHint':
     'When “Near route” is on, the map hides onsens farther than {{km}} km from the selected route.',
