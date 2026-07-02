@@ -3,6 +3,8 @@ import { haversineKm } from '@/lib/geo';
 export interface NextOnsenCandidate {
   id: string;
   name: string;
+  /** Hiragana reading of `name`, shown under the kanji in a JP UI. null = none published. */
+  nameKana: string | null;
   /** Hepburn reading of `name`, shown under the kanji in non-JP UI. null = none published. */
   nameRomaji: string | null;
   areaName: string;
@@ -16,7 +18,7 @@ export type NearestOnsen = NextOnsenCandidate & { distanceKm: number };
 /** The display fields the "nearest unvisited" card needs from an eligible onsen. */
 type OnsenInfo = Pick<
   NextOnsenCandidate,
-  'name' | 'nameRomaji' | 'areaName' | 'prefecture' | 'lat' | 'lng'
+  'name' | 'nameKana' | 'nameRomaji' | 'areaName' | 'prefecture' | 'lat' | 'lng'
 >;
 
 /**
@@ -37,6 +39,7 @@ export function buildNextCandidates(
     candidates.push({
       id,
       name: info.name,
+      nameKana: info.nameKana,
       nameRomaji: info.nameRomaji,
       areaName: info.areaName,
       prefecture: info.prefecture,

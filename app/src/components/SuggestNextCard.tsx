@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as Location from 'expo-location';
 import type { RouteDocument } from '@kyuhachi/shared';
+import { usePreferences } from '@/context/PreferencesContext';
 import { simulatedCoordinate } from '@/lib/dev-location';
 import { selectNearest, type NextOnsenCandidate } from '@/lib/next-onsen';
 import { onsenReading } from '@/lib/onsen-name';
@@ -31,6 +32,7 @@ interface SuggestNextCardProps {
  */
 export function SuggestNextCard({ candidates, activeRoute }: SuggestNextCardProps) {
   const { t, i18n } = useTranslation();
+  const { showReadings } = usePreferences();
   const [deviceCoords, setDeviceCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [denied, setDenied] = useState(false);
 
@@ -147,7 +149,12 @@ export function SuggestNextCard({ candidates, activeRoute }: SuggestNextCardProp
     <View style={styles.card}>
       <Text style={styles.heading}>{t('home.suggestNext.heading')}</Text>
       {nearest.map((onsen) => {
-        const reading = onsenReading(onsen.nameRomaji, i18n.language);
+        const reading = onsenReading({
+          nameRomaji: onsen.nameRomaji,
+          nameKana: onsen.nameKana,
+          language: i18n.language,
+          showReadings,
+        });
         return (
         <Pressable
           key={onsen.id}
@@ -236,7 +243,7 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.medium,
     color: colors.textPrimary,
   },
-  // Romaji reading under the name in non-JP UI; omitted when there's none.
+  // Reading under the name (romaji or kana by UI language); omitted when none.
   rowReading: {
     fontSize: typography.sizes.sm,
     color: colors.textMuted,

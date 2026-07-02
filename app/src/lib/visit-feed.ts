@@ -11,6 +11,8 @@ import type { OnsenDisplayInfo } from '@/hooks/useActiveChallengeProgress';
 export interface VisitFeedItem {
   onsenId: string;
   onsenName: string;
+  /** Hiragana reading of `onsenName`, shown under the kanji in a JP UI. null = none published. */
+  nameKana: string | null;
   /** Hepburn reading of `onsenName`, shown under the kanji in non-JP UI. null = none published. */
   nameRomaji: string | null;
   areaName: string;
@@ -34,6 +36,7 @@ export function buildVisitFeed(
       return {
         onsenId,
         onsenName: info?.name ?? onsenId,
+        nameKana: info?.nameKana ?? null,
         nameRomaji: info?.nameRomaji ?? null,
         areaName: info?.areaName ?? '',
         prefecture: info?.prefecture ?? '',

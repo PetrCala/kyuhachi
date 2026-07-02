@@ -30,7 +30,7 @@ export const FINDER_LOOKAHEAD_OPTIONS_KM = [5, 10, 20, 30, 50] as const;
 const SHOW_NEARBY_KEY = 'settings.nearby.show';
 const RADIUS_KEY = 'settings.nearby.radiusKm';
 const ONSEN_MAP_PREVIEW_KEY = 'settings.onsen.mapPreview';
-const ONSEN_ROMAJI_KEY = 'settings.onsen.romaji';
+const ONSEN_READINGS_KEY = 'settings.onsen.readings';
 const NEAR_ROUTE_RADIUS_KEY = 'settings.nearRoute.radiusKm';
 const FINDER_CORRIDOR_KEY = 'settings.finder.corridorKm';
 const FINDER_LOOKAHEAD_KEY = 'settings.finder.lookaheadKm';
@@ -49,12 +49,11 @@ interface PreferencesContextValue {
    */
   showOnsenMapPreview: boolean;
   /**
-   * Whether onsen names show their romaji (Latin-script) reading beneath the
-   * kanji. Default on. Has no effect when the UI language is Japanese — a
-   * Japanese reader gets the kanji directly, so the reading is always hidden
-   * there regardless of this setting.
+   * Whether onsen names show their reading beneath the kanji. Default on. The
+   * reading's script follows the UI language: romaji (Hepburn) in a non-Japanese
+   * UI, hiragana (furigana-style yomi) in a Japanese UI.
    */
-  showRomaji: boolean;
+  showReadings: boolean;
   /** Radius (km) for the map's "Near route" filter. */
   nearRouteRadiusKm: number;
   /** Corridor width (km) the finder searches either side of the route. */
@@ -79,7 +78,7 @@ interface PreferencesContextValue {
   setShowNearby: (value: boolean) => void;
   setNearRadiusKm: (value: number) => void;
   setShowOnsenMapPreview: (value: boolean) => void;
-  setShowRomaji: (value: boolean) => void;
+  setShowReadings: (value: boolean) => void;
   setNearRouteRadiusKm: (value: number) => void;
   setFinderCorridorKm: (value: number) => void;
   setFinderLookAheadKm: (value: number) => void;
@@ -91,7 +90,7 @@ const PreferencesContext = createContext<PreferencesContextValue>({
   showNearby: true,
   nearRadiusKm: DEFAULT_NEAR_RADIUS_KM,
   showOnsenMapPreview: true,
-  showRomaji: true,
+  showReadings: true,
   nearRouteRadiusKm: DEFAULT_NEAR_ROUTE_RADIUS_KM,
   finderCorridorKm: DEFAULT_FINDER_CORRIDOR_KM,
   finderLookAheadKm: DEFAULT_FINDER_LOOKAHEAD_KM,
@@ -101,7 +100,7 @@ const PreferencesContext = createContext<PreferencesContextValue>({
   setShowNearby: () => {},
   setNearRadiusKm: () => {},
   setShowOnsenMapPreview: () => {},
-  setShowRomaji: () => {},
+  setShowReadings: () => {},
   setNearRouteRadiusKm: () => {},
   setFinderCorridorKm: () => {},
   setFinderLookAheadKm: () => {},
@@ -113,7 +112,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
   const [showNearby, setShowNearbyState] = useState(true);
   const [nearRadiusKm, setNearRadiusKmState] = useState<number>(DEFAULT_NEAR_RADIUS_KM);
   const [showOnsenMapPreview, setShowOnsenMapPreviewState] = useState(true);
-  const [showRomaji, setShowRomajiState] = useState(true);
+  const [showReadings, setShowReadingsState] = useState(true);
   const [nearRouteRadiusKm, setNearRouteRadiusKmState] = useState<number>(
     DEFAULT_NEAR_ROUTE_RADIUS_KM
   );
@@ -135,7 +134,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
           [, show],
           [, radius],
           [, mapPreview],
-          [, romaji],
+          [, readings],
           [, routeRadius],
           [, finderCorridor],
           [, finderLookahead],
@@ -145,7 +144,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
           SHOW_NEARBY_KEY,
           RADIUS_KEY,
           ONSEN_MAP_PREVIEW_KEY,
-          ONSEN_ROMAJI_KEY,
+          ONSEN_READINGS_KEY,
           NEAR_ROUTE_RADIUS_KEY,
           FINDER_CORRIDOR_KEY,
           FINDER_LOOKAHEAD_KEY,
@@ -157,7 +156,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
         const parsed = radius !== null ? Number(radius) : NaN;
         if (Number.isFinite(parsed)) setNearRadiusKmState(parsed);
         if (mapPreview !== null) setShowOnsenMapPreviewState(mapPreview !== 'false');
-        if (romaji !== null) setShowRomajiState(romaji !== 'false');
+        if (readings !== null) setShowReadingsState(readings !== 'false');
         const parsedRoute = routeRadius !== null ? Number(routeRadius) : NaN;
         if (Number.isFinite(parsedRoute)) setNearRouteRadiusKmState(parsedRoute);
         const parsedCorridor = finderCorridor !== null ? Number(finderCorridor) : NaN;
@@ -192,9 +191,9 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
     AsyncStorage.setItem(ONSEN_MAP_PREVIEW_KEY, value ? 'true' : 'false').catch(() => {});
   };
 
-  const setShowRomaji = (value: boolean) => {
-    setShowRomajiState(value);
-    AsyncStorage.setItem(ONSEN_ROMAJI_KEY, value ? 'true' : 'false').catch(() => {});
+  const setShowReadings = (value: boolean) => {
+    setShowReadingsState(value);
+    AsyncStorage.setItem(ONSEN_READINGS_KEY, value ? 'true' : 'false').catch(() => {});
   };
 
   const setNearRouteRadiusKm = (value: number) => {
@@ -228,7 +227,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
         showNearby,
         nearRadiusKm,
         showOnsenMapPreview,
-        showRomaji,
+        showReadings,
         nearRouteRadiusKm,
         finderCorridorKm,
         finderLookAheadKm,
@@ -238,7 +237,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
         setShowNearby,
         setNearRadiusKm,
         setShowOnsenMapPreview,
-        setShowRomaji,
+        setShowReadings,
         setNearRouteRadiusKm,
         setFinderCorridorKm,
         setFinderLookAheadKm,
