@@ -1,7 +1,11 @@
 # ADR-005: Offline-First via Firestore Persistence
 
 **Date:** 2026-03-24
-**Status:** Accepted
+**Status:** Accepted — amended by [ADR-007](007-versioned-catalog-cache.md):
+the onsen catalog (and its images) now additionally lives in an explicit
+versioned device-local cache, because Firestore persistence only guarantees
+offline access to data that was queried while online. User data (challenges,
+visits, routes) still works exactly as described here.
 
 ## Context
 

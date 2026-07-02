@@ -315,13 +315,16 @@ The challenge is: visit any 88 onsens from the official eligible pool. The pool 
 - Create a visit (queued, synced when online)
 - Map with cached markers
 
-### Cached locally (automatic via Firestore persistence)
+### Cached locally
 
-- All onsen documents
-- User's challenges and visits
-- Imported routes
-- `catalog_meta/current`
-- Onsen images (via `expo-image` disk cache)
+- **The full onsen catalog — explicit versioned device store** (ADR-007): all
+  `/onsens` documents are persisted as one snapshot keyed to
+  `catalog_meta/current.version` and served from `OnsenCatalogContext`; a
+  version listener re-syncs the whole snapshot when a new catalog is published
+- Onsen images (`expo-image` disk cache, prefetched in bulk after each catalog
+  sync; blurhash placeholder as fallback)
+- User's challenges and visits (automatic via Firestore persistence)
+- Imported routes (automatic via Firestore persistence)
 
 ### Online-only
 

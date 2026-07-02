@@ -6,6 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, KleeOne_600SemiBold } from '@expo-google-fonts/klee-one';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { OnsenCatalogProvider } from '@/context/OnsenCatalogContext';
 import { PreferencesProvider } from '@/context/PreferencesContext';
 import { StampCelebrationProvider } from '@/context/StampCelebrationContext';
 import { RowActionsSheetProvider } from '@/components/RowActionsSheet';
@@ -69,19 +70,21 @@ export default function RootLayout() {
     // bottom-sheet preview built on it) to receive touches.
     <GestureHandlerRootView style={styles.root}>
       <AuthProvider>
-        <PreferencesProvider>
-          <StampCelebrationProvider>
-            <RowActionsSheetProvider>
-              <NavigationController />
-              <Stack screenOptions={{ headerShown: false, headerBackButtonDisplayMode: 'minimal' }}>
-                <Stack.Screen
-                  name="onsens/edit-visit"
-                  options={{ presentation: 'modal', headerShown: true }}
-                />
-              </Stack>
-            </RowActionsSheetProvider>
-          </StampCelebrationProvider>
-        </PreferencesProvider>
+        <OnsenCatalogProvider>
+          <PreferencesProvider>
+            <StampCelebrationProvider>
+              <RowActionsSheetProvider>
+                <NavigationController />
+                <Stack screenOptions={{ headerShown: false, headerBackButtonDisplayMode: 'minimal' }}>
+                  <Stack.Screen
+                    name="onsens/edit-visit"
+                    options={{ presentation: 'modal', headerShown: true }}
+                  />
+                </Stack>
+              </RowActionsSheetProvider>
+            </StampCelebrationProvider>
+          </PreferencesProvider>
+        </OnsenCatalogProvider>
       </AuthProvider>
     </GestureHandlerRootView>
   );

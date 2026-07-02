@@ -5,13 +5,10 @@ import { useTranslation } from 'react-i18next';
 import {
   collection,
   doc,
-  query,
-  where,
   onSnapshot,
   updateDoc,
   serverTimestamp,
   Timestamp,
-  documentId,
   type FirebaseFirestoreTypes,
 } from '@react-native-firebase/firestore';
 import { httpsCallable } from '@react-native-firebase/functions';
@@ -19,7 +16,6 @@ import type {
   UserDocument,
   ChallengeDocument,
   ChallengeTypeDocument,
-  OnsenDocument,
   Rank,
   RouteDocument,
   Tier,
@@ -28,6 +24,7 @@ import type {
 } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
+import { useOnsenCatalog } from '@/context/OnsenCatalogContext';
 import { db, functions } from '@/firebase';
 import { firebaseErrorKey } from '@/lib/firebase-errors';
 import { localizeTier } from '@/lib/challenge-i18n';
@@ -133,7 +130,7 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
   const [ranks, setRanks] = useState<Rank[]>([]);
   const [completionCount, setCompletionCount] = useState<number | null>(null);
   const [baseMode, setBaseMode] = useState<TransportMode | null>(null);
-  const [onsenMap, setOnsenMap] = useState<Map<string, OnsenDisplayInfo>>(new Map());
+  const { onsenMap: catalogMap } = useOnsenCatalog();
   const [activeRoute, setActiveRoute] = useState<RouteDocument | null>(null);
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState(false);
@@ -272,49 +269,28 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
     return unsub;
   }, [challenge?.typeId, t]);
 
-  // Fetch onsen display data for eligible IDs
-  useEffect(() => {
-    if (!challenge) return;
-
-    const ids = challenge.snapshotEligibleOnsenIds;
-    if (ids.length === 0) return;
-
-    // Firestore 'in' queries support max 30 values, so batch
-    const BATCH_SIZE = 30;
-    const unsubscribes: (() => void)[] = [];
+  // Display data for the eligible IDs, resolved from the offline-first catalog
+  // store (which holds every onsen ever published, so a snapshot id always
+  // resolves once the catalog is loaded — even for since-archived onsens).
+  const onsenMap = useMemo<Map<string, OnsenDisplayInfo>>(() => {
     const collected = new Map<string, OnsenDisplayInfo>();
-
-    let pending = Math.ceil(ids.length / BATCH_SIZE);
-
-    for (let i = 0; i < ids.length; i += BATCH_SIZE) {
-      const chunk = ids.slice(i, i + BATCH_SIZE);
-      const unsub = onSnapshot(
-        query(collection(db, COLLECTIONS.ONSENS), where(documentId(), 'in', chunk)),
-        (snap: FirebaseFirestoreTypes.QuerySnapshot) => {
-          for (const d of snap.docs) {
-            const data = d.data() as OnsenDocument;
-            collected.set(d.id, {
-              name: data.name,
-              nameKana: data.nameKana,
-              nameRomaji: data.nameRomaji,
-              areaName: data.areaName,
-              prefecture: data.prefecture,
-              lat: data.lat,
-              lng: data.lng,
-              adultFee: data.adultFee,
-            });
-          }
-          pending--;
-          if (pending <= 0) {
-            setOnsenMap(new Map(collected));
-          }
-        }
-      );
-      unsubscribes.push(unsub);
+    if (!challenge) return collected;
+    for (const id of challenge.snapshotEligibleOnsenIds) {
+      const data = catalogMap.get(id);
+      if (!data) continue;
+      collected.set(id, {
+        name: data.name,
+        nameKana: data.nameKana,
+        nameRomaji: data.nameRomaji,
+        areaName: data.areaName,
+        prefecture: data.prefecture,
+        lat: data.lat,
+        lng: data.lng,
+        adultFee: data.adultFee,
+      });
     }
-
-    return () => unsubscribes.forEach((u) => u());
-  }, [challenge]);
+    return collected;
+  }, [challenge, catalogMap]);
 
   // Load the challenge's active route (cosmetic). A dangling activeRouteId —
   // the route was deleted — resolves to null and is shown as "no route".

@@ -97,3 +97,27 @@ export interface CatalogMetaDocument {
   totalCount: number;
   activeCount: number;
 }
+
+/**
+ * One onsen as stored in the device's offline catalog cache: the Firestore
+ * document minus its Timestamps (not JSON-serializable, and no screen reads
+ * them), plus its document id (the kyuhachiId).
+ */
+export type CachedOnsen = Omit<OnsenDocument, 'createdAt' | 'updatedAt'> & {
+  id: string;
+};
+
+/**
+ * The device-local snapshot of the published onsen catalog, persisted as a
+ * single JSON blob. `version` mirrors /catalog_meta/current.version at fetch
+ * time and is the sole freshness signal: the cache is replaced whole when the
+ * published version moves past it, never patched incrementally. Includes every
+ * onsen ever published — active and archived — since challenge snapshots can
+ * reference onsens that were later deprecated.
+ */
+export interface CachedCatalog {
+  version: number;
+  /** Epoch ms when the device stored this snapshot. Diagnostics only. */
+  fetchedAt: number;
+  onsens: CachedOnsen[];
+}
