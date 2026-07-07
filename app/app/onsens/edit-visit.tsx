@@ -38,6 +38,7 @@ import type {
   PerceivedHeat,
   CrowdLevel,
   VisitedWith,
+  VisitDocument,
 } from '@kyuhachi/shared';
 import {
   COLLECTIONS,
@@ -123,6 +124,12 @@ export default function EditVisit() {
   // Whether a visit doc ever existed here. In create mode it never does, so a
   // null visit must not be mistaken for "deleted".
   const hadVisit = useRef(false);
+  // Snapshot of `visit` frozen for the duration of a save: the write's own
+  // snapshot (often served instantly off Firestore's offline cache) otherwise
+  // lands mid-animation and flips the header title / Remove button underneath
+  // the still-playing stamp loader. Since a successful save navigates away
+  // right after the loader closes, the display never needs to catch up.
+  const displayVisitRef = useRef<VisitDocument | null>(null);
 
   // Seed the form from the visit once it first loads. The ref guard means later
   // live snapshots (e.g. a photo URL landing) don't clobber in-progress edits.
@@ -361,7 +368,10 @@ export default function EditVisit() {
     );
   }
 
-  const title = visit ? t('onsenDetail.editTitle') : t('onsenDetail.recordTitle');
+  if (!saving) displayVisitRef.current = visit;
+  const displayVisit = displayVisitRef.current;
+
+  const title = displayVisit ? t('onsenDetail.editTitle') : t('onsenDetail.recordTitle');
   const transportOptions: ChipOption[] = TRANSPORT_MODES.map((mode) => ({
     value: mode,
     label: t(`onsenDetail.transport.${mode}`),
@@ -649,7 +659,7 @@ export default function EditVisit() {
           >
             <Text style={styles.cancelButtonText}>{t('onsenDetail.cancel')}</Text>
           </Pressable>
-          {visit && (
+          {displayVisit && (
             <Pressable
               style={[styles.removeButton, removing && styles.buttonDisabled]}
               onPress={confirmRemoveVisit}
