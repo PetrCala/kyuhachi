@@ -35,7 +35,7 @@ const WISP_STROKE = 2.5;
 // The steam stage floats above the wordmark's text box; wisps rise through it
 // and may overflow the top while dissipating, which iOS leaves unclipped.
 const STEAM_H = 34;
-const STEAM_W = 64;
+const STEAM_W = 52;
 
 // Motion: one linear cycle drives all three wisps, each sampling it a third of
 // a revolution apart, so there is always steam mid-rise and the loop can never
@@ -92,9 +92,9 @@ interface WordmarkLoaderProps {
 
 /**
  * The 九八 wordmark as a loading treatment: the wordmark is the hot spring,
- * and three steam wisps — the ♨ onsen-mark trio, center upright, sides fanned
- * outward — rise from it, expanding and thinning until they dissipate, on a
- * continuous loop for as long as the screen waits. The steam overlays the
+ * and three parallel steam wisps — upright and evenly spaced, like the ♨
+ * onsen-mark's lines — rise from it, expanding and thinning until they
+ * dissipate, on a continuous loop for as long as the screen waits. The steam overlays the
  * space above the text without taking layout, and the type mirrors Home's
  * static wordmark, so resolving into the loaded (or empty) state swaps the
  * animation out without any visual jump.
@@ -175,14 +175,13 @@ const styles = StyleSheet.create({
     width: STEAM_W,
     height: STEAM_H,
   },
-  // The ♨ arrangement: sides shorter and fanned outward, center upright.
-  // Static placement transforms live on these wrappers; the animated rise
-  // transform lives on the inner view, so neither overrides the other.
+  // Three identical upright wisps, evenly spaced and parallel — aligned in
+  // direction like the ♨ glyph's lines; the phase-shifted rise keeps them
+  // from ever moving in lockstep.
   wispLeft: {
     position: 'absolute',
     bottom: 0,
     left: 0,
-    transform: [{ rotate: '-12deg' }, { scale: 0.8 }],
   },
   wispCenter: {
     position: 'absolute',
@@ -193,7 +192,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    transform: [{ rotate: '12deg' }, { scale: 0.8 }],
   },
   // Mirrors Home's static wordmark so the loading state resolves in place.
   wordmark: {
