@@ -26,7 +26,8 @@ import { TierClaimModal, type TierCelebration } from '@/components/TierClaimModa
 import { ChallengeBadge } from '@/components/ChallengeBadge';
 import { SuggestNextCard } from '@/components/SuggestNextCard';
 import { SpaportHeroButton } from '@/components/SpaportHeroButton';
-import { WordmarkLoader } from '@/components/WordmarkLoader';
+import { WordmarkLoader, STEAM_CYCLE_MS } from '@/components/WordmarkLoader';
+import { useMinimumVisible } from '@/hooks/useMinimumVisible';
 import { RankUpToast, type RankToast } from '@/components/RankUpToast';
 import RecordVisitFab from '@/components/RecordVisitFab';
 import { buildVisitFeed } from '@/lib/visit-feed';
@@ -43,6 +44,13 @@ const RECENT_VISITS_PREVIEW = 3;
 
 // Length of the hero count-up tween, kept in step with the bar fill.
 const COUNT_UP_DURATION = 800;
+
+// Cached loads resolve in a frame or two, flashing the loading screen. Hold it
+// for half a steam cycle instead — enough for the first wisp to rise and start
+// dissolving, so the steam registers as a moment rather than a flicker,
+// without gating every app open on a full revolution. Same idea as the visit
+// save flow's MIN_SAVE_VISIBLE_MS hold on the stamp press.
+const MIN_LOADING_VISIBLE_MS = STEAM_CYCLE_MS / 2;
 
 export default function Home() {
   const { t, i18n } = useTranslation();
@@ -65,6 +73,8 @@ export default function Home() {
     clearRoute,
     selectRoute,
   } = useActiveChallengeProgress();
+
+  const showLoading = useMinimumVisible(loading, MIN_LOADING_VISIBLE_MS);
 
   // Tier thresholds plotted on the bar come from each tier's minVisits
   // condition — never hardcoded (see buildTierMarkers).
@@ -271,7 +281,7 @@ export default function Home() {
     router.push('/challenge/rank');
   }
 
-  if (loading) {
+  if (showLoading) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.centerContent}>

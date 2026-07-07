@@ -41,8 +41,10 @@ const STEAM_W = 64;
 // a revolution apart, so there is always steam mid-rise and the loop can never
 // drift out of phase. A wisp is born low and small, rises while expanding, and
 // fades out just before its rebirth — opacity is zero at both ends of the
-// cycle, hiding the wrap-around jump.
-const CYCLE_MS = 2400;
+// cycle, hiding the wrap-around jump. Exported so Home can hold its loading
+// state open long enough for the steam to register (see
+// MIN_LOADING_VISIBLE_MS in (tabs)/index.tsx).
+export const STEAM_CYCLE_MS = 2400;
 const WISP_PHASES = [0, 1 / 3, 2 / 3];
 const RISE_FROM = 6;
 const RISE_TO = -16;
@@ -122,7 +124,10 @@ export function WordmarkLoader({ style }: WordmarkLoaderProps) {
     progress.value = 0;
     // Linear driver; the birth/rise/dissipate shape lives in wispFrame's
     // interpolation stops.
-    progress.value = withRepeat(withTiming(1, { duration: CYCLE_MS, easing: Easing.linear }), -1);
+    progress.value = withRepeat(
+      withTiming(1, { duration: STEAM_CYCLE_MS, easing: Easing.linear }),
+      -1
+    );
     return () => cancelAnimation(progress);
   }, [reduceMotion, progress]);
 
