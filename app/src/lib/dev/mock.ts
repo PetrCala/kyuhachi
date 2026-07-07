@@ -9,6 +9,7 @@
  *
  * Reachable only when {@link DEV_TOOLS_ENABLED} is true; see `./flags`.
  */
+import { Alert } from 'react-native';
 import {
   collection,
   doc,
@@ -192,7 +193,11 @@ export async function createMockChallenge(opts: CreateMockChallengeOptions): Pro
   // set+merge (not update) so creation still works before onUserCreated lands.
   if (makeActive) batch.set(userRef, { defaultChallengeId: challengeRef.id }, { merge: true });
 
-  await batch.commit();
+  // Not awaited — the promise resolves only on the backend's acknowledgment, so
+  // awaiting would hang the dev screen's busy state forever offline (same
+  // rationale as challenge/preview.tsx). The batch applies to the local cache
+  // instantly, and the id is client-generated, so it's valid right away.
+  batch.commit().catch((error) => Alert.alert('Mock create failed', String(error)));
   return challengeRef.id;
 }
 

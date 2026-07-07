@@ -160,15 +160,27 @@ export default function ChallengePreview() {
       // document does not exist yet (e.g. the onUserCreated trigger is lagging).
       batch.set(userRef, { defaultChallengeId: challengeRef.id }, { merge: true });
 
-      await batch.commit();
+      // The commit is deliberately NOT awaited: Firestore applies the batch to
+      // the local cache at once and syncs when connectivity allows, but the
+      // returned promise resolves only on the backend's acknowledgment —
+      // awaiting it would pin the button on "Starting…" forever with no signal
+      // (same rationale as the visit editor's save; see ADR-005/007). Home's
+      // snapshot listeners pick the pending challenge up immediately; a genuine
+      // rejection (e.g. rules) surfaces through the alert.
+      batch.commit().catch((error) => {
+        if (__DEV__) console.warn('[challenge] create failed', error);
+        Alert.alert(t('challenge.errorCreate'), t(firebaseErrorKey(error)));
+      });
       router.replace('/');
     } catch (error) {
+      // Reached only by the pre-commit reads (catalog version / previous
+      // default), which resolve from cache offline and reject fast when uncached.
       // firebaseErrorKey collapses unrecognized codes (and codeless errors) into
       // a generic message, so log the real error in dev to keep create failures
       // diagnosable.
       if (__DEV__) console.warn('[challenge] create failed', error);
       Alert.alert(t('challenge.errorCreate'), t(firebaseErrorKey(error)));
-    } finally {
+      // Only re-enable on failure — success navigates away and unmounts.
       setCreating(false);
     }
   }
