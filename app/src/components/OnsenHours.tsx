@@ -50,8 +50,8 @@ export function OnsenHours({ hours }: OnsenHoursProps) {
       {schedule ? (
         <>
           <View style={styles.hoursTodayRow}>
-            {/* Today's line — label, time, and list icon — is one button that
-                expands the week, so the whole opening-times group reads as tappable. */}
+            {/* Today's line — label and time — toggles the week, so the whole
+                opening-times group reads as tappable. */}
             <Pressable
               style={styles.hoursTodayMain}
               onPress={() => setShowWeek((v) => !v)}
@@ -61,29 +61,39 @@ export function OnsenHours({ hours }: OnsenHoursProps) {
             >
               <Text style={styles.hoursLabel}>{t('onsenDetail.today')}</Text>
               <Text style={styles.hoursTodayValue}>{todayLabel}</Text>
-              <Ionicons
-                name="list-outline"
-                size={typography.sizes.md}
-                color={showWeek ? colors.actionPrimary : colors.textMuted}
-                style={styles.hoursWeekIcon}
-              />
             </Pressable>
-            {/* Reveal the verbatim source text. */}
-            <Pressable
-              style={styles.hoursOriginalIcon}
-              onPress={() => setShowOriginal((v) => !v)}
-              accessibilityRole="button"
-              accessibilityLabel={t(
-                showOriginal ? 'onsenDetail.hideOriginal' : 'onsenDetail.showOriginal',
-              )}
-              hitSlop={spacing[2]}
-            >
-              <Ionicons
-                name={showOriginal ? 'chevron-up' : 'chevron-down'}
-                size={typography.sizes.md}
-                color={showOriginal ? colors.actionPrimary : colors.textMuted}
-              />
-            </Pressable>
+            {/* Reveal icons, grouped on the far edge: the weekly list, then the
+                verbatim source text. */}
+            <View style={styles.hoursIconsGroup}>
+              <Pressable
+                onPress={() => setShowWeek((v) => !v)}
+                accessibilityRole="button"
+                accessibilityLabel={t(
+                  showWeek ? 'onsenDetail.hideHours' : 'onsenDetail.showHours',
+                )}
+                hitSlop={spacing[2]}
+              >
+                <Ionicons
+                  name="list-outline"
+                  size={typography.sizes.md}
+                  color={showWeek ? colors.actionPrimary : colors.textMuted}
+                />
+              </Pressable>
+              <Pressable
+                onPress={() => setShowOriginal((v) => !v)}
+                accessibilityRole="button"
+                accessibilityLabel={t(
+                  showOriginal ? 'onsenDetail.hideOriginal' : 'onsenDetail.showOriginal',
+                )}
+                hitSlop={spacing[2]}
+              >
+                <Ionicons
+                  name={showOriginal ? 'chevron-up' : 'chevron-down'}
+                  size={typography.sizes.md}
+                  color={showOriginal ? colors.actionPrimary : colors.textMuted}
+                />
+              </Pressable>
+            </View>
           </View>
           {showWeek &&
             groupSchedule(schedule).map((g, i) => {
@@ -152,12 +162,10 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     lineHeight: typography.sizes.xl,
   },
-  // The weekly toggle hugs today's hours; the original-text chevron is pushed to
-  // the far edge by an auto margin, leaving the blank space between them.
-  hoursWeekIcon: {
-    marginLeft: spacing[2],
-  },
-  hoursOriginalIcon: {
+  hoursIconsGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
     marginLeft: 'auto',
   },
   dayRow: {
