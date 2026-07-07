@@ -478,6 +478,7 @@ const ja: Record<keyof typeof en, string> = {
   'challengeType.commonRule3': '達成までの期限はありません。',
   'challengeType.kyushu-88.name': '車チャレンジ',
   'challengeType.kyushu-88.description': '交通手段に制限なく、九州八十八湯を巡るチャレンジです。',
+  'challengeType.kyushu-88.hook': '移動手段は自由に',
   'challengeType.kyushu-88.rule': '交通手段に制限はありません。',
   'challengeType.kyushu-88.summary.gold': '88湯すべてを達成',
   'challengeType.kyushu-88.summary.silver': '66湯以上を達成',
@@ -485,6 +486,7 @@ const ja: Record<keyof typeof en, string> = {
   'challengeType.kyushu-88-public.name': '公共交通機関チャレンジ',
   'challengeType.kyushu-88-public.description':
     '公共交通機関・自転車・徒歩で九州八十八湯を巡るチャレンジです。車の利用は称号に影響します。',
+  'challengeType.kyushu-88-public.hook': '車は置いていこう',
   'challengeType.kyushu-88-public.rule':
     '移動は公共交通機関・自転車・徒歩が基本です。車を使うと上位の称号を逃します。',
   'challengeType.kyushu-88-public.summary.gold': '88湯すべてを車を使わずに達成',
@@ -492,6 +494,7 @@ const ja: Record<keyof typeof en, string> = {
   'challengeType.kyushu-88-public.summary.bronze': '44湯以上を達成し、車の利用は8回まで',
   'challengeType.kyushu-88-bicycle.name': '自転車チャレンジ',
   'challengeType.kyushu-88-bicycle.description': '自転車（および徒歩）で九州八十八湯を巡るチャレンジです。',
+  'challengeType.kyushu-88-bicycle.hook': '自転車と徒歩で',
   'challengeType.kyushu-88-bicycle.rule':
     '移動は自転車または徒歩が基本です。それより速い手段を使うと上位の称号を逃します。',
   'challengeType.kyushu-88-bicycle.summary.gold': '88湯すべてを自転車・徒歩のみで達成',
@@ -499,6 +502,7 @@ const ja: Record<keyof typeof en, string> = {
   'challengeType.kyushu-88-bicycle.summary.bronze': '44湯以上を達成し、より速い手段は8回まで',
   'challengeType.kyushu-88-walk.name': '徒歩チャレンジ',
   'challengeType.kyushu-88-walk.description': '徒歩のみで九州八十八湯を巡る、最も過酷なチャレンジです。',
+  'challengeType.kyushu-88-walk.hook': '一歩ずつ、徒歩だけで',
   'challengeType.kyushu-88-walk.rule':
     '移動は徒歩のみが基本です。それより速い手段を使うと上位の称号を逃します。',
   'challengeType.kyushu-88-walk.summary.gold': '88湯すべてを徒歩のみで達成',

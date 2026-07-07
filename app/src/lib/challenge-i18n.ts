@@ -3,9 +3,9 @@
  *
  * Challenge types are admin-managed Firestore documents published by the data
  * repo. Their structured fields (conditions, eligible pool, completion count,
- * base mode) are data; their human-facing copy (name / description / rules /
- * tier names + summaries) is authored product text owned by the app and keyed
- * by the type id in the i18n catalog (see `app/src/i18n/en.ts`).
+ * base mode) are data; their human-facing copy (name / description / hook /
+ * rules / tier names + summaries) is authored product text owned by the app
+ * and keyed by the type id in the i18n catalog (see `app/src/i18n/en.ts`).
  *
  * These helpers overlay the catalog text onto a fetched document, keyed by id,
  * and fall back to whatever Firestore published when a key is missing — so a
@@ -29,6 +29,15 @@ const COMMON_RULE_KEYS = [
 /** Localized challenge-type name for `typeId`, falling back to the Firestore value. */
 export function challengeTypeName(typeId: string, fallback: string, t: TFunction): string {
   return t(`challengeType.${typeId}.name`, { defaultValue: fallback });
+}
+
+/**
+ * Short picker-tile tagline for `typeId`. Hooks are app-authored only — the
+ * Firestore document has no such field — so callers pass the (localized)
+ * description as the fallback for a type id the app has no strings for yet.
+ */
+export function challengeTypeHook(typeId: string, fallback: string, t: TFunction): string {
+  return t(`challengeType.${typeId}.hook`, { defaultValue: fallback });
 }
 
 /** Localize a tier's name (by tier id) and condition summary (by type + tier id). */
