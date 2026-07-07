@@ -11,9 +11,10 @@ interface LoadingOverlayProps {
 
 /**
  * A full-bleed blocking overlay for a short in-progress moment. Absolutely fills
- * its nearest positioned parent, dims it behind a scrim, and — because it renders
- * on top with default hit-testing — swallows every touch so the user can't tap
- * away or interact with a half-saved form underneath.
+ * its nearest positioned parent, sinks it behind a heavy near-opaque scrim so the
+ * indicator and caption stay legible over any form content, and — because it
+ * renders on top with default hit-testing — swallows every touch so the user
+ * can't tap away or interact with a half-saved form underneath.
  *
  * The moving part is delegated to {@link LoadingIndicator} so the busy visual can
  * evolve independently of this container.
@@ -31,7 +32,7 @@ export function LoadingOverlay({ visible, label }: LoadingOverlayProps) {
 const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.overlay,
+    backgroundColor: colors.overlayStrong,
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing[3],

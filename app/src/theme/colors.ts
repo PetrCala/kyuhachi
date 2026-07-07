@@ -51,6 +51,9 @@ const palette = {
 
   // Scrim behind modal sheets (semi-transparent black)
   scrim: 'rgba(0, 0, 0, 0.4)',
+  // Heavier scrim for blocking overlays where the content behind should recede
+  // almost completely (e.g. the saving overlay) but still read as a dimmed layer
+  scrimHeavy: 'rgba(0, 0, 0, 0.75)',
 } as const;
 
 export const colors = {
@@ -59,6 +62,7 @@ export const colors = {
   backgroundSecondary: palette.gray100, // grouped lists, inset sections
   backgroundElevated:  palette.gray50,  // cards, text inputs
   overlay:             palette.scrim,   // dimming behind bottom-sheet modals
+  overlayStrong:       palette.scrimHeavy, // near-opaque dimming for blocking overlays
 
   // Text
   textPrimary:     palette.black,  // headings, primary content
