@@ -26,6 +26,7 @@ import { TierClaimModal, type TierCelebration } from '@/components/TierClaimModa
 import { ChallengeBadge } from '@/components/ChallengeBadge';
 import { SuggestNextCard } from '@/components/SuggestNextCard';
 import { SpaportHeroButton } from '@/components/SpaportHeroButton';
+import { WordmarkLoader } from '@/components/WordmarkLoader';
 import { RankUpToast, type RankToast } from '@/components/RankUpToast';
 import RecordVisitFab from '@/components/RecordVisitFab';
 import { buildVisitFeed } from '@/lib/visit-feed';
@@ -274,7 +275,7 @@ export default function Home() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.centerContent}>
-          <Text style={styles.wordmark}>{HOME_WORDMARK}</Text>
+          <WordmarkLoader style={styles.loadingWordmark} />
           <ActivityIndicator />
         </View>
       </SafeAreaView>
@@ -489,6 +490,10 @@ const styles = StyleSheet.create({
     fontFamily: typography.fonts.brand,
     fontSize: typography.sizes.xxl,
     color: colors.textPrimary,
+    marginBottom: spacing[6],
+  },
+  // Layout-only: the loader owns the wordmark's type styling internally.
+  loadingWordmark: {
     marginBottom: spacing[6],
   },
   brandStrip: {
