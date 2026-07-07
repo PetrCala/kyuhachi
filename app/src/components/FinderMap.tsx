@@ -51,11 +51,12 @@ interface FinderMapProps {
 }
 
 /**
- * The Finder's map preview. One `MapView` instance that resizes between a small,
- * non-interactive card (tap to enlarge) and a full, interactive map (with zoom +
- * a collapse button). It auto-frames the result pins + user, and recentres on the
- * pin whose row is selected. Kept as a single instance so the resize animates
- * without a remount flash.
+ * The Finder's map preview. One `MapView` instance that resizes between a small
+ * card and a full map (with zoom + a collapse button). Both sizes are pannable and
+ * zoomable; on the small card a plain tap enlarges it (dragging/pinching just moves
+ * the map). It auto-frames the result pins + user, and recentres on the pin whose
+ * row is selected. Kept as a single instance so the resize animates without a
+ * remount flash.
  */
 export default function FinderMap({
   results,
@@ -162,13 +163,14 @@ export default function FinderMap({
         style={styles.map}
         provider={PROVIDER_DEFAULT}
         initialRegion={initialRegion}
-        // Collapsed: gestures are off (the frame stays put) but pins stay tappable,
-        // and a tap on the empty map enlarges it. Markers stopPropagation so a pin
-        // tap selects instead of expanding.
-        scrollEnabled={expanded}
-        zoomEnabled={expanded}
-        rotateEnabled={expanded}
-        pitchEnabled={expanded}
+        // Gestures stay on even while collapsed, so the preview can be panned,
+        // pinched, and rotated in place. A discrete tap on the empty map still
+        // enlarges it (a drag/pinch doesn't fire onPress); markers stopPropagation
+        // so a pin tap selects instead of expanding.
+        scrollEnabled
+        zoomEnabled
+        rotateEnabled
+        pitchEnabled
         onPress={expanded ? undefined : onToggleExpand}
         showsUserLocation={!simulated}
         onMapReady={readAltitude}
