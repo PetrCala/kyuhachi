@@ -31,11 +31,6 @@ const DROP_DURATION = 240;
 // back to true. Reads as the rubber stamp deforming as it hits the paper.
 const IMPACT_DURATION = 70;
 const IMPACT_SQUASH = 0.14;
-// After the seal lands, the stamp's grip lifts away and fades, leaving the inked
-// impression behind — the "hand releasing the stamp" beat that follows the press.
-const HANDLE_LIFT = 64;
-const HANDLE_LIFT_DELAY = 110;
-const HANDLE_LIFT_DURATION = 300;
 
 // Warm onsen-collection palette: brand amber, achievement gold, bath-water blue.
 const SPARKLE_COLORS = [colors.brandGlyph, colors.tierGold, colors.onsenVisited];
@@ -171,8 +166,6 @@ export function StampClaimModal({ reward, animationsEnabled, onDismiss }: StampC
   const squash = useRef(new Animated.Value(0)).current;
   const glow = useRef(new Animated.Value(0)).current;
   const burst = useRef(new Animated.Value(0)).current;
-  // The stamp grip riding atop the seal: 0 pressed down, 1 lifted away after impact.
-  const lift = useRef(new Animated.Value(0)).current;
   // Whether the flourish is playing — gates the glow halo and sparkles out of the
   // tree entirely when motion is off, so no static circle lingers behind the seal.
   const [animating, setAnimating] = useState(false);
@@ -192,7 +185,6 @@ export function StampClaimModal({ reward, animationsEnabled, onDismiss }: StampC
       squash.setValue(0);
       glow.setValue(0);
       burst.setValue(0);
-      lift.setValue(0);
 
       Animated.timing(fade, {
         toValue: 1,
@@ -241,17 +233,6 @@ export function StampClaimModal({ reward, animationsEnabled, onDismiss }: StampC
           }),
         ]).start();
 
-        // A beat after the press, lift the grip off the page to reveal the seal.
-        Animated.sequence([
-          Animated.delay(HANDLE_LIFT_DELAY),
-          Animated.timing(lift, {
-            toValue: 1,
-            duration: HANDLE_LIFT_DURATION,
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: false,
-          }),
-        ]).start();
-
         glowLoop = Animated.loop(
           Animated.sequence([
             Animated.timing(glow, {
@@ -276,7 +257,7 @@ export function StampClaimModal({ reward, animationsEnabled, onDismiss }: StampC
       cancelled = true;
       glowLoop?.stop();
     };
-  }, [visible, animationsEnabled, fade, drop, squash, glow, burst, lift]);
+  }, [visible, animationsEnabled, fade, drop, squash, glow, burst]);
 
   function handleDismiss() {
     Animated.timing(fade, {
@@ -299,9 +280,6 @@ export function StampClaimModal({ reward, animationsEnabled, onDismiss }: StampC
   const scaleY = squash.interpolate({ inputRange: [0, 1], outputRange: [1, 1 - IMPACT_SQUASH] });
   const glowOpacity = glow.interpolate({ inputRange: [0, 1], outputRange: [0.18, 0.5] });
   const glowScale = glow.interpolate({ inputRange: [0, 1], outputRange: [1, 1.14] });
-  // The grip rides down with the seal, then lifts up and fades after the press.
-  const handleLift = lift.interpolate({ inputRange: [0, 1], outputRange: [0, -HANDLE_LIFT] });
-  const handleOpacity = lift.interpolate({ inputRange: [0, 0.6, 1], outputRange: [1, 1, 0] });
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={handleDismiss}>
@@ -335,19 +313,6 @@ export function StampClaimModal({ reward, animationsEnabled, onDismiss }: StampC
                 name={reward.name}
                 date={new Date(reward.dateMs)}
               />
-              {animating ? (
-                <Animated.View
-                  testID="stampHandle"
-                  pointerEvents="none"
-                  style={[
-                    styles.handle,
-                    { opacity: handleOpacity, transform: [{ translateY: handleLift }] },
-                  ]}
-                >
-                  <View style={styles.handleCap} />
-                  <View style={styles.handleNeck} />
-                </Animated.View>
-              ) : null}
             </Animated.View>
           </View>
 
@@ -400,28 +365,6 @@ const styles = StyleSheet.create({
     height: GLOW_SIZE,
     borderRadius: radii.full,
     backgroundColor: colors.brandGlyph,
-  },
-  // The stamp's grip, perched on the seal's top edge and lifted away after the
-  // press. Centered over the seal; its neck meets the seal's top.
-  handle: {
-    position: 'absolute',
-    top: -38,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  handleCap: {
-    width: 40,
-    height: 14,
-    borderRadius: radii.full,
-    backgroundColor: colors.textPrimary,
-  },
-  handleNeck: {
-    width: 18,
-    height: 26,
-    borderTopLeftRadius: radii.sm,
-    borderTopRightRadius: radii.sm,
-    backgroundColor: colors.textPrimary,
   },
   // Full-bleed layer over the stamp from whose center the sparkles fan out.
   sparkleLayer: {
