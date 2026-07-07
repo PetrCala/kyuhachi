@@ -486,6 +486,7 @@ const en = {
   'challengeType.kyushu-88.name': 'Car Challenge',
   'challengeType.kyushu-88.description':
     'Tour the Kyushu 88 hot springs with no restriction on how you travel.',
+  'challengeType.kyushu-88.hook': 'Travel any way you like',
   'challengeType.kyushu-88.rule': 'There are no restrictions on how you travel.',
   'challengeType.kyushu-88.summary.gold': 'Reach all 88 onsens',
   'challengeType.kyushu-88.summary.silver': 'Reach 66 or more onsens',
@@ -493,6 +494,7 @@ const en = {
   'challengeType.kyushu-88-public.name': 'Public Transport Challenge',
   'challengeType.kyushu-88-public.description':
     'Tour the Kyushu 88 hot springs by public transport, bicycle, or on foot. Using a car affects your tier.',
+  'challengeType.kyushu-88-public.hook': 'Leave the car behind',
   'challengeType.kyushu-88-public.rule':
     'Travel mainly by public transport, bicycle, or on foot. Using a car costs you the higher tiers.',
   'challengeType.kyushu-88-public.summary.gold': 'Reach all 88 onsens without using a car',
@@ -503,6 +505,7 @@ const en = {
   'challengeType.kyushu-88-bicycle.name': 'Bicycle Challenge',
   'challengeType.kyushu-88-bicycle.description':
     'Tour the Kyushu 88 hot springs by bicycle (and on foot).',
+  'challengeType.kyushu-88-bicycle.hook': 'By bike and on foot',
   'challengeType.kyushu-88-bicycle.rule':
     'Travel mainly by bicycle or on foot. Using anything faster costs you the higher tiers.',
   'challengeType.kyushu-88-bicycle.summary.gold': 'Reach all 88 onsens by bicycle or on foot only',
@@ -513,6 +516,7 @@ const en = {
   'challengeType.kyushu-88-walk.name': 'Walking Challenge',
   'challengeType.kyushu-88-walk.description':
     'Tour the Kyushu 88 hot springs on foot only — the toughest challenge.',
+  'challengeType.kyushu-88-walk.hook': 'Every step on foot',
   'challengeType.kyushu-88-walk.rule':
     'Travel on foot only. Using anything faster costs you the higher tiers.',
   'challengeType.kyushu-88-walk.summary.gold': 'Reach all 88 onsens on foot only',

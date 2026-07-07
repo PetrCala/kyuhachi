@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ComponentProps } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 import {
   collection,
   query,
@@ -16,17 +17,32 @@ import {
   onSnapshot,
   type FirebaseFirestoreTypes,
 } from '@react-native-firebase/firestore';
-import type { ChallengeTypeDocument } from '@kyuhachi/shared';
+import type { ChallengeTypeDocument, TransportMode } from '@kyuhachi/shared';
 import { COLLECTIONS, TRANSPORT_MODES } from '@kyuhachi/shared';
 import { db } from '@/firebase';
-import { TierBadge } from '@/components/TierBadge';
-import { localizeChallengeType } from '@/lib/challenge-i18n';
+import { transportColor } from '@/components/charts/series';
+import { challengeTypeHook, localizeChallengeType } from '@/lib/challenge-i18n';
 import { colors, spacing, typography, radii } from '@/theme';
 
 interface ChallengeTypeRow {
   id: string;
   type: ChallengeTypeDocument;
 }
+
+type IoniconName = ComponentProps<typeof Ionicons>['name'];
+
+// Solid transport glyphs: a filled mark reads better than the -outline variant
+// on the saturated mode-colored disc (same choice as the ChallengeBadge emblem).
+const TRANSPORT_ICONS: Record<TransportMode, IoniconName> = {
+  foot: 'walk',
+  bicycle: 'bicycle',
+  public: 'bus',
+  car: 'car',
+};
+
+// Tile-disc geometry — component-local, like the badge diameters in ChallengeBadge.
+const DISC_SIZE = 64;
+const DISC_ICON_RATIO = 0.55;
 
 export default function ChooseChallengeType() {
   const { t } = useTranslation();
@@ -78,6 +94,12 @@ export default function ChooseChallengeType() {
     );
   }
 
+  // Two tiles per row; a lone tile in the last row keeps its half-width slot.
+  const gridRows: ChallengeTypeRow[][] = [];
+  for (let i = 0; i < types.length; i += 2) {
+    gridRows.push(types.slice(i, i + 2));
+  }
+
   return (
     <>
       <Stack.Screen options={{ title: t('challengeNew.title'), headerShown: true }} />
@@ -85,28 +107,40 @@ export default function ChooseChallengeType() {
         <Text style={styles.heading}>{t('challengeNew.heading')}</Text>
         <Text style={styles.hint}>{t('challengeNew.hint')}</Text>
 
-        {types.map(({ id, type }) => {
-          const display = localizeChallengeType(id, type, t);
-          return (
-            <Pressable
-              key={id}
-              style={styles.card}
-              onPress={() => router.push({ pathname: '/challenge/preview', params: { typeId: id } })}
-            >
-              <View style={styles.cardText}>
-                <Text style={styles.cardName}>{display.name}</Text>
-                <Text style={styles.cardDescription} numberOfLines={2}>
-                  {display.description}
-                </Text>
-              </View>
-              <View style={styles.tierDots}>
-                {display.tiers.map((tier) => (
-                  <TierBadge key={tier.id} tierId={tier.id} size={spacing[3]} />
-                ))}
-              </View>
-            </Pressable>
-          );
-        })}
+        <View style={styles.grid}>
+          {gridRows.map((row) => (
+            <View key={row[0].id} style={styles.gridRow}>
+              {row.map(({ id, type }) => {
+                const display = localizeChallengeType(id, type, t);
+                return (
+                  <Pressable
+                    key={id}
+                    style={styles.tile}
+                    accessibilityRole="button"
+                    onPress={() =>
+                      router.push({ pathname: '/challenge/preview', params: { typeId: id } })
+                    }
+                  >
+                    <View
+                      style={[styles.disc, { backgroundColor: transportColor(type.baseMode) }]}
+                    >
+                      <Ionicons
+                        name={TRANSPORT_ICONS[type.baseMode]}
+                        size={DISC_SIZE * DISC_ICON_RATIO}
+                        color={colors.textInverted}
+                      />
+                    </View>
+                    <Text style={styles.tileName}>{display.name}</Text>
+                    <Text style={styles.tileHook} numberOfLines={3}>
+                      {challengeTypeHook(id, display.description, t)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+              {row.length === 1 ? <View style={styles.tileSpacer} /> : null}
+            </View>
+          ))}
+        </View>
       </ScrollView>
     </>
   );
@@ -128,9 +162,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
+    flexGrow: 1,
     paddingHorizontal: spacing[4],
     paddingVertical: spacing[4],
-    paddingBottom: spacing[8],
+    paddingBottom: spacing[6],
   },
   heading: {
     fontSize: typography.sizes.xl,
@@ -143,32 +178,44 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginBottom: spacing[5],
   },
-  card: {
+  grid: {
+    flexGrow: 1,
+    gap: spacing[3],
+  },
+  gridRow: {
+    flexGrow: 1,
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.backgroundSecondary,
-    borderRadius: radii.lg,
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[4],
-    marginBottom: spacing[3],
+    gap: spacing[3],
   },
-  cardText: {
+  tile: {
     flex: 1,
-    marginRight: spacing[3],
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: radii.xl,
+    paddingVertical: spacing[5],
+    paddingHorizontal: spacing[3],
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[2],
   },
-  cardName: {
+  tileSpacer: {
+    flex: 1,
+  },
+  disc: {
+    width: DISC_SIZE,
+    height: DISC_SIZE,
+    borderRadius: radii.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tileName: {
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.semibold,
     color: colors.textPrimary,
-    marginBottom: spacing[1],
+    textAlign: 'center',
   },
-  cardDescription: {
+  tileHook: {
     fontSize: typography.sizes.sm,
     color: colors.textMuted,
-    lineHeight: 20,
-  },
-  tierDots: {
-    flexDirection: 'row',
-    gap: spacing[1],
+    textAlign: 'center',
   },
 });
