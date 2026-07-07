@@ -9,9 +9,10 @@ interface LoadingIndicatorProps {
 }
 
 /**
- * The app's "work in progress" visual: a rubber stamp pressing onto the page (see
- * {@link StampingLoader}). It lives in its own component so the busy visual stays
- * a single swap point for the overlays and screens that render it.
+ * The app's "work in progress" visual: an onsen stamp block pressing its seal
+ * onto the page (see {@link StampingLoader}). It lives in its own component so
+ * the busy visual stays a single swap point for the overlays and screens that
+ * render it.
  */
 export function LoadingIndicator({ color = colors.actionPrimary }: LoadingIndicatorProps) {
   return <StampingLoader color={color} />;
