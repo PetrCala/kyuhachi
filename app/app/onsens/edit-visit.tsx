@@ -59,16 +59,17 @@ import { RatingStars } from '@/components/visit/RatingStars';
 import { OptionChips, type ChipOption } from '@/components/visit/OptionChips';
 import { BoolChips } from '@/components/visit/BoolChips';
 import { LoadingOverlay } from '@/components/LoadingOverlay';
+import { STAMP_PRESS_CYCLE_MS } from '@/components/StampingLoader';
 import { colors, spacing, typography, radii } from '@/theme';
 
 const MAX_PHOTOS = 6;
 
 // A new visit usually lands instantly off Firestore's offline cache, which would
 // flash the saving overlay for a frame or two. Hold it open long enough for the
-// stamp-press loader to complete a press so the moment reads as deliberate — one
-// full cycle of StampingLoader. Photo uploads still run detached afterwards, so
+// stamp-press loader to play its full press-lift-reveal story once, so the
+// moment reads as deliberate. Photo uploads still run detached afterwards, so
 // this only paces the visible hand-off, never the actual write.
-const MIN_SAVE_VISIBLE_MS = 1100;
+const MIN_SAVE_VISIBLE_MS = STAMP_PRESS_CYCLE_MS;
 
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 

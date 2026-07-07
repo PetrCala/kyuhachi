@@ -10,43 +10,62 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { colors, radii, spacing } from '@/theme';
+import Svg, { Path, Polygon, Text as SvgText } from 'react-native-svg';
+import { colors, radii, typography } from '@/theme';
 
-// One full press-and-lift of the stamp. Chosen to read clearly even as a single
-// cycle, since the save it covers is held open for about this long (see
-// MIN_SAVE_VISIBLE_MS in edit-visit.tsx).
-const CYCLE_MS = 1100;
-// How far the stamp rises between presses, in px.
-const LIFT = 16;
+/**
+ * One full story beat of the loader: the block drops and presses (0–0.20 of the
+ * cycle), rests on the page (0.20–0.42), lifts up and away to the side while
+ * fading (0.42–0.64), and the inked impression it revealed holds, then fades
+ * (0.64–1). Exported so the save flow can hold its overlay open for exactly one
+ * complete press (see MIN_SAVE_VISIBLE_MS in edit-visit.tsx).
+ */
+export const STAMP_PRESS_CYCLE_MS = 1800;
 
-// The whole loop is driven by one shared progress value (0 → 1, repeating). Every
-// moving part reads off it through interpolation on the UI thread, so the press,
-// the squash, and the ink ring stay perfectly in phase with no JS-thread work.
-// Phase map of the cycle:
-//   0.00–0.30  the stamp drops onto the paper
-//   0.30       impact — squash peaks, ink ring fires
-//   0.30–0.50  it rests on the page
-//   0.50–0.80  it lifts back up
-//   0.80–1.00  a beat at the top before the next press
-const PRESS_IN = [0, 0.3, 0.5, 0.8, 1];
+// SVG drawing geometry (runtime drawing values, not layout spacing) — an
+// isometric square-prism stamp block, like the commemorative stamp markers at
+// the onsens: rectangle from the side, square from below. The impression is
+// that square base seen in the same perspective, inked in the brand amber.
+const BLOCK_W = 58;
+const BLOCK_H = 98;
+const IMP_W = 58;
+const IMP_H = 36;
+const BASE_STROKE = 4;
+const IMP_STROKE = 3;
+const INK_FONT_SIZE = 12;
+
+// Motion amplitudes, in px of the stage.
+const DROP_FROM = -34; // where the block hangs before the press
+const LIFT_X = 32; // how far aside it flies after the press
+const LIFT_Y = -58; // how far up it flies after the press
+const LIFT_TILT_DEG = 12;
+const IMPACT_SQUASH = 0.9; // scaleY at the peak of the impact
+
+// The block's faces are the body color at three brightnesses, selling the
+// isometric volume without extra color tokens.
+const FACE_TOP = 1;
+const FACE_RIGHT = 0.88;
+const FACE_LEFT = 0.66;
 
 interface StampingLoaderProps {
-  /** Tint for the stamp body and the Reduce-Motion fallback spinner. */
+  /** Tint for the stamp block and the Reduce-Motion fallback spinner. */
   color?: string;
 }
 
 /**
- * The "saving your visit" busy animation: a rubber stamp that presses onto the
- * page, squashing on impact as an amber ink ring blooms, then lifts and presses
- * again. Built from plain Views (like {@link Stamp} and ChallengeBadge) and
- * driven by Reanimated on the UI thread.
+ * The "saving your visit" busy animation: an isometric stamp block — the kind
+ * waiting on the counter at each onsen — drops onto the page, presses with a
+ * little squash as its contact shadow spreads, then a hand seems to pull it up
+ * and away, revealing the amber 九八 impression it leaves behind. The seal
+ * holds a beat and fades, and the block returns for the next press.
  *
- * It renders on the dark save scrim, so the body uses the passed light `color`
- * with the brand amber as the ink accent. Under Reduce Motion it falls back to
- * the platform spinner — the "Saving…" label still conveys the work.
+ * Every layer (block, shadow, impression) reads off one repeating Reanimated
+ * progress value through interpolation, so the whole story stays in phase on
+ * the UI thread. Under Reduce Motion it falls back to the platform spinner —
+ * the "Saving…" label still conveys the work.
  */
 export function StampingLoader({ color = colors.textInverted }: StampingLoaderProps) {
-  // null while the OS setting resolves; the stamp sits static until it does.
+  // null while the OS setting resolves; the stage sits blank until it does.
   const [reduceMotion, setReduceMotion] = useState<boolean | null>(null);
   const progress = useSharedValue(0);
 
@@ -63,27 +82,56 @@ export function StampingLoader({ color = colors.textInverted }: StampingLoaderPr
   useEffect(() => {
     if (reduceMotion !== false) return;
     progress.value = 0;
-    progress.value = withRepeat(withTiming(1, { duration: CYCLE_MS, easing: Easing.linear }), -1);
+    // Linear driver; the phase map above shapes the motion through the
+    // interpolation stops, with midpoints easing the drop and the lift.
+    progress.value = withRepeat(
+      withTiming(1, { duration: STAMP_PRESS_CYCLE_MS, easing: Easing.linear }),
+      -1
+    );
     return () => cancelAnimation(progress);
   }, [reduceMotion, progress]);
 
-  const stampStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: interpolate(progress.value, PRESS_IN, [-LIFT, 0, 0, -LIFT, -LIFT]) }],
+  // The block: fades in above the page, presses down, holds at full opacity,
+  // then fades only as it lifts up and aside — press and reveal read as one
+  // motion, never a stamp dissolving mid-press.
+  const blockStyle = useAnimatedStyle(() => {
+    const p = progress.value;
+    return {
+      opacity: interpolate(p, [0, 0.06, 0.42, 0.64, 1], [0, 1, 1, 0, 0]),
+      transform: [
+        { translateX: interpolate(p, [0, 0.42, 0.53, 0.64, 1], [0, 0, 12, LIFT_X, LIFT_X]) },
+        {
+          translateY: interpolate(
+            p,
+            [0, 0.1, 0.2, 0.42, 0.53, 0.64, 1],
+            [DROP_FROM, DROP_FROM * 0.76, 0, 0, LIFT_Y * 0.4, LIFT_Y, LIFT_Y]
+          ),
+        },
+        { rotate: `${interpolate(p, [0, 0.42, 0.64, 1], [0, 0, LIFT_TILT_DEG, LIFT_TILT_DEG])}deg` },
+      ],
+    };
+  });
+
+  // The impact squash, anchored at the block's base (RN scales about the
+  // center, so the compensation keeps the bottom edge planted).
+  const squashStyle = useAnimatedStyle(() => {
+    const s = interpolate(progress.value, [0.19, 0.24, 0.32], [1, IMPACT_SQUASH, 1], Extrapolation.CLAMP);
+    return { transform: [{ translateY: ((1 - s) * BLOCK_H) / 2 }, { scaleY: s }] };
+  });
+
+  // The revealed seal: pops in under the block as it lifts, holds, then fades
+  // out to reset the loop.
+  const impressionStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.value, [0, 0.44, 0.54, 0.84, 0.94, 1], [0, 0, 1, 1, 0, 0]),
+    transform: [{ scale: interpolate(progress.value, [0.44, 0.54], [0.85, 1], Extrapolation.CLAMP) }],
   }));
 
-  // The rubber face flattens at the moment of impact, then springs back to true.
-  const faceStyle = useAnimatedStyle(() => ({
+  // The contact shadow: spreads on impact, thins as the block leaves.
+  const shadowStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.value, [0, 0.2, 0.42, 0.64, 1], [0.14, 0.4, 0.35, 0.1, 0.1]),
     transform: [
-      { scaleY: interpolate(progress.value, [0.27, 0.32, 0.42], [1, 0.78, 1], Extrapolation.CLAMP) },
-      { scaleX: interpolate(progress.value, [0.27, 0.32, 0.42], [1, 1.1, 1], Extrapolation.CLAMP) },
+      { scaleX: interpolate(progress.value, [0, 0.2, 0.42, 0.64, 1], [0.55, 1.1, 1, 0.7, 0.6]) },
     ],
-  }));
-
-  // The impression left on the page: an amber ring that blooms out and fades on
-  // each press.
-  const ringStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(progress.value, [0.3, 0.34, 0.6], [0, 0.5, 0], Extrapolation.CLAMP),
-    transform: [{ scale: interpolate(progress.value, [0.3, 0.6], [0.5, 1.5], Extrapolation.CLAMP) }],
   }));
 
   if (reduceMotion) {
@@ -92,73 +140,83 @@ export function StampingLoader({ color = colors.textInverted }: StampingLoaderPr
 
   return (
     <View style={styles.stage} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      <View style={[styles.paper, { backgroundColor: color }]} />
-      <Animated.View style={[styles.ring, { borderColor: colors.brandGlyph }, ringStyle]} />
+      <Animated.View style={[styles.shadow, shadowStyle]} />
 
-      <Animated.View style={[styles.stamp, stampStyle]}>
-        <View style={[styles.cap, { backgroundColor: color }]} />
-        <View style={[styles.neck, { backgroundColor: color }]} />
-        <Animated.View style={[styles.face, { backgroundColor: color }, faceStyle]}>
-          <View style={[styles.ink, { borderColor: colors.brandGlyph }]} />
+      <Animated.View style={[styles.impression, impressionStyle]}>
+        <Svg width={IMP_W} height={IMP_H} viewBox={`0 0 ${IMP_W} ${IMP_H}`}>
+          <Polygon
+            points="4,18 29,32 54,18 29,4"
+            fill="none"
+            stroke={colors.brandGlyph}
+            strokeWidth={IMP_STROKE}
+            strokeLinejoin="round"
+          />
+          {/* The brand glyph, not user-facing copy — matches the seal in Stamp.tsx. */}
+          <SvgText
+            x={29}
+            y={22.5}
+            textAnchor="middle"
+            fontSize={INK_FONT_SIZE}
+            fontWeight={typography.weights.medium}
+            fill={colors.brandGlyph}
+          >
+            九八
+          </SvgText>
+        </Svg>
+      </Animated.View>
+
+      <Animated.View style={[styles.block, blockStyle]}>
+        <Animated.View style={squashStyle}>
+          <Svg width={BLOCK_W} height={BLOCK_H} viewBox={`0 0 ${BLOCK_W} ${BLOCK_H}`}>
+            <Polygon points="4,18 29,32 29,94 4,80" fill={color} fillOpacity={FACE_LEFT} />
+            <Polygon points="29,32 54,18 54,80 29,94" fill={color} fillOpacity={FACE_RIGHT} />
+            <Polygon points="29,4 54,18 29,32 4,18" fill={color} fillOpacity={FACE_TOP} />
+            <Path
+              d="M4,80 L29,94 L54,80"
+              fill="none"
+              stroke={colors.brandGlyph}
+              strokeWidth={BASE_STROKE}
+              strokeLinejoin="round"
+            />
+          </Svg>
         </Animated.View>
       </Animated.View>
     </View>
   );
 }
 
-const STAGE_W = 84;
-const STAGE_H = 96;
+// Room for the drop-in above the block and the fly-off beside it; the block
+// overflows the stage while fading out, which iOS leaves unclipped.
+const STAGE_W = 120;
+const STAGE_H = BLOCK_H + Math.abs(DROP_FROM);
 
 const styles = StyleSheet.create({
   stage: {
     width: STAGE_W,
     height: STAGE_H,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
   },
-  // The page the stamp presses onto.
-  paper: {
+  block: {
     position: 'absolute',
-    bottom: 14,
-    width: 64,
-    height: 3,
-    borderRadius: radii.full,
-    opacity: 0.3,
+    bottom: 0,
+    left: (STAGE_W - BLOCK_W) / 2,
+    width: BLOCK_W,
+    height: BLOCK_H,
   },
-  ring: {
+  // Aligned so its rhombus sits where the block's base rests at the press.
+  impression: {
     position: 'absolute',
-    bottom: 16,
-    width: 46,
-    height: 30,
-    borderRadius: radii.md,
-    borderWidth: 2,
+    bottom: 2,
+    left: (STAGE_W - IMP_W) / 2,
+    width: IMP_W,
+    height: IMP_H,
   },
-  // The stamp tool: cap + neck + inked face, dropping as one unit.
-  stamp: {
-    alignItems: 'center',
-    marginBottom: spacing[4],
-  },
-  cap: {
-    width: 24,
-    height: 12,
-    borderRadius: radii.full,
-  },
-  neck: {
-    width: 13,
-    height: 14,
-    opacity: 0.85,
-  },
-  face: {
-    width: 48,
-    height: 26,
-    borderRadius: radii.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ink: {
-    width: 30,
+  shadow: {
+    position: 'absolute',
+    bottom: 1,
+    left: (STAGE_W - 52) / 2,
+    width: 52,
     height: 11,
-    borderRadius: radii.sm,
-    borderWidth: 1.5,
+    borderRadius: radii.full,
+    backgroundColor: colors.actionPrimary,
   },
 });
