@@ -91,13 +91,15 @@ export function StampingLoader({ color = colors.textInverted }: StampingLoaderPr
     return () => cancelAnimation(progress);
   }, [reduceMotion, progress]);
 
-  // The block: fades in above the page, presses down, holds at full opacity,
-  // then fades only as it lifts up and aside — press and reveal read as one
-  // motion, never a stamp dissolving mid-press.
+  // The block: at full ink from the first frame, presses down, holds, then
+  // fades only as it lifts up and aside — press and reveal read as one motion,
+  // never a stamp dissolving mid-press. On loop restart it reappears at the
+  // hang instantly; the stage is empty then (the impression just faded), so it
+  // reads as the next stamp arriving.
   const blockStyle = useAnimatedStyle(() => {
     const p = progress.value;
     return {
-      opacity: interpolate(p, [0, 0.06, 0.42, 0.64, 1], [0, 1, 1, 0, 0]),
+      opacity: interpolate(p, [0, 0.42, 0.64, 1], [1, 1, 0, 0]),
       transform: [
         { translateX: interpolate(p, [0, 0.42, 0.53, 0.64, 1], [0, 0, 12, LIFT_X, LIFT_X]) },
         {
