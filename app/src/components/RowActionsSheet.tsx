@@ -135,7 +135,7 @@ export function RowActionsSheetProvider({ children }: { children: ReactNode }) {
         backgroundStyle={styles.sheetBackground}
         handleIndicatorStyle={styles.handleIndicator}
       >
-        <BottomSheetView style={{ paddingBottom: insets.bottom + spacing[1] }}>
+        <BottomSheetView style={{ paddingBottom: insets.bottom }}>
           {config ? (
             <>
               {config.title ? (
