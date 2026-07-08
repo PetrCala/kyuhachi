@@ -65,6 +65,13 @@ export interface AreaGuideSection {
  */
 export interface AreaGuideDocument {
   name: LocalizedText;
+  /**
+   * Optional one-line hook shown under the region name in the guide's hero
+   * (e.g. "Japan's onsen capital"). A guide without one shows just the name and
+   * goes straight to sections. Not surfaced on the onsen screen, whose "About
+   * this area" row is intentionally plain.
+   */
+  tagline?: LocalizedText;
   /** Representative center point of the region (for "your area" + map display). */
   center: { lat: number; lng: number };
   /** Ordered sections; only kinds with content are present. */
