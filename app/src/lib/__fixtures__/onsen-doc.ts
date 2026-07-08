@@ -12,6 +12,7 @@ export function onsenDoc(overrides: Partial<OnsenDocument> = {}): OnsenDocument 
     nameKana: 'やまだおんせん',
     nameRomaji: 'Yamada Onsen',
     areaName: '別府',
+    areaId: null,
     address: '大分県別府市1-1',
     prefecture: '大分県',
     lat: 33.28,
