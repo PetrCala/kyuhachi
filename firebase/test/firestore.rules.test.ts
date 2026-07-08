@@ -326,6 +326,51 @@ describe('users/challenges/visits', () => {
 });
 
 // ---------------------------------------------------------------------------
+// /users/{userId}/favorites
+// ---------------------------------------------------------------------------
+
+describe('users/favorites', () => {
+  const favoritePath = 'users/user-1/favorites/onsen-abc';
+
+  test('owner: read own favorite allowed', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), favoritePath), { createdAt: new Date() });
+    });
+    await assertSucceeds(getDoc(doc(authDb('user-1'), favoritePath)));
+  });
+
+  test('owner: create favorite allowed', async () => {
+    await assertSucceeds(
+      setDoc(doc(authDb('user-1'), favoritePath), { createdAt: new Date() })
+    );
+  });
+
+  test('owner: delete favorite allowed', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), favoritePath), { createdAt: new Date() });
+    });
+    await assertSucceeds(deleteDoc(doc(authDb('user-1'), favoritePath)));
+  });
+
+  test('other user: read denied', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), favoritePath), { createdAt: new Date() });
+    });
+    await assertFails(getDoc(doc(authDb('user-2'), favoritePath)));
+  });
+
+  test('other user: write denied', async () => {
+    await assertFails(
+      setDoc(doc(authDb('user-2'), favoritePath), { createdAt: new Date() })
+    );
+  });
+
+  test('unauthenticated: read denied', async () => {
+    await assertFails(getDoc(doc(unauthDb(), favoritePath)));
+  });
+});
+
+// ---------------------------------------------------------------------------
 // /users/{userId}/routes
 // ---------------------------------------------------------------------------
 

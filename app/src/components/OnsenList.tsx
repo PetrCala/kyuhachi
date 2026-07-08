@@ -61,6 +61,12 @@ interface OnsenListProps {
    * Must be referentially stable (wrap in `useCallback`) so rows stay memoized.
    */
   onItemPress?: (item: OnsenListItem) => void;
+  /**
+   * Shown when `data` is empty and there's no search query (a search that
+   * matches nothing keeps its own message). Falls back to the generic
+   * no-data message.
+   */
+  emptyMessage?: string;
 }
 
 /** A single row, memoized so scrolling doesn't re-render rows that haven't changed. */
@@ -113,7 +119,13 @@ const OnsenListRow = memo(function OnsenListRow({
  * Grouping by prefecture (not the finer area) keeps the number of sticky headers
  * small (~8), which is what makes the scroll feel smooth.
  */
-export function OnsenList({ data, loading, unvisitedVariant, onItemPress }: OnsenListProps) {
+export function OnsenList({
+  data,
+  loading,
+  unvisitedVariant,
+  onItemPress,
+  emptyMessage,
+}: OnsenListProps) {
   const { t, i18n } = useTranslation();
   const { showNearby, nearRadiusKm, showReadings, loaded: prefsLoaded } = usePreferences();
   const [searchQuery, setSearchQuery] = useState('');
@@ -294,7 +306,7 @@ export function OnsenList({ data, loading, unvisitedVariant, onItemPress }: Onse
             <Text style={styles.empty}>
               {searchQuery.trim()
                 ? t('onsenList.emptySearch', { query: searchQuery })
-                : t('onsenList.emptyData')}
+                : (emptyMessage ?? t('onsenList.emptyData'))}
             </Text>
           }
           contentContainerStyle={sections.length === 0 && styles.emptyContainer}

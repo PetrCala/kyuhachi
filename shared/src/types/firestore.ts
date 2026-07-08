@@ -26,6 +26,7 @@ export const SUBCOLLECTIONS = {
 	CHALLENGES: "challenges",
 	VISITS: "visits",
 	ROUTES: "routes",
+	FAVORITES: "favorites",
 } as const
 
 export const CATALOG_META_DOC_ID = "current"
