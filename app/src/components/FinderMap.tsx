@@ -260,8 +260,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.backgroundSecondary,
   },
+  // flex, not absoluteFill: on the New Architecture an absolutely-positioned
+  // native MapView doesn't receive touch/gesture delivery on iOS (the map goes
+  // dead to pan/zoom while the overlay buttons still tap). A normal flex child
+  // does. This mirrors the main map screen, which was device-tested to pan.
+  // The map is the container's only in-flow child (every control is absolute),
+  // so flex:1 fills the collapsed 180pt card and the expanded full screen alike.
   map: {
-    ...StyleSheet.absoluteFillObject,
+    flex: 1,
   },
   cornerButton: {
     position: 'absolute',
