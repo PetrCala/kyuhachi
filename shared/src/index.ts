@@ -49,7 +49,7 @@ export type {
 
 export { AREA_GUIDE_SECTION_KINDS } from './types/areaGuide';
 
-export type { UserDocument } from './types/user';
+export type { UserDocument, FavoriteDocument } from './types/user';
 
 export type { Timestamp } from './types/firestore';
 

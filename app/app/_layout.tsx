@@ -6,6 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, KleeOne_600SemiBold } from '@expo-google-fonts/klee-one';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { FavoritesProvider } from '@/context/FavoritesContext';
 import { OnsenCatalogProvider } from '@/context/OnsenCatalogContext';
 import { AreaGuideProvider } from '@/context/AreaGuideContext';
 import { PreferencesProvider } from '@/context/PreferencesContext';
@@ -115,22 +116,24 @@ export default function RootLayout() {
       <AuthProvider>
         <OnsenCatalogProvider>
           <AreaGuideProvider>
-            <PreferencesProvider>
-              <StampCelebrationProvider>
-                <RowActionsSheetProvider>
-                  {!splashHidden && (
-                    <SplashGate localReady={localReady} onHidden={handleSplashHidden} />
-                  )}
-                  <NavigationController />
-                  <Stack screenOptions={{ headerShown: false, headerBackButtonDisplayMode: 'minimal' }}>
-                    <Stack.Screen
-                      name="onsens/edit-visit"
-                      options={{ presentation: 'modal', headerShown: true }}
-                    />
-                  </Stack>
-                </RowActionsSheetProvider>
-              </StampCelebrationProvider>
-            </PreferencesProvider>
+            <FavoritesProvider>
+              <PreferencesProvider>
+                <StampCelebrationProvider>
+                  <RowActionsSheetProvider>
+                    {!splashHidden && (
+                      <SplashGate localReady={localReady} onHidden={handleSplashHidden} />
+                    )}
+                    <NavigationController />
+                    <Stack screenOptions={{ headerShown: false, headerBackButtonDisplayMode: 'minimal' }}>
+                      <Stack.Screen
+                        name="onsens/edit-visit"
+                        options={{ presentation: 'modal', headerShown: true }}
+                      />
+                    </Stack>
+                  </RowActionsSheetProvider>
+                </StampCelebrationProvider>
+              </PreferencesProvider>
+            </FavoritesProvider>
           </AreaGuideProvider>
         </OnsenCatalogProvider>
       </AuthProvider>

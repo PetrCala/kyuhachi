@@ -65,6 +65,10 @@ const ja: Record<keyof typeof en, string> = {
   'onsenList.prefectureUnknown': 'その他',
   'onsenList.emptySearch': '「{{query}}」に一致する温泉はありません',
   'onsenList.emptyData': '温泉データがありません',
+  'onsenList.favoritesOnly': 'お気に入りのみ表示',
+  'onsenList.showAll': 'すべて表示',
+  'onsenList.emptyFavorites':
+    'お気に入りはまだありません。温泉ページのハートをタップして追加できます。',
 
   // challenge
   'challenge.startTitle': 'チャレンジを始めよう',
@@ -596,6 +600,8 @@ const ja: Record<keyof typeof en, string> = {
   'onsenDetail.labelHours': '営業時間',
   'onsenDetail.getDirections': '経路を表示',
   'onsenDetail.showOnMap': '地図で見る',
+  'onsenDetail.addFavorite': 'お気に入りに追加',
+  'onsenDetail.removeFavorite': 'お気に入りから削除',
   'onsenDetail.markVisited': '訪問済みにする',
   'onsenDetail.visited': '訪問済み ✓',
   'onsenDetail.visitedCardTitle': '入浴済',

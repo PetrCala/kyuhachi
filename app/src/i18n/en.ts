@@ -64,6 +64,9 @@ const en = {
   'onsenList.prefectureUnknown': 'Other',
   'onsenList.emptySearch': 'No onsens matching "{{query}}"',
   'onsenList.emptyData': 'No onsen data',
+  'onsenList.favoritesOnly': 'Show favorites only',
+  'onsenList.showAll': 'Show all onsens',
+  'onsenList.emptyFavorites': 'No favorites yet. Tap the heart on an onsen page to add one.',
 
   // challenge
   'challenge.startTitle': 'Start Your Challenge',
@@ -612,6 +615,8 @@ const en = {
   'onsenDetail.labelHours': 'Business Hours',
   'onsenDetail.getDirections': 'Get directions',
   'onsenDetail.showOnMap': 'Show on map',
+  'onsenDetail.addFavorite': 'Add to favorites',
+  'onsenDetail.removeFavorite': 'Remove from favorites',
   'onsenDetail.markVisited': 'Mark as Visited',
   'onsenDetail.visited': 'Visited ✓',
   'onsenDetail.visitedCardTitle': 'Visited',

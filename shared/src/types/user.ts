@@ -13,3 +13,14 @@ export interface UserDocument {
   defaultChallengeId: string | null;
   createdAt: Timestamp;
 }
+
+/**
+ * /users/{userId}/favorites/{onsenId}
+ *
+ * The doc id is the onsen's kyuhachiId, so favoriting is structurally
+ * deduplicated (same trick as visits). Favorites are challenge-independent:
+ * they survive challenge resets and never affect completion.
+ */
+export interface FavoriteDocument {
+  createdAt: Timestamp;
+}

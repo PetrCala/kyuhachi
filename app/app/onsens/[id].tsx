@@ -22,6 +22,7 @@ import { AreaGuideRow } from '@/components/AreaGuideRow';
 import RecordVisitFab from '@/components/RecordVisitFab';
 import { useVisit } from '@/hooks/useVisit';
 import { onsenReading } from '@/lib/onsen-name';
+import { useFavorites } from '@/context/FavoritesContext';
 import { useOnsenCatalog } from '@/context/OnsenCatalogContext';
 import { usePreferences } from '@/context/PreferencesContext';
 import { colors, spacing, typography, radii } from '@/theme';
@@ -40,6 +41,8 @@ export default function OnsenDetail() {
   const onsen = id ? (onsenMap.get(id) ?? null) : null;
 
   const { challengeId, visit, loading: visitLoading } = useVisit(id);
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const favorited = id ? isFavorite(id) : false;
 
   // Opens the visit editor. The visit isn't created until the user saves there,
   // so reaching the editor (or tapping the button by accident) records nothing
@@ -105,11 +108,25 @@ export default function OnsenDetail() {
         options={{
           title: onsen.name,
           headerShown: true,
-          // When the in-body preview is off, surface the map action as a compact
-          // header icon instead.
-          headerRight: showOnsenMapPreview
-            ? undefined
-            : () => (
+          // The favorite heart always sits in the header. When the in-body map
+          // preview is off, the map action joins it as a compact icon.
+          headerRight: () => (
+            <View style={styles.headerActions}>
+              <Pressable
+                onPress={() => id && toggleFavorite(id)}
+                hitSlop={spacing[2]}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  favorited ? t('onsenDetail.removeFavorite') : t('onsenDetail.addFavorite')
+                }
+              >
+                <Ionicons
+                  name={favorited ? 'heart' : 'heart-outline'}
+                  size={typography.sizes.xl}
+                  color={favorited ? colors.destructive : colors.actionPrimary}
+                />
+              </Pressable>
+              {!showOnsenMapPreview && (
                 <Pressable
                   onPress={showOnMap}
                   hitSlop={spacing[2]}
@@ -122,7 +139,9 @@ export default function OnsenDetail() {
                     color={colors.actionPrimary}
                   />
                 </Pressable>
-              ),
+              )}
+            </View>
+          ),
         }}
       />
       <ScrollView
@@ -340,6 +359,11 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[4],
   },
   // Floating action button, anchored bottom-right above the home indicator.
   fab: {

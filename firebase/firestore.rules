@@ -67,6 +67,10 @@ service cloud.firestore {
       match /routes/{routeId} {
         allow read, write: if isOwner(userId);
       }
+
+      match /favorites/{onsenId} {
+        allow read, write: if isOwner(userId);
+      }
     }
   }
 }
