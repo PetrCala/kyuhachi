@@ -64,6 +64,13 @@ export interface OnsenDocument {
    */
   nameRomaji: string | null;
   areaName: string;
+  /**
+   * Stable UUID of the coarse tourist region this onsen rolls up into, joining
+   * it to /area_guides/{areaId}. The data repo owns how areaNames group into
+   * regions and assigns the id. null until the data repo publishes it; the app
+   * then shows no area guide for the onsen.
+   */
+  areaId: string | null;
   address: string;
   prefecture: string;
   lat: number;

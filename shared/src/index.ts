@@ -38,6 +38,17 @@ export type { PoiCategory, Poi } from './types/finder';
 
 export { POI_CATEGORIES } from './types/finder';
 
+export type {
+  AreaGuideSectionKind,
+  AreaGuideSection,
+  AreaGuideDocument,
+  AreaGuideMetaDocument,
+  CachedAreaGuide,
+  CachedAreaGuides,
+} from './types/areaGuide';
+
+export { AREA_GUIDE_SECTION_KINDS } from './types/areaGuide';
+
 export type { UserDocument } from './types/user';
 
 export type { Timestamp } from './types/firestore';
@@ -46,4 +57,5 @@ export {
   COLLECTIONS,
   SUBCOLLECTIONS,
   CATALOG_META_DOC_ID,
+  AREA_GUIDES_META_DOC_ID,
 } from './types/firestore';
