@@ -1,5 +1,5 @@
 /**
- * Firestore Timestamp — used as a type alias so both the app
+ * Firestore Timestamp: used as a type alias so both the app
  * (@react-native-firebase Timestamp) and functions (firebase-admin Timestamp)
  * can satisfy it without coupling shared types to either SDK.
  *
@@ -12,7 +12,7 @@ export interface Timestamp {
 	toMillis(): number
 }
 
-/** Firestore collection path constants — avoids string literals scattered in code */
+/** Firestore collection path constants: avoids string literals scattered in code */
 export const COLLECTIONS = {
 	ONSENS: "onsens",
 	CATALOG_META: "catalog_meta",

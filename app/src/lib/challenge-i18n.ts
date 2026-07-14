@@ -8,7 +8,7 @@
  * and keyed by the type id in the i18n catalog (see `app/src/i18n/en.ts`).
  *
  * These helpers overlay the catalog text onto a fetched document, keyed by id,
- * and fall back to whatever Firestore published when a key is missing — so a
+ * and fall back to whatever Firestore published when a key is missing, so a
  * new/unknown type id still renders its (Japanese) Firestore text instead of a
  * raw key until the app ships strings for it. Structured fields pass through
  * untouched; only display strings are swapped.
@@ -32,8 +32,8 @@ export function challengeTypeName(typeId: string, fallback: string, t: TFunction
 }
 
 /**
- * Short picker-tile tagline for `typeId`. Hooks are app-authored only — the
- * Firestore document has no such field — so callers pass the (localized)
+ * Short picker-tile tagline for `typeId`. Hooks are app-authored only (the
+ * Firestore document has no such field), so callers pass the (localized)
  * description as the fallback for a type id the app has no strings for yet.
  */
 export function challengeTypeHook(typeId: string, fallback: string, t: TFunction): string {
@@ -54,7 +54,7 @@ export function localizeTier(typeId: string, tier: Tier, t: TFunction): Tier {
 /**
  * Localized display label for a rank, keyed by rank id, falling back to the
  * canonical Japanese name. Unlike {@link localizeTier} this returns just the
- * string (and leaves the rank's `name` — the kanji — untouched) so a non-JP
+ * string (and leaves the rank's `name`, the kanji, untouched) so a non-JP
  * locale can still surface the kanji alongside its romaji label.
  */
 export function rankLabel(rank: Rank, t: TFunction): string {

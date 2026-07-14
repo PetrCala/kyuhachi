@@ -20,11 +20,11 @@ import Animated, {
 import Svg, { Path } from 'react-native-svg';
 import { colors, typography } from '@/theme';
 
-// Brand wordmark: 九八 (kyuhachi) set in Klee One. Not a translatable string —
+// Brand wordmark: 九八 (kyuhachi) set in Klee One. Not a translatable string:
 // it's the app's visual identity and renders identically in every locale.
 const WORDMARK = '九八';
 
-// SVG drawing geometry (runtime drawing values, not layout spacing) — one
+// SVG drawing geometry (runtime drawing values, not layout spacing): one
 // steam wisp: the gentle S-curve from the ♨ onsen map symbol, stroked with
 // round caps so it reads as vapor, not a line.
 const WISP_W = 14;
@@ -40,7 +40,7 @@ const STEAM_W = 52;
 // Motion: one linear cycle drives all three wisps, each sampling it a third of
 // a revolution apart, so there is always steam mid-rise and the loop can never
 // drift out of phase. A wisp is born low and small, rises while expanding, and
-// fades out just before its rebirth — opacity is zero at both ends of the
+// fades out just before its rebirth; opacity is zero at both ends of the
 // cycle, hiding the wrap-around jump. Exported so Home can hold its loading
 // state open long enough for the steam to register (see
 // MIN_LOADING_VISIBLE_MS in (tabs)/index.tsx).
@@ -92,14 +92,14 @@ interface WordmarkLoaderProps {
 
 /**
  * The 九八 wordmark as a loading treatment: the wordmark is the hot spring,
- * and three parallel steam wisps — upright and evenly spaced, like the ♨
- * onsen-mark's lines — rise from it, expanding and thinning until they
+ * and three parallel steam wisps (upright and evenly spaced, like the ♨
+ * onsen-mark's lines) rise from it, expanding and thinning until they
  * dissipate, on a continuous loop for as long as the screen waits. The steam overlays the
  * space above the text without taking layout, and the type mirrors Home's
  * static wordmark, so resolving into the loaded (or empty) state swaps the
  * animation out without any visual jump.
  *
- * Under Reduce Motion no steam renders — just the resting wordmark, with the
+ * Under Reduce Motion no steam renders: just the resting wordmark, with the
  * accompanying spinner (which iOS keeps) still conveying the waiting.
  */
 export function WordmarkLoader({ style }: WordmarkLoaderProps) {
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     width: STEAM_W,
     height: STEAM_H,
   },
-  // Three identical upright wisps, evenly spaced and parallel — aligned in
+  // Three identical upright wisps, evenly spaced and parallel: aligned in
   // direction like the ♨ glyph's lines; the phase-shifted rise keeps them
   // from ever moving in lockstep.
   wispLeft: {

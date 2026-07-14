@@ -9,8 +9,8 @@ import { evaluateChallenge } from '../util/tier';
  * server-only (Firestore rules forbid the client writing it), and this callable
  * is its sole writer. It re-derives eligibility from the challenge's own visits
  * (never trusting a client-supplied tier) and writes the result only when it
- * strictly outranks what's already claimed. Once written, a tier is permanent —
- * the visit triggers never change it.
+ * strictly outranks what's already claimed. Once written, a tier is permanent.
+ * The visit triggers never change it.
  */
 export const claimTier = onCall(async (request) => {
   const uid = request.auth?.uid;

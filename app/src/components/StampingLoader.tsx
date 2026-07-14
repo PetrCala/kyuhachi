@@ -14,15 +14,15 @@ import Svg, { Path, Polygon, Text as SvgText } from 'react-native-svg';
 import { colors, radii, typography } from '@/theme';
 
 /**
- * One full story beat of the loader: the block drops and presses (0–0.20 of the
- * cycle), rests on the page (0.20–0.42), lifts up and away to the side while
- * fading (0.42–0.64), and the inked impression it revealed holds, then fades
- * (0.64–1). Exported so the save flow can hold its overlay open for exactly one
+ * One full story beat of the loader: the block drops and presses (0 to 0.20 of the
+ * cycle), rests on the page (0.20 to 0.42), lifts up and away to the side while
+ * fading (0.42 to 0.64), and the inked impression it revealed holds, then fades
+ * (0.64 to 1). Exported so the save flow can hold its overlay open for exactly one
  * complete press (see MIN_SAVE_VISIBLE_MS in edit-visit.tsx).
  */
 export const STAMP_PRESS_CYCLE_MS = 1800;
 
-// SVG drawing geometry (runtime drawing values, not layout spacing) — an
+// SVG drawing geometry (runtime drawing values, not layout spacing): an
 // isometric square-prism stamp block, like the commemorative stamp markers at
 // the onsens: rectangle from the side, square from below. The impression is
 // that square base seen in the same perspective, inked in the brand amber.
@@ -53,15 +53,15 @@ interface StampingLoaderProps {
 }
 
 /**
- * The "saving your visit" busy animation: an isometric stamp block — the kind
- * waiting on the counter at each onsen — drops onto the page, presses with a
+ * The "saving your visit" busy animation: an isometric stamp block, the kind
+ * waiting on the counter at each onsen, drops onto the page, presses with a
  * little squash as its contact shadow spreads, then a hand seems to pull it up
  * and away, revealing the amber 九八 impression it leaves behind. The seal
  * holds a beat and fades, and the block returns for the next press.
  *
  * Every layer (block, shadow, impression) reads off one repeating Reanimated
  * progress value through interpolation, so the whole story stays in phase on
- * the UI thread. Under Reduce Motion it falls back to the platform spinner —
+ * the UI thread. Under Reduce Motion it falls back to the platform spinner:
  * the "Saving…" label still conveys the work.
  */
 export function StampingLoader({ color = colors.textInverted }: StampingLoaderProps) {
@@ -92,7 +92,7 @@ export function StampingLoader({ color = colors.textInverted }: StampingLoaderPr
   }, [reduceMotion, progress]);
 
   // The block: at full ink from the first frame, presses down, holds, then
-  // fades only as it lifts up and aside — press and reveal read as one motion,
+  // fades only as it lifts up and aside: press and reveal read as one motion,
   // never a stamp dissolving mid-press. On loop restart it reappears at the
   // hang instantly; the stage is empty then (the impression just faded), so it
   // reads as the next stamp arriving.
@@ -153,7 +153,7 @@ export function StampingLoader({ color = colors.textInverted }: StampingLoaderPr
             strokeWidth={IMP_STROKE}
             strokeLinejoin="round"
           />
-          {/* The brand glyph, not user-facing copy — matches the seal in Stamp.tsx. */}
+          {/* The brand glyph, not user-facing copy; matches the seal in Stamp.tsx. */}
           <SvgText
             x={29}
             y={22.5}

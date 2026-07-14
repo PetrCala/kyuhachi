@@ -9,11 +9,11 @@ const PIN_SIZE = 26;
 const PIN_SIZE_SELECTED = 32;
 
 interface FinderMarkerProps {
-  /** Encounter order (1-based) — shown inside the pin and matching the list row. */
+  /** Encounter order (1-based): shown inside the pin and matching the list row. */
   index: number;
   lat: number;
   lng: number;
-  /** Place name — the native callout title (Apple Maps data, untranslated). */
+  /** Place name: the native callout title (Apple Maps data, untranslated). */
   label: string;
   /** Highlighted (enlarged, accent-coloured) when its list row is selected. */
   selected: boolean;
@@ -24,7 +24,7 @@ interface FinderMarkerProps {
 /**
  * A numbered pin for a finder result. Memoized so the finder screen's re-renders
  * (the zoom slider streams the live altitude per gesture frame) don't re-attach
- * every pin. Custom marker views need a redraw to paint, so — like OnsenMarker —
+ * every pin. Custom marker views need a redraw to paint, so (like OnsenMarker)
  * we pulse `tracksViewChanges` on mount and whenever the badge's look changes
  * (selection), then switch it back off so the pin stays static during pans.
  */

@@ -1,5 +1,5 @@
 const en = {
-  // common (shared error chrome — see src/lib/firebase-errors.ts)
+  // common (shared error chrome: see src/lib/firebase-errors.ts)
   'common.errorTitle': 'Error',
   'common.errorGeneric': 'Something went wrong. Please try again.',
   'common.errorNetwork': 'Network error. Check your connection and try again.',
@@ -94,7 +94,7 @@ const en = {
   // stats (hub + shared)
   'stats.title': 'Stats',
   'stats.empty': 'Start a challenge to see your stats.',
-  'stats.noVisits': 'No visits yet — your stats fill in as you go.',
+  'stats.noVisits': 'No visits yet. Your stats fill in as you go.',
   'stats.coverageFraction': '{{covered}} / {{total}}',
   'stats.coverageNote': 'Based on {{reported}} of {{total}} visits',
   'stats.unit.percent': '{{value}}%',
@@ -198,7 +198,7 @@ const en = {
   'stats.avgPerVisit': 'Avg per visit',
   'stats.pricedNote': '{{priced}} of {{visited}} visited onsens are priced',
   'stats.projectedNote': 'Cheapest way to finish your last {{count}} onsens',
-  'stats.projectedNoneLeft': 'Challenge complete — nothing left to spend',
+  'stats.projectedNoneLeft': 'Challenge complete, nothing left to spend',
   'stats.budgetHeading': 'Budget',
   'stats.byPrefecture': 'Spend by prefecture',
   'stats.byTransport': 'Spend by transport',
@@ -243,7 +243,7 @@ const en = {
   'stats.experience.photoCount_other': '{{count}} photos',
   'stats.experience.empty': 'Add details when you record a visit to see your experience stats.',
 
-  // passport (御湯印帳 — official stamp book; "Spaport" = spa + passport pun)
+  // passport (御湯印帳: official stamp book; "Spaport" = spa + passport pun)
   'passport.title': 'Spaport',
   'passport.progress': '{{visited}} / {{total}}',
   'passport.hint': 'Stamps fill in the order you visit.',
@@ -293,7 +293,7 @@ const en = {
     'Each onsen page shows a tappable map preview. Turn this off to use a compact map button in the top-right corner instead.',
   'preferences.showReadings': 'Show name readings',
   'preferences.showReadingsHint':
-    "Show a reading under each onsen's name — romaji in English, kana in Japanese. Turn this off to show the kanji name on its own.",
+    "Show a reading under each onsen's name: romaji in English, kana in Japanese. Turn this off to show the kanji name on its own.",
   'preferences.mapHeader': 'Map',
   'preferences.nearRouteRadiusTitle': 'Near-route distance (km)',
   'preferences.nearRouteRadiusHint':
@@ -322,7 +322,7 @@ const en = {
   'finder.categoryMichiNoEki': 'Roadside stations',
   'finder.reverse': 'Reverse',
   'finder.reverseHint': 'Searching the other way along the route',
-  'finder.noRouteNote': 'No active route — showing places near you.',
+  'finder.noRouteNote': 'No active route. Showing places near you.',
   'finder.aheadKm': '{{km}} km ahead',
   'finder.awayKm': '{{km}} km away',
   'finder.detourKm': '{{km}} km detour',
@@ -443,7 +443,7 @@ const en = {
   'tierClaim.finaleTitle': 'You did it!',
   'tierClaim.caption': 'This badge is now part of your challenge.',
   'tierClaim.upgradeCaption': 'Your challenge now flies the {{tier}} badge.',
-  'tierClaim.finaleCaption': 'Every tier conquered — the full Kyushu 88.',
+  'tierClaim.finaleCaption': 'Every tier conquered: the full Kyushu 88.',
   'tierClaim.nextHint': 'Next up: {{tier}}',
   'tierClaim.done': 'Done',
   'tierClaim.a11yLabel': 'Tier earned celebration',
@@ -457,7 +457,7 @@ const en = {
   'challengeRank.achieved': 'Achieved',
   'challengeRank.empty': 'Start a challenge to climb the ranks.',
   'challengeRank.intro':
-    'Your rank rises as you collect stamps across more of Kyushu’s prefectures — both the count and the spread matter.',
+    'Your rank rises as you collect stamps across more of Kyushu’s prefectures: both the count and the spread matter.',
   'challengeRank.reqVisits_one': '{{count}} onsen',
   'challengeRank.reqVisits_other': '{{count}} onsens',
   'challengeRank.reqPrefectures_one': '{{count}} prefecture',
@@ -528,7 +528,7 @@ const en = {
     'Reach 44 or more onsens, using a faster mode at most 8 times',
   'challengeType.kyushu-88-walk.name': 'Walking Challenge',
   'challengeType.kyushu-88-walk.description':
-    'Tour the Kyushu 88 hot springs on foot only — the toughest challenge.',
+    'Tour the Kyushu 88 hot springs on foot only, the toughest challenge.',
   'challengeType.kyushu-88-walk.hook': 'Every step on foot',
   'challengeType.kyushu-88-walk.rule':
     'Travel on foot only. Using anything faster costs you the higher tiers.',
@@ -594,7 +594,7 @@ const en = {
   'routes.importingProgress': 'Importing {{done}} of {{total}}…',
   'routes.importSummaryTitle': 'Import complete',
   'routes.importedCount': 'Imported {{count}} of {{total}} routes.',
-  'routes.importSkippedCount': '{{count}} skipped — unsupported file type.',
+  'routes.importSkippedCount': '{{count}} skipped: unsupported file type.',
   'routes.importFailedCount': '{{count}} couldn’t be read.',
 
   // onsen detail (visit)
@@ -689,7 +689,7 @@ const en = {
   'onsenDetail.hideHours': 'Hide weekly hours',
   'onsenDetail.showOriginal': 'Show original text',
   'onsenDetail.hideOriginal': 'Hide original text',
-  'onsenDetail.hoursVary': 'Hours can change seasonally — worth a quick call ahead.',
+  'onsenDetail.hoursVary': 'Hours can change seasonally, worth a quick call ahead.',
   'onsenDetail.today': 'Today',
   'onsenDetail.closedToday': 'Closed today',
   'onsenDetail.dayShort.monday': 'Mon',

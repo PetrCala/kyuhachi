@@ -1,5 +1,5 @@
 /**
- * Progress & pace stats — derived from the eligible-visit count, the challenge
+ * Progress & pace stats: derived from the eligible-visit count, the challenge
  * start date, and the timestamps of eligible visits. Tier and rank progress are
  * NOT recomputed here: the screen reuses `lib/tier-eligibility.ts`, `lib/rank.ts`
  * and the existing ProgressBar / TierCarousel / RankLadder components.
@@ -19,7 +19,7 @@ export interface ProgressInput {
   completedAtMs: number | null;
   /** Ascending epoch-millis timestamps of the eligible visits. */
   eligibleVisitMs: number[];
-  /** "Now", epoch millis — passed in so the module stays pure/deterministic. */
+  /** "Now", epoch millis; passed in so the module stays pure/deterministic. */
   now: number;
 }
 
@@ -28,7 +28,7 @@ export interface ProgressResult {
   target: number;
   /** target − done, clamped ≥ 0. */
   remaining: number;
-  /** 0–100. */
+  /** 0-100. */
   percentComplete: number;
   /** Whole days since the challenge started, clamped ≥ 0. */
   daysElapsed: number;

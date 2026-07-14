@@ -26,7 +26,7 @@ import { firebaseErrorKey } from '@/lib/firebase-errors';
 import { colors, spacing, typography, radii } from '@/theme';
 
 // Canonical Firebase provider id for email/password accounts. Used only to pick
-// the re-authentication path — not user-facing copy, so exempt from the i18n rule.
+// the re-authentication path; not user-facing copy, so exempt from the i18n rule.
 const PASSWORD_PROVIDER_ID = 'password';
 
 // expo-apple-authentication throws this code when the user dismisses the Apple
@@ -83,7 +83,7 @@ export default function DeleteAccount() {
         (error as { code: string }).code === APPLE_CANCEL_CODE
       ) {
         setBusy(false);
-        return; // user backed out of the Apple sheet — not an error
+        return; // user backed out of the Apple sheet; not an error
       }
       Alert.alert(t('deleteAccount.errorTitle'), t(firebaseErrorKey(error)));
       setBusy(false);

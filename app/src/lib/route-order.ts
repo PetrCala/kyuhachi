@@ -2,7 +2,7 @@
  * Ordering rules for the routes list.
  *
  * A route may carry an explicit `sortOrder` (set when the user drag-reorders the
- * list). Routes without one — e.g. a route imported since the last reorder —
+ * list). Routes without one (e.g. a route imported since the last reorder)
  * sort to the top, newest first, matching the import flow's "new route surfaces
  * at the top" behaviour. Kept here as pure functions so the comparator and the
  * write diff can be unit-tested without React or Firestore.
@@ -39,7 +39,7 @@ export function compareRoutes(a: OrderableRoute, b: OrderableRoute): number {
 
 /**
  * Given the user's freshly dropped key order and each route's current
- * `sortOrder`, return only the `{ id, sortOrder }` rows that actually changed —
+ * `sortOrder`, return only the `{ id, sortOrder }` rows that actually changed,
  * so a reorder writes the minimum number of Firestore docs (and a no-op drop
  * writes nothing).
  */

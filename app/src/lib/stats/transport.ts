@@ -1,5 +1,5 @@
 /**
- * Transport stats — the mix of modes used to reach eligible onsens, the
+ * Transport stats: the mix of modes used to reach eligible onsens, the
  * self-powered share, the count of "shortcut" visits (faster than the
  * challenge's baseMode), and a per-prefecture breakdown for stacked bars.
  *
@@ -29,7 +29,7 @@ export interface TransportResult {
   reportedCount: number;
   /** Eligible visits in total (the coverage denominator). */
   totalCount: number;
-  /** Share reached on foot or by bicycle, of reported visits (0–100); null if none reported. */
+  /** Share reached on foot or by bicycle, of reported visits (0-100); null if none reported. */
   selfPoweredPercent: number | null;
   /** Eligible visits reached faster than baseMode (the tier "shortcuts"). */
   shortcutCount: number;

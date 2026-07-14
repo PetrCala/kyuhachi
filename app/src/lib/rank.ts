@@ -3,7 +3,7 @@ import type { Rank } from '@kyuhachi/shared';
 /**
  * Client-side rank derivation for the official 九州八十八湯 progression ladder.
  *
- * A rank is purely derived from current progress — there is no claim and nothing
+ * A rank is purely derived from current progress; there is no claim and nothing
  * persisted (unlike tiers). The user's rank is the highest rung whose thresholds
  * they meet on *both* axes: enough eligible visits AND enough distinct
  * prefectures. Because both thresholds rise monotonically along the ladder,

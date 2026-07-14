@@ -17,8 +17,8 @@ interface OnsenHoursProps {
  * preview sheet, so both render the same parsed schedule the same way.
  *
  * When the hours parsed into a clean weekly grid (`schedule`), it shows today's line
- * with two reveal icons — a list icon that expands the grouped week, and a chevron
- * that reveals the verbatim source text — so the collapsed row stays one line and
+ * with two reveal icons: a list icon that expands the grouped week, and a chevron
+ * that reveals the verbatim source text, so the collapsed row stays one line and
  * each reveal opens beneath it. This is the same reveal-icon vocabulary as `OnsenFee`.
  * Without a clean grid it falls back to the verbatim text. Schedule exceptions and a
  * low-confidence hint render as always-visible captions beneath.
@@ -37,11 +37,11 @@ export function OnsenHours({ hours }: OnsenHoursProps) {
   const dayRange = (days: (keyof WeeklySchedule)[]) =>
     days.length === 1
       ? dayShort(days[0])
-      : `${dayShort(days[0])}–${dayShort(days[days.length - 1])}`;
+      : `${dayShort(days[0])}-${dayShort(days[days.length - 1])}`;
   const todayKey = todayWeekday();
   const todaySlot = schedule ? schedule[todayKey] : null;
   const todayLabel = todaySlot
-    ? `${todaySlot.opens}–${todaySlot.closes}`
+    ? `${todaySlot.opens}-${todaySlot.closes}`
     : t('onsenDetail.closedToday');
 
   return (
@@ -50,7 +50,7 @@ export function OnsenHours({ hours }: OnsenHoursProps) {
       {schedule ? (
         <>
           <View style={styles.hoursTodayRow}>
-            {/* Today's line — label and time — toggles the week, so the whole
+            {/* Today's line (label and time) toggles the week, so the whole
                 opening-times group reads as tappable. */}
             <Pressable
               style={styles.hoursTodayMain}
@@ -104,7 +104,7 @@ export function OnsenHours({ hours }: OnsenHoursProps) {
                     {dayRange(g.days)}
                   </Text>
                   <Text style={[styles.dayValue, isToday && styles.dayToday]} selectable>
-                    {g.slot ? `${g.slot.opens}–${g.slot.closes}` : t('onsenDetail.closed')}
+                    {g.slot ? `${g.slot.opens}-${g.slot.closes}` : t('onsenDetail.closed')}
                   </Text>
                 </View>
               );
@@ -119,7 +119,7 @@ export function OnsenHours({ hours }: OnsenHoursProps) {
         <OnsenInfoRow label={t('onsenDetail.labelHours')} value={hours.raw} />
       )}
 
-      {/* Schedule exceptions / irregularities — always-visible factual notes. */}
+      {/* Schedule exceptions / irregularities: always-visible factual notes. */}
       {exceptions.map((ex, i) => (
         <View key={i} style={styles.hoursExceptionRow}>
           <Ionicons

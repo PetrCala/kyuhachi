@@ -34,7 +34,7 @@ export default function OnsenDetail() {
   const { showOnsenMapPreview, showReadings } = usePreferences();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  // Served from the offline-first catalog store — archived onsens included, so
+  // Served from the offline-first catalog store (archived onsens included), so
   // a visited-then-deprecated onsen still opens.
   const { onsenMap, loading } = useOnsenCatalog();
   const onsen = id ? (onsenMap.get(id) ?? null) : null;
@@ -42,7 +42,7 @@ export default function OnsenDetail() {
   const { challengeId, visit, loading: visitLoading } = useVisit(id);
 
   // Opens the visit editor. The visit isn't created until the user saves there,
-  // so reaching the editor — or tapping the button by accident — records nothing
+  // so reaching the editor (or tapping the button by accident) records nothing
   // on its own.
   function openVisitEditor() {
     if (!id) return;
@@ -91,7 +91,7 @@ export default function OnsenDetail() {
     : null;
 
   const showVisitButton = !!challengeId && !visit && !visitLoading;
-  // Reading shown under the kanji — romaji in a non-JP UI, kana in Japanese.
+  // Reading shown under the kanji: romaji in a non-JP UI, kana in Japanese.
   const reading = onsenReading({
     nameRomaji: onsen.nameRomaji,
     nameKana: onsen.nameKana,

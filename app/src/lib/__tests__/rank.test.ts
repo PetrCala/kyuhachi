@@ -6,7 +6,7 @@ import {
 } from '@/lib/rank';
 import type { Rank } from '@kyuhachi/shared';
 
-// A trimmed slice of the official ladder — enough to exercise both axes and the
+// A trimmed slice of the official ladder: enough to exercise both axes and the
 // monotonic-prefix behaviour. Ordered worst → best.
 const RANKS: Rank[] = [
   { id: 'minarai', name: '見習い', minVisits: 8, minPrefectures: 0 },

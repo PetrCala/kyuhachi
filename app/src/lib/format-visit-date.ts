@@ -2,7 +2,7 @@
  * Short, social-feed-style timestamp for a visit: today / yesterday / "Nd ago"
  * within the last week, then a locale-formatted calendar date. Calendar-based
  * (not 24h-based), so "yesterday" means the previous date regardless of clock
- * time. No date library — the repo intentionally has none.
+ * time. No date library: the repo intentionally has none.
  */
 import type { TFunction } from 'i18next';
 

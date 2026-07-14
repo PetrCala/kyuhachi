@@ -24,7 +24,7 @@ type OnsenInfo = Pick<
 /**
  * Eligible onsens for the active challenge that the user hasn't visited yet,
  * joined with their display info. Eligible ids missing from `onsenInfo` (their
- * catalog doc hasn't loaded) are skipped — they reappear once the data arrives.
+ * catalog doc hasn't loaded) are skipped; they reappear once the data arrives.
  */
 export function buildNextCandidates(
   eligibleOnsenIds: string[],

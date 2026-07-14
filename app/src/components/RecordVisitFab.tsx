@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import OnsenIcon from './OnsenIcon';
 import { colors, radii, spacing, shadows } from '@/theme';
 
-// Fixed FAB geometry — dimensions and rim-anchored badge offset, not part of the
+// Fixed FAB geometry: dimensions and rim-anchored badge offset, not part of the
 // spacing scale. The negative offset nudges the badge onto the circle's edge so
 // it overhangs the top-right corner like a notification badge.
 const FAB_SIZE = 56;
@@ -14,7 +14,7 @@ const BADGE_OFFSET = -3;
 
 interface RecordVisitFabProps {
   onPress: () => void;
-  /** Spoken label — there is no visible text on the button. */
+  /** Spoken label; there is no visible text on the button. */
   accessibilityLabel: string;
   /** Positioning supplied by the host screen (absolute placement). */
   style?: StyleProp<ViewStyle>;
@@ -22,7 +22,7 @@ interface RecordVisitFabProps {
 
 /**
  * Floating action button for recording an onsen visit. The hot-spring glyph (♨)
- * says "onsen"; the amber "+" badge says "add". No text — the icon pair carries
+ * says "onsen"; the amber "+" badge says "add". No text: the icon pair carries
  * the meaning. The host screen owns placement via `style`.
  */
 export default function RecordVisitFab({ onPress, accessibilityLabel, style }: RecordVisitFabProps) {

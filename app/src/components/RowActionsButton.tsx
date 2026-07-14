@@ -5,16 +5,16 @@ import { colors, spacing } from '@/theme';
 
 export type { RowAction };
 
-// Fixed glyph size for the ⋯ trigger — a tap-target dimension, not part of the
+// Fixed glyph size for the ⋯ trigger: a tap-target dimension, not part of the
 // type scale (mirrors the geometry constants in RecordVisitFab).
 const ICON_SIZE = 22;
 
 interface RowActionsButtonProps {
-  /** Spoken label for the ⋯ trigger — there is no visible text. */
+  /** Spoken label for the ⋯ trigger; there is no visible text. */
   accessibilityLabel: string;
   /** Cancel row label (also what tapping the backdrop maps to). */
   cancelLabel: string;
-  /** Optional sheet heading — typically the row's (untranslated) name. */
+  /** Optional sheet heading: typically the row's (untranslated) name. */
   title?: string;
   actions: RowAction[];
 }
@@ -24,7 +24,7 @@ interface RowActionsButtonProps {
  * (rename / delete / …). It is only the trigger: tapping it hands the actions to
  * the app-level {@link RowActionsSheetProvider}, which owns the single shared
  * sheet. The sheet must cover the whole screen, so it cannot live inside the
- * list row this button sits in — see that provider for why it is hosted at the
+ * list row this button sits in; see that provider for why it is hosted at the
  * root and why we avoid the portal-based `BottomSheetModal`.
  */
 export default function RowActionsButton({

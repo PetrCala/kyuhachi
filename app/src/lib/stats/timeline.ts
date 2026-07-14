@@ -1,5 +1,5 @@
 /**
- * Timeline stats — cumulative growth, calendar breakdowns, streaks and gaps.
+ * Timeline stats: cumulative growth, calendar breakdowns, streaks and gaps.
  *
  * Calendar bucketing (which day/month/season a visit lands in) is timezone
  * dependent, so the date→parts function is injected (`toParts`, device-local by
@@ -12,7 +12,7 @@ const DAY_MS = 86_400_000;
 
 export interface DateParts {
   year: number;
-  /** 1–12. */
+  /** 1-12. */
   month: number;
   /** 0 = Sunday … 6 = Saturday. */
   dayOfWeek: number;
@@ -67,7 +67,7 @@ export interface TimelineResult {
   latestVisitMs: number | null;
 }
 
-/** Month (1–12) → season index: spring 0 (Mar–May), summer 1, autumn 2, winter 3. */
+/** Month (1-12) → season index: spring 0 (Mar-May), summer 1, autumn 2, winter 3. */
 function seasonIndex(month: number): number {
   if (month >= 3 && month <= 5) return 0;
   if (month >= 6 && month <= 8) return 1;
@@ -79,7 +79,7 @@ export function computeTimeline(
   entries: VisitEntry[],
   toParts: (ms: number) => DateParts = localDateParts
 ): TimelineResult {
-  // Purely temporal — needs only timestamps, so it counts every eligible visit
+  // Purely temporal: needs only timestamps, so it counts every eligible visit
   // (no onsen-info load required, unlike geography/transport).
   const visited = entries.filter((e) => e.eligible);
   const empty: TimelineResult = {

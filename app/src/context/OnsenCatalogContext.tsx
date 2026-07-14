@@ -23,17 +23,17 @@ import { db } from '@/firebase';
 import { loadStoredCatalog, sortCatalog, storeCatalog, toCachedOnsen } from '@/lib/catalog-store';
 
 interface OnsenCatalogContextValue {
-  /** Every onsen ever published — active and archived — in areaName/name order. */
+  /** Every onsen ever published (active and archived), in areaName/name order. */
   onsens: CachedOnsen[];
   /** The same onsens keyed by kyuhachiId, for single-onsen lookups. */
   onsenMap: Map<string, CachedOnsen>;
-  /** Just the active (non-deprecated) onsens — what browse surfaces show. */
+  /** Just the active (non-deprecated) onsens: what browse surfaces show. */
   activeOnsens: CachedOnsen[];
   /** The catalog version currently served, or null before any catalog exists. */
   version: number | null;
   /**
    * True until the device-local store has been read and, when it was empty
-   * (first launch), the first sync attempt has settled — so screens show a
+   * (first launch), the first sync attempt has settled; so screens show a
    * spinner on a cold first load but never block on the network when a cached
    * catalog exists.
    */
@@ -50,8 +50,8 @@ const OnsenCatalogContext = createContext<OnsenCatalogContextValue>({
 
 /**
  * The single source of catalog data for the app: a device-local, versioned
- * snapshot of /onsens so the full catalog — names, readings, addresses, hours,
- * fees, coordinates — is readable with no network at all, not just when
+ * snapshot of /onsens so the full catalog (names, readings, addresses, hours,
+ * fees, coordinates) is readable with no network at all, not just when
  * Firestore's incidental query cache happens to hold it.
  *
  * On mount the last stored snapshot is served immediately. A live listener on
@@ -68,9 +68,9 @@ const OnsenCatalogContext = createContext<OnsenCatalogContextValue>({
  * photo that never made it.
  *
  * Frozen-challenge-snapshot invariant: this cache is display data only. It is
- * never consulted when a challenge is created — `snapshotCatalogVersion` still
+ * never consulted when a challenge is created: `snapshotCatalogVersion` still
  * comes from a direct /catalog_meta read and the eligible pool from
- * /challenge_types — so the cache cannot change which catalog version a
+ * /challenge_types: so the cache cannot change which catalog version a
  * challenge is pinned to.
  */
 export function OnsenCatalogProvider({ children }: { children: ReactNode }) {
@@ -108,7 +108,7 @@ export function OnsenCatalogProvider({ children }: { children: ReactNode }) {
 
   // Replace the local catalog with the server's, stamped as `targetVersion`
   // (the version that announced it). If a publish lands mid-fetch, the meta
-  // listener fires again and re-syncs — no need to re-read the meta doc here.
+  // listener fires again and re-syncs; no need to re-read the meta doc here.
   const sync = useCallback(async (targetVersion: number) => {
     if (syncingRef.current) return;
     syncingRef.current = true;
@@ -119,7 +119,7 @@ export function OnsenCatalogProvider({ children }: { children: ReactNode }) {
           toCachedOnsen(d.id, d.data() as OnsenDocument)
         )
       );
-      // An empty read would wipe a good cache — keep what we have. (The
+      // An empty read would wipe a good cache; keep what we have. (The
       // catalog is never empty once published; this guards a half-seeded
       // emulator or a botched publish.)
       if (fetched.length > 0) {
@@ -129,7 +129,7 @@ export function OnsenCatalogProvider({ children }: { children: ReactNode }) {
         void storeCatalog({ version: targetVersion, fetchedAt: Date.now(), onsens: fetched });
       }
     } catch {
-      // Offline or transient — the meta listener re-fires on reconnect (it
+      // Offline or transient: the meta listener re-fires on reconnect (it
       // includes metadata changes), which retries this sync.
     } finally {
       syncingRef.current = false;
@@ -148,7 +148,7 @@ export function OnsenCatalogProvider({ children }: { children: ReactNode }) {
       (snapshot: FirebaseFirestoreTypes.DocumentSnapshot) => {
         const meta = snapshot.exists() ? (snapshot.data() as CatalogMetaDocument) : null;
         if (!meta || meta.version <= versionRef.current) {
-          // Nothing newer published (or no meta doc yet) — we are as fresh as
+          // Nothing newer published (or no meta doc yet); we are as fresh as
           // we can be, so a first launch stops showing its spinner.
           setSyncSettled(true);
           return;
@@ -164,7 +164,7 @@ export function OnsenCatalogProvider({ children }: { children: ReactNode }) {
   // version per launch: after the first sync, after each version bump, and on
   // launches from an existing cache (re-fetching anything the image cache
   // evicted). Already-cached URLs are skipped by the prefetcher, so the warm
-  // path costs nothing. Fire-and-forget by design — a photo that never lands
+  // path costs nothing. Fire-and-forget by design: a photo that never lands
   // falls back to its blurhash placeholder.
   useEffect(() => {
     if (version === null || onsens.length === 0) return;

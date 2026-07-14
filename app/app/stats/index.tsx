@@ -71,12 +71,12 @@ export default function StatsHub() {
       ? formatMonthYear(progress.projectedCompletionMs, i18n.language)
       : progress?.isComplete
         ? t('stats.highlight.complete')
-        : '—';
+        : '-';
 
-  // Rank highlight: the derived ladder standing. "—" when the challenge type
+  // Rank highlight: the derived ladder standing. Shows "-" when the challenge type
   // publishes no ranks; "Unranked" when ranks exist but none reached yet.
   const rankValue =
-    ranks.length === 0 ? '—' : currentRank ? rankLabel(currentRank, t) : t('challengeRank.unranked');
+    ranks.length === 0 ? '-' : currentRank ? rankLabel(currentRank, t) : t('challengeRank.unranked');
 
   return (
     <StatScreenFrame
@@ -99,7 +99,7 @@ export default function StatsHub() {
           </MetricRow>
           <MetricRow>
             <StatCard label={t('stats.highlight.rank')} value={rankValue} />
-            <StatCard label={t('stats.highlight.topRated')} value={experience?.best?.name ?? '—'} />
+            <StatCard label={t('stats.highlight.topRated')} value={experience?.best?.name ?? '-'} />
           </MetricRow>
         </View>
       </Section>
@@ -109,7 +109,7 @@ export default function StatsHub() {
           icon="speedometer-outline"
           title={t('stats.progress.title')}
           subtitle={t('stats.progress.subtitle')}
-          teaser={progress ? formatPercent(progress.percentComplete, t) : '—'}
+          teaser={progress ? formatPercent(progress.percentComplete, t) : '-'}
           route="/stats/progress"
         />
         <HubCard
@@ -133,21 +133,21 @@ export default function StatsHub() {
           icon="bicycle-outline"
           title={t('stats.transport.title')}
           subtitle={t('stats.transport.subtitle')}
-          teaser={dominantMode ? t(`stats.transport.${dominantMode.key}`) : '—'}
+          teaser={dominantMode ? t(`stats.transport.${dominantMode.key}`) : '-'}
           route="/stats/transport"
         />
         <HubCard
           icon="cash-outline"
           title={t('stats.budget.title')}
           subtitle={t('stats.budget.subtitle')}
-          teaser={budget ? formatYen(budget.spentSoFar) : '—'}
+          teaser={budget ? formatYen(budget.spentSoFar) : '-'}
           route="/stats/budget"
         />
         <HubCard
           icon="star-outline"
           title={t('stats.experience.title')}
           subtitle={t('stats.experience.subtitle')}
-          teaser={experience?.overall.avg != null ? round1(experience.overall.avg) : '—'}
+          teaser={experience?.overall.avg != null ? round1(experience.overall.avg) : '-'}
           route="/stats/experience"
           last
         />

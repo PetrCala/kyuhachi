@@ -6,7 +6,7 @@ import { colors, typography } from '@/theme';
 
 const GLYPH = require('../../assets/onsen-symbol.png');
 
-// The "88" of 九州八十八湯, struck into the medal. Not translatable copy — it's
+// The "88" of 九州八十八湯, struck into the medal. Not translatable copy: it's
 // part of the challenge's visual identity (like the 九八 home wordmark).
 const BADGE_NUMERALS = '88';
 
@@ -77,11 +77,11 @@ interface ChallengeBadgeProps {
 /**
  * The earned-challenge medal: a struck-metal tier medallion (♨ + 88, the Kyushu
  * identity) with the challenge's transport emblem hung off the lower rim. Three
- * composable layers — base medallion (tier), transport pin — so the same
+ * composable layers (base medallion tier, transport pin), so the same
  * component renders any tier × transport. Until the illustrated PNGs land it
  * draws a theme-driven vector placeholder; see the swap point above.
  *
- * For the small tier dots on the progress track, use the plain TierBadge — a
+ * For the small tier dots on the progress track, use the plain TierBadge: a
  * full medallion is unreadable at ~20pt.
  */
 export function ChallengeBadge({

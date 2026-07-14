@@ -11,12 +11,12 @@ import { colors } from '@/theme';
 // The driver uses the JS driver (useNativeDriver: false). Confetti renders
 // inside TierClaimModal's <Modal>, and under the New Architecture the native
 // animation driver doesn't reliably bind to views inside a Modal's detached
-// surface — native-driven, the pieces never animated. See StampClaimModal for
+// surface; native-driven, the pieces never animated. See StampClaimModal for
 // the same constraint.
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// The three tier metals plus the brand amber — a Kyushu-88 confetti palette.
+// The three tier metals plus the brand amber: a Kyushu-88 confetti palette.
 const CONFETTI_COLORS = [
   colors.tierGold,
   colors.tierSilver,
@@ -33,7 +33,7 @@ interface Piece {
   leftPct: number; // horizontal start, fraction of screen width
   color: string;
   size: number; // longer edge in px (pieces are thin rectangles)
-  delay: number; // 0..MAX_STAGGER — fraction of the driver before this piece falls
+  delay: number; // 0..MAX_STAGGER, fraction of the driver before this piece falls
   drift: number; // horizontal px travel during the fall
   spins: number; // full rotations during the fall
   fall: number; // vertical px travel

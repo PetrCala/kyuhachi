@@ -36,13 +36,13 @@ async function fireHaptic() {
   try {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   } catch {
-    // Haptics are unavailable on some devices/simulators — non-fatal.
+    // Haptics are unavailable on some devices/simulators; non-fatal.
   }
 }
 
 /**
  * A lightweight top banner announcing a new rank. It slides in, fires a soft
- * haptic, lingers a few seconds, then slides away — non-blocking, unlike the
+ * haptic, lingers a few seconds, then slides away, non-blocking unlike the
  * full-screen tier celebration. Tapping it opens the rank ladder. Honors Reduce
  * Motion by fading without the slide.
  */

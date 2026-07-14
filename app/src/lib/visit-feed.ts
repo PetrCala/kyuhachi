@@ -1,8 +1,8 @@
 /**
  * Shape and selector for the visits feed (home preview + the All-visits screen).
  *
- * Both surfaces read from `useActiveChallengeProgress` — the visits Map and the
- * eligible-onsen display Map are already subscribed there — so this just joins
+ * Both surfaces read from `useActiveChallengeProgress`, where the visits Map and
+ * the eligible-onsen display Map are already subscribed, so this just joins
  * the two and sorts. No Firestore access of its own.
  */
 import type { VisitDocument } from '@kyuhachi/shared';
@@ -23,7 +23,7 @@ export interface VisitFeedItem {
 /**
  * Join each visit with its onsen display info and sort newest-first by
  * `visitedAt`. A visit whose onsen isn't in `onsenMap` yet (display data still
- * loading) falls back to the raw id and empty location — same graceful fallback
+ * loading) falls back to the raw id and empty location, same graceful fallback
  * the eligible-onsen `rows` use.
  */
 export function buildVisitFeed(

@@ -14,7 +14,7 @@ function transport(
 }
 
 describe('computeBudget', () => {
-  // Eligible pool of 5; the user has visited 4 onsens — one of which ('z') is
+  // Eligible pool of 5; the user has visited 4 onsens, one of which ('z') is
   // NOT eligible (it must be ignored) and one eligible visit ('d') has no fee.
   const base = {
     eligibleOnsenIds: ['a', 'b', 'c', 'd', 'e'],
@@ -32,7 +32,7 @@ describe('computeBudget', () => {
 
   it('sums fees only over unique eligible, priced visits', () => {
     const r = computeBudget(base);
-    expect(r.eligibleVisitedCount).toBe(3); // a, b, d — 'z' is not eligible
+    expect(r.eligibleVisitedCount).toBe(3); // a, b, d: 'z' is not eligible
     expect(r.pricedVisitedCount).toBe(2); // d has a null fee
     expect(r.spentSoFar).toBe(800); // 500 + 300
     expect(r.avgPerVisit).toBe(400); // 800 / 2 priced

@@ -103,11 +103,11 @@ const OnsenListRow = memo(function OnsenListRow({
  * The shared onsen list used by the Onsens browse tab and the record-a-visit
  * checklist. A search box over a SectionList:
  *
- *  1. "Near you" — onsens within ~20km of the user (visited and unvisited),
+ *  1. "Near you": onsens within ~20km of the user (visited and unvisited),
  *     nearest first, each row showing its distance. Hidden when there's no
  *     location fix. Its onsens are pulled out of the prefecture blocks below so
  *     they don't appear twice.
- *  2. Unvisited prefectures, then visited prefectures — so a visited onsen never
+ *  2. Unvisited prefectures, then visited prefectures, so a visited onsen never
  *     sits above an unvisited one. Headers show the prefecture's visited/total.
  *
  * Grouping by prefecture (not the finer area) keeps the number of sticky headers

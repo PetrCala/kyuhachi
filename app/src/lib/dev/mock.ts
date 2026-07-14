@@ -2,7 +2,7 @@
  * Developer-only mock-data generators.
  *
  * These write the signed-in user's OWN documents (challenges, visits, routes)
- * straight from the client — exactly what the real screens do, and exactly what
+ * straight from the client: exactly what the real screens do, and exactly what
  * the Firestore rules already permit (`isOwner(userId)`). No admin Function and
  * no rules bypass is involved, so this stays in sync with production write paths
  * by construction.
@@ -51,7 +51,7 @@ export interface CreateMockChallengeOptions {
 // Center of the default Kyushu map region (mirrors KYUSHU_CENTER in dev-location.ts).
 const KYUSHU_CENTER = { lat: 32.8, lng: 130.7 };
 
-/** Fisher–Yates shuffle of a copy, then take the first `n`. */
+/** Fisher-Yates shuffle of a copy, then take the first `n`. */
 function pickN(ids: string[], n: number): string[] {
   const copy = [...ids];
   for (let i = copy.length - 1; i > 0; i--) {
@@ -138,7 +138,7 @@ export async function createMockChallenge(opts: CreateMockChallengeOptions): Pro
 
   const catalogVersion = await resolveCatalogVersion();
 
-  // Resolve the current default so we can demote it when making this active —
+  // Resolve the current default so we can demote it when making this active:
   // the single-isDefault invariant the rest of the app relies on. Skip a
   // dangling pointer (deleted challenge), which would fail the batch.
   let previousDefaultRef: FirebaseFirestoreTypes.DocumentReference | null = null;
@@ -193,7 +193,7 @@ export async function createMockChallenge(opts: CreateMockChallengeOptions): Pro
   // set+merge (not update) so creation still works before onUserCreated lands.
   if (makeActive) batch.set(userRef, { defaultChallengeId: challengeRef.id }, { merge: true });
 
-  // Not awaited — the promise resolves only on the backend's acknowledgment, so
+  // Not awaited: the promise resolves only on the backend's acknowledgment, so
   // awaiting would hang the dev screen's busy state forever offline (same
   // rationale as challenge/preview.tsx). The batch applies to the local cache
   // instantly, and the id is client-generated, so it's valid right away.

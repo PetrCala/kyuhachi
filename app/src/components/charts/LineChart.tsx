@@ -100,7 +100,7 @@ export function LineChart({
 
     // X ticks: evenly spaced across the time range. Use the largest count (fit to
     // the width) whose labels are all distinct, so they stay evenly spread instead
-    // of collapsing toward one end — a short span just falls back to fewer ticks.
+    // of collapsing toward one end: a short span just falls back to fewer ticks.
     const xTicks: XTick[] = [];
     if (xTickFormat) {
       const project = (v: number) => scale(v, minX, maxX, plotLeft, plotRight);

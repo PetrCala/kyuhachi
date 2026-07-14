@@ -6,7 +6,7 @@ export interface LocalizedText {
 }
 
 export interface ParsedHours {
-  /** Raw string from 88onsen.com — the canonical fallback / "original text" */
+  /** Raw string from 88onsen.com, the canonical fallback / "original text" */
   raw: string;
   /** Structured base weekly schedule, or null when the hours can't be a clean grid */
   schedule: WeeklySchedule | null;
@@ -50,16 +50,16 @@ export interface OnsenDocument {
    * which is effectively arbitrary to a reader. Must be normalized to hiragana
    * (hiragana is laid out in gojūon order in Unicode, so a plain code-point sort
    * is correct and needs no locale collation). null until the catalog publishes
-   * it, or when the analyzer produces no reading — the app falls back to `name`.
+   * it, or when the analyzer produces no reading; the app falls back to `name`.
    */
   nameKana: string | null;
   /**
    * Hepburn romanization (rōmaji) of `name`, derived by the data-repo pipeline
    * from the same reading as `nameKana`. A pronunciation aid: the app shows it
    * beneath the kanji name for users whose UI language is not Japanese, so a
-   * non-Japanese reader can pronounce and search the onsen. Never a translation
-   * — the kanji `name` is always the primary display. null until the catalog
-   * publishes it, or when the analyzer produces no reading — the app then shows
+   * non-Japanese reader can pronounce and search the onsen. Never a translation:
+   * the kanji `name` is always the primary display. null until the catalog
+   * publishes it, or when the analyzer produces no reading; the app then shows
    * the kanji alone.
    */
   nameRomaji: string | null;
@@ -119,7 +119,7 @@ export type CachedOnsen = Omit<OnsenDocument, 'createdAt' | 'updatedAt'> & {
  * single JSON blob. `version` mirrors /catalog_meta/current.version at fetch
  * time and is the sole freshness signal: the cache is replaced whole when the
  * published version moves past it, never patched incrementally. Includes every
- * onsen ever published — active and archived — since challenge snapshots can
+ * onsen ever published (active and archived) since challenge snapshots can
  * reference onsens that were later deprecated.
  */
 export interface CachedCatalog {

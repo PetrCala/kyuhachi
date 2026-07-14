@@ -22,7 +22,7 @@ const CELL_GAP = spacing[3];
 
 interface StampEntry {
   onsenId: string;
-  /** visitedAt in ms — the fill order. */
+  /** visitedAt in ms: the fill order. */
   ms: number;
   prefecture: string;
   areaName: string;
@@ -83,7 +83,7 @@ export default function Passport() {
   // Before that, the indicator tracks the page the book opened on (the latest stamp).
   const [scrolledPage, setScrolledPage] = useState<number | null>(null);
 
-  // Eligible visits in visit order — the sequence the book fills in.
+  // Eligible visits in visit order: the sequence the book fills in.
   const stamped = useMemo<StampEntry[]>(() => {
     if (!challenge) return [];
     const eligible = new Set(challenge.snapshotEligibleOnsenIds);
@@ -109,7 +109,7 @@ export default function Passport() {
   const pages = pageCount(totalSlots);
   const stampSize = Math.floor((width - PAGE_H_PAD * 2 - CELL_GAP * (GRID_COLS - 1)) / GRID_COLS);
 
-  // The page holding the most recent stamp — the book opens here. Latched on the
+  // The page holding the most recent stamp: the book opens here. Latched on the
   // first render with data so a later live visit snapshot can't yank the user off
   // the page they paged to. Stays 0 for an empty book (no stamps yet).
   const openPageRef = useRef<number | null>(null);

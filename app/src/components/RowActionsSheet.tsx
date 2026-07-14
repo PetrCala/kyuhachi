@@ -25,7 +25,7 @@ export interface RowAction {
 }
 
 export interface RowActionsConfig {
-  /** Optional sheet heading — typically the row's (untranslated) name. */
+  /** Optional sheet heading: typically the row's (untranslated) name. */
   title?: string;
   /** Cancel row label (also what tapping the backdrop maps to). */
   cancelLabel: string;
@@ -55,13 +55,13 @@ export function useRowActionsSheet(): RowActionsSheetContextValue {
 /**
  * Hosts a single inline `@gorhom/bottom-sheet` `BottomSheet` at the app root and
  * exposes `open(config)` via context. A ⋯ trigger ({@link RowActionsButton})
- * lives inside a list row, but the sheet itself must cover the whole screen — so
+ * lives inside a list row, but the sheet itself must cover the whole screen, so
  * it is mounted here, at the root, where its container is full-size.
  *
  * We deliberately do NOT use the portal-based `BottomSheetModal`: its
  * `@gorhom/portal` host does not render on React Native's New Architecture
  * (`present()` runs but nothing mounts), and it additionally requires a
- * `BottomSheetModalProvider` ancestor — without one it throws
+ * `BottomSheetModalProvider` ancestor: without one it throws
  * `'BottomSheetModalInternalContext' cannot be null!` on render. The inline
  * sheet (the same approach as `OnsenPreviewSheet`) renders fine on New Arch.
  *
@@ -70,7 +70,7 @@ export function useRowActionsSheet(): RowActionsSheetContextValue {
  * swipe, and the cancel row all dismiss it. A chosen item's `onPress` runs
  * *after* the sheet finishes dismissing, so any surface the action drives (an
  * alert, a navigation) appears over a settled UI rather than fighting the
- * slide-down — mirroring the native iOS action sheet.
+ * slide-down, mirroring the native iOS action sheet.
  */
 export function RowActionsSheetProvider({ children }: { children: ReactNode }) {
   const insets = useSafeAreaInsets();
@@ -100,7 +100,7 @@ export function RowActionsSheetProvider({ children }: { children: ReactNode }) {
     sheetRef.current?.close();
   }, []);
 
-  // Any close — swipe, backdrop, cancel, or a chosen action — clears the config
+  // Any close (swipe, backdrop, cancel, or a chosen action) clears the config
   // and then runs the pending action (null for a plain dismissal) over the
   // now-settled UI.
   const handleClose = useCallback(() => {
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
   optionTextDestructive: {
     color: colors.destructive,
   },
-  // Grouped-list gap separating the actions from the cancel affordance — the
+  // Grouped-list gap separating the actions from the cancel affordance: the
   // single-surface stand-in for the iOS action sheet's two stacked cards.
   groupGap: {
     height: spacing[2],

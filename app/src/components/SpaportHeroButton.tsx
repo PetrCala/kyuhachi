@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { colors, spacing, typography, radii } from '@/theme';
 
 /**
- * Compact Spaport entry point for the progress hero's top-right corner — a small
+ * Compact Spaport entry point for the progress hero's top-right corner: a small
  * text pill, level with the X / 88 headline, that opens the full passport. The
  * label is the Spaport name itself ("Spaport" / 御湯印帳), so it reads as a
  * wordmark-style shortcut rather than a generic button.

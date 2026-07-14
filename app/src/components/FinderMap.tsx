@@ -14,11 +14,11 @@ import { colors, spacing, radii, shadows } from '@/theme';
 const COLLAPSED_HEIGHT = 180;
 const FALLBACK_DELTA = 0.08;
 const CORNER_BUTTON = 36;
-// Metres per degree of latitude — seeds the zoom slider before the map reports a camera.
+// Metres per degree of latitude: seeds the zoom slider before the map reports a camera.
 const INITIAL_ALTITUDE = FALLBACK_DELTA * 111_000;
 
 // Selecting a result flies the map in to it, like the onsen page's "Show on map".
-// Same 0.85 log-scale fraction as the onsen page's FOCUS_ONSEN_ALTITUDE — a strongly
+// Same 0.85 log-scale fraction as the onsen page's FOCUS_ONSEN_ALTITUDE: a strongly
 // zoomed-in, neighborhood-level view of the focused facility.
 const FOCUS_ZOOM_FRACTION = 0.85;
 const FOCUS_ALTITUDE = Math.exp(
@@ -124,7 +124,7 @@ export default function FinderMap({
   }, [markers, userCoord.lat, userCoord.lng]);
 
   // Fly in to the selected pin (zoom + recentre), like the onsen "Show on map" flow.
-  // The card stays at its collapsed size — selecting never enlarges the map.
+  // The card stays at its collapsed size; selecting never enlarges the map.
   useEffect(() => {
     if (!selectedKey) return;
     const m = markers.find((x) => x.key === selectedKey);
@@ -140,13 +140,13 @@ export default function FinderMap({
       const camera = await mapRef.current?.getCamera();
       if (camera?.altitude !== undefined) setAltitude(camera.altitude);
     } catch {
-      // Map gone or camera unavailable — keep the last known altitude.
+      // Map gone or camera unavailable: keep the last known altitude.
     }
   }, []);
 
   // Recentre the (expanded) map on the user, like the main map's locate button.
   // `userCoord` is already the live (or dev-simulated) location, so this just
-  // frames it at a city-level zoom — no permission prompt needed here.
+  // frames it at a city-level zoom; no permission prompt needed here.
   const handleRecenter = useCallback(() => {
     mapRef.current?.animateToRegion({
       latitude: userCoord.lat,
@@ -223,7 +223,7 @@ export default function FinderMap({
       {expanded && (
         <>
           {/* Full-height right-edge column so the zoom slider centers vertically,
-              and a locate button bottom-right — matching the main map screen. */}
+              and a locate button bottom-right, matching the main map screen. */}
           <View style={styles.zoomControlWrap} pointerEvents="box-none">
             <MapZoomControl
               mapRef={mapRef}

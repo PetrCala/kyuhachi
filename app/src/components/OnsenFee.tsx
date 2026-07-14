@@ -7,7 +7,7 @@ import { OnsenInfoRow } from '@/components/OnsenInfoRow';
 import { colors, spacing, typography } from '@/theme';
 
 interface OnsenFeeProps {
-  /** Raw admission-fee text from 88onsen.com — the "original" breakdown / fallback. */
+  /** Raw admission-fee text from 88onsen.com: the "original" breakdown / fallback. */
   admissionFee: string | null;
   /** Parsed adult weekday walk-in fee in yen, or null when no individual fee parsed. */
   adultFee: number | null;
@@ -19,7 +19,7 @@ interface OnsenFeeProps {
  *
  * When a single adult fee parsed out (`adultFee`), it shows that one clean figure
  * with a chevron that reveals the verbatim source text (other rates, weekend/holiday
- * pricing) on demand — the same reveal-icon vocabulary as `OnsenHours`, so the
+ * pricing) on demand: the same reveal-icon vocabulary as `OnsenHours`, so the
  * collapsed row stays one line. Without a parsed fee it falls back to the verbatim
  * text, exactly like `OnsenHours` falls back to its raw string.
  */

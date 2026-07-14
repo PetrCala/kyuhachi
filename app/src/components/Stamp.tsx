@@ -2,17 +2,17 @@ import { View, Text, StyleSheet } from 'react-native';
 import { colors, spacing, typography, radii } from '@/theme';
 import { formatStampDate } from '@/lib/passport';
 
-// The seal's bottom line is the app's own 九八 mark, set in Klee One — our brand,
+// The seal's bottom line is the app's own 九八 mark, set in Klee One: our brand,
 // not the official 「九州温泉道」. Like the home wordmark it is part of the visual
 // identity and renders identically in every locale, so it is not translated.
 const SEAL_BRAND = '九八';
 
 interface StampProps {
-  /** Prefecture (県名) — top line of the seal. */
+  /** Prefecture (県名): top line of the seal. */
   prefecture: string;
-  /** Onsen area (温泉地) — small line above the facility name. */
+  /** Onsen area (温泉地): small line above the facility name. */
   areaName: string;
-  /** Facility name (施設名) — the hero line. */
+  /** Facility name (施設名): the hero line. */
   name: string;
   /** The visit date, inked beneath the seal. */
   date: Date;

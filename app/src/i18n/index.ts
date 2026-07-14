@@ -9,7 +9,7 @@ export const SUPPORTED_LANGUAGES = ['en', 'ja'] as const;
 export type AppLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 
 // Each language is shown in its own script (endonym), like iOS Settings.
-// These are intentionally not run through t() — a language's own name does
+// These are intentionally not run through t(): a language's own name does
 // not get translated.
 export const LANGUAGES: { code: AppLanguage; label: string }[] = [
   { code: 'en', label: 'English' },
@@ -44,7 +44,7 @@ export async function loadStoredLanguage(): Promise<void> {
       await i18n.changeLanguage(saved);
     }
   } catch {
-    // Storage unavailable — keep the device language in effect.
+    // Storage unavailable: keep the device language in effect.
   }
 }
 

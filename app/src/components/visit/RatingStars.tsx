@@ -8,7 +8,7 @@ interface RatingStarsProps {
   onChange: (value: number | null) => void;
 }
 
-/** A 1–10 star rating. Tapping the current value clears it back to null. */
+/** A 1-10 star rating. Tapping the current value clears it back to null. */
 export function RatingStars({ value, onChange }: RatingStarsProps) {
   return (
     <View style={styles.row}>

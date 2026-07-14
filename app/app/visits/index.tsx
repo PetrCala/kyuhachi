@@ -9,7 +9,7 @@ import { colors, spacing, typography } from '@/theme';
 
 /** The full visit history for the active challenge, newest first. Reached from
  *  the home screen's "See all". Reuses the same hook the home preview reads, so
- *  there's no separate query — rows tap through to the onsen detail screen. */
+ *  there's no separate query; rows tap through to the onsen detail screen. */
 export default function AllVisits() {
   const { t } = useTranslation();
   const { loading, visits, onsenMap } = useActiveChallengeProgress();

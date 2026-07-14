@@ -4,7 +4,7 @@
  *
  * Structure: raw palette → semantic aliases exported as `colors`.
  * When dark mode is added, export a second `darkColors` object using the
- * same keys but different palette values — no other files need to change.
+ * same keys but different palette values. No other files need to change.
  */
 
 const palette = {
@@ -23,7 +23,7 @@ const palette = {
   gold:   '#b8893b',
   silver: '#8a8a8f',
   bronze: '#a9663a',
-  // Deeper shade of each metal — struck-rim outline + embossed glyph on the badge
+  // Deeper shade of each metal: struck-rim outline + embossed glyph on the badge
   goldDeep:   '#7a5a23',
   silverDeep: '#5b5b60',
   bronzeDeep: '#7a4527',
@@ -31,11 +31,11 @@ const palette = {
   // System red (destructive actions)
   red: '#ff3b30', // iOS system red
 
-  // Brand (app icon / splash / logo mark — the vertical 九八 in Klee One)
+  // Brand (app icon / splash / logo mark, the vertical 九八 in Klee One)
   ink:   '#262837', // dark ground behind the mark
   amber: '#ffb300', // amber glyph on the mark
 
-  // Onsen water — bath-blue used to mark visited onsens on the map
+  // Onsen water: bath-blue used to mark visited onsens on the map
   water: '#2e8bc0',
 
   // Categorical data-viz ramp (Stats charts). Six distinct, muted hues plus a

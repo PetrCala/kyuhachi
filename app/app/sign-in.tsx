@@ -24,7 +24,7 @@ import { colors, spacing, typography, radii } from '@/theme';
 type Mode = 'sign-in' | 'create-account';
 
 // Brand logo mark: 九 (kyu) over 八 (hachi), set in Klee One. Not a translatable
-// string — it's the app's visual identity and renders identically in every locale.
+// string: it's the app's visual identity and renders identically in every locale.
 const BRAND_MARK = '九\n八';
 
 export default function SignIn() {

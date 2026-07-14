@@ -20,10 +20,10 @@ import { colors, radii, shadows, spacing, typography } from '@/theme';
 
 type OnsenRow = CachedOnsen;
 
-// The sheet rests at a single fixed height — image-forward, with room for a few
+// The sheet rests at a single fixed height, image-forward, with room for a few
 // info rows and the CTA without resizing to content.
 const SNAP_POINTS = ['78%'];
-// Hero image height — the image-forward focal point of the sheet.
+// Hero image height: the image-forward focal point of the sheet.
 const HERO_HEIGHT = 200;
 // Glyph size for the placeholder mark when an onsen has no photo; a layout
 // dimension, not part of the type scale.
@@ -56,7 +56,7 @@ interface OnsenPreviewSheetProps {
  * The sheet is a fixed height, so content is laid out the way gorhom expects for a
  * fixed frame: a `BottomSheetScrollView` is the scrollable body (the hero is its
  * sticky first row, so it stays pinned while the info scrolls under it), and the
- * CTA lives in a pinned `footerComponent` — long onsen text scrolls instead of
+ * CTA lives in a pinned `footerComponent`: long onsen text scrolls instead of
  * pushing the CTA off-screen. Driven by the `onsen` prop: snapped open via the ref
  * when an onsen is selected, closed when cleared; the last onsen is retained while
  * it animates out so the content doesn't blank mid-exit.
@@ -93,7 +93,7 @@ export default function OnsenPreviewSheet({
   // Latest onClose, read from the (stable) close handler without rebuilding it.
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
-  // Any close — swipe, backdrop, close button, or programmatic — clears the map's
+  // Any close (swipe, backdrop, close button, or programmatic) clears the map's
   // selection so its state matches the closed sheet.
   const handleClose = useCallback(() => onCloseRef.current(), []);
 
@@ -115,7 +115,7 @@ export default function OnsenPreviewSheet({
     (props: BottomSheetFooterProps) =>
       shown ? (
         // No bottomInset: the sheet sits inside the map tab, above the tab bar,
-        // which already owns the home-indicator safe area — so the CTA hugs the
+        // which already owns the home-indicator safe area, so the CTA hugs the
         // tab bar instead of floating a safe-area gap above it.
         <BottomSheetFooter {...props}>
           <View
@@ -149,7 +149,7 @@ export default function OnsenPreviewSheet({
       }
     : undefined;
 
-  // Reading shown under the hero name — romaji in a non-JP UI, kana in Japanese.
+  // Reading shown under the hero name: romaji in a non-JP UI, kana in Japanese.
   const reading = onsenReading({
     nameRomaji: shown?.nameRomaji,
     nameKana: shown?.nameKana,
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
   visitedText: {
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.semibold,
-    // Dark seal ink — matches the "visited" stamp on the onsen detail screen.
+    // Dark seal ink: matches the "visited" stamp on the onsen detail screen.
     color: colors.stampInk,
   },
   section: {

@@ -40,7 +40,7 @@ export type ParsedRoute = Pick<
 
 type LatLng = { lat: number; lng: number };
 
-/** Cap on stored points — keeps the doc well under Firestore's 1 MB limit and the map smooth. */
+/** Cap on stored points: keeps the doc well under Firestore's 1 MB limit and the map smooth. */
 const MAX_POINTS = 1500;
 /** ~1 m in degrees; drops GPS jitter / collinear points without visibly changing the track. */
 const BASE_TOLERANCE = 1e-5;
@@ -143,7 +143,7 @@ function trackName(feature: Feature<LineString | MultiLineString>): string | nul
   return typeof name === 'string' && name.trim().length > 0 ? name.trim() : null;
 }
 
-/** Douglas–Peucker, then a hard cap via uniform decimation if still too dense. */
+/** Douglas-Peucker, then a hard cap via uniform decimation if still too dense. */
 function simplify(points: LatLng[]): LatLng[] {
   let tolerance = BASE_TOLERANCE;
   let result = douglasPeucker(points, tolerance);
@@ -155,7 +155,7 @@ function simplify(points: LatLng[]): LatLng[] {
   return result;
 }
 
-/** Iterative Douglas–Peucker (avoids recursion depth on long tracks). Distances in degrees. */
+/** Iterative Douglas-Peucker (avoids recursion depth on long tracks). Distances in degrees. */
 function douglasPeucker(points: LatLng[], tolerance: number): LatLng[] {
   const n = points.length;
   if (n <= 2) return points.slice();

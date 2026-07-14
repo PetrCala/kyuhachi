@@ -1,5 +1,5 @@
 /**
- * Finder feature — categories of everyday stops a traveller looks for along a
+ * Finder feature: categories of everyday stops a traveller looks for along a
  * route (food, lodging, roadside stations). These are *not* persisted: results
  * come live from Apple's MKLocalSearch at query time and are never written to
  * Firestore. The types live here so the app and any future provider share one

@@ -2,7 +2,7 @@ import type { Tier, TransportMode } from '@kyuhachi/shared';
 import { isFasterThan } from '@kyuhachi/shared';
 
 /**
- * Client-side tier eligibility — what tier a challenge currently *qualifies*
+ * Client-side tier eligibility: what tier a challenge currently *qualifies*
  * for. This is read-only and advisory: it gates the Claim/Upgrade button, but a
  * tier only becomes earned when the user claims it via the `claimTier` callable,
  * which re-verifies the same conditions server-side before writing `earnedTier`.
