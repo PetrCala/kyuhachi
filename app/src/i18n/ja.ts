@@ -349,7 +349,7 @@ const ja: Record<keyof typeof en, string> = {
 
   // stamp-collection celebration (shown after recording a new visit)
   'stampClaim.title': '新しいスタンプ！',
-  'stampClaim.caption': 'スパポートに新しい御湯印を。',
+  'stampClaim.caption': '御湯印帳に新しい御湯印を。',
   'stampClaim.collect': '獲得する',
   'stampClaim.a11yLabel': '新しいスタンプを獲得',
 
