@@ -6,32 +6,32 @@ interface OnsenMarkerProps {
   id: string;
   lat: number;
   lng: number;
-  /** Onsen name — shown as the callout title (Firestore data, untranslated). */
+  /** Onsen name: shown as the callout title (Firestore data, untranslated). */
   name: string;
-  /** Area name — shown as the callout subtitle (Firestore data, untranslated). */
+  /** Area name: shown as the callout subtitle (Firestore data, untranslated). */
   areaName: string;
   /** Visited in the active challenge → bath-water-blue pin; otherwise default red. */
   visited: boolean;
   /** Registers this marker's imperative handle with the parent (keyed by id) so an
    *  arriving "Show on map" focus can re-open this onsen's preview. Must be stable. */
   registerRef: (id: string, ref: ElementRef<typeof Marker> | null) => void;
-  /** Selects this onsen — opening its preview half-sheet — when the pin is
+  /** Selects this onsen, opening its preview half-sheet, when the pin is
    *  tapped. Must be stable. */
   onPress: (id: string) => void;
 }
 
 /**
  * A single onsen pin on the map. Memoized so that the map screen's frequent
- * re-renders — the zoom slider streams the live camera altitude on every frame
- * of a pinch or pan — do not re-render or re-attach all ~155 markers each frame.
+ * re-renders (the zoom slider streams the live camera altitude on every frame
+ * of a pinch or pan) do not re-render or re-attach all ~155 markers each frame.
  * Only the markers whose own props actually change (e.g. `visited` flips after a
  * check-in, or the pin is filtered out) re-render. Props are kept primitive and
  * the two callbacks stable so React.memo's shallow comparison holds.
  *
- * Tapping the pin selects the onsen — the map screen opens an image-forward
+ * Tapping the pin selects the onsen: the map screen opens an image-forward
  * preview half-sheet over it. `title`/`description` feed the native callout (and
  * VoiceOver); the callout sits behind the sheet's backdrop while it's open, and
- * the map screen deselects the pin when the sheet closes so it doesn't linger —
+ * the map screen deselects the pin when the sheet closes so it doesn't linger,
  * and so a re-tap reopens the sheet rather than no-opping on a still-selected pin.
  */
 function OnsenMarker({
@@ -55,8 +55,8 @@ function OnsenMarker({
   // Whether react-native-maps keeps redrawing this marker's native overlay.
   // Left on (the default) for all ~155 pins, the constant per-marker redraws
   // stall the iOS UI thread and make the map freeze intermittently. The pin only
-  // needs to redraw when its appearance changes — i.e. when `visited` flips its
-  // colour — so we pulse tracking on for a frame on mount and on each such
+  // needs to redraw when its appearance changes: when `visited` flips its
+  // colour, so we pulse tracking on for a frame on mount and on each such
   // change, then switch it back off so the marker stays static the rest of the
   // time (including throughout pans and pinches).
   const [tracksViewChanges, setTracksViewChanges] = useState(true);

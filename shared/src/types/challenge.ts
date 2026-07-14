@@ -27,7 +27,7 @@ export interface Tier {
 /**
  * A rung on the official 九州八十八湯 progression ladder (見習い → 泉人).
  *
- * Unlike a {@link Tier} — a difficulty trophy that is *claimed* once at the end —
+ * Unlike a {@link Tier} (a difficulty trophy that is *claimed* once at the end),
  * a rank is a milestone *derived* from current progress: the highest rank whose
  * thresholds are met. Both thresholds must be satisfied, so prefecture diversity
  * gates progression independently of raw visit count.
@@ -51,7 +51,7 @@ export interface Rank {
  * /challenge_types/{typeId}
  *
  * Admin-managed. Never written by users.
- * Exact tier thresholds are TBD — do not hardcode them in app code.
+ * Exact tier thresholds are TBD. Do not hardcode them in app code.
  */
 export interface ChallengeTypeDocument {
   name: string
@@ -73,7 +73,7 @@ export interface ChallengeTypeDocument {
    * The official progression ranks, ordered worst → best (見習い → 泉人) with
    * non-decreasing thresholds. Published by the data repo; the app derives the
    * user's current rank from their progress and never writes this. May be empty
-   * for types that predate ranks — the app hides the rank UI in that case.
+   * for types that predate ranks; the app hides the rank UI in that case.
    */
   ranks: Rank[]
   /** Prose rules for display on the challenge rules screen */
@@ -89,7 +89,7 @@ export interface ChallengeTypeDocument {
  * /users/{userId}/challenges/{challengeId}
  *
  * snapshotEligibleOnsenIds is frozen at creation and never mutated.
- * visitCount is NOT stored here — derive it client-side by counting visits
+ * visitCount is NOT stored here: derive it client-side by counting visits
  * where onsenId ∈ snapshotEligibleOnsenIds.
  */
 export interface ChallengeDocument {
@@ -102,7 +102,7 @@ export interface ChallengeDocument {
   snapshotCatalogVersion: number
   /**
    * Optional reference to the imported route the user is currently following.
-   * Cosmetic only — challenge completion ignores this field.
+   * Cosmetic only. Challenge completion ignores this field.
    * User can change this freely.
    */
   activeRouteId: string | null
@@ -110,7 +110,7 @@ export interface ChallengeDocument {
    * The tier the user has **claimed** ("gold" | "silver" | "bronze"), or null.
    * A tier is never auto-earned: it becomes earned only when the user explicitly
    * claims it via the `claimTier` callable, which re-verifies eligibility and is
-   * the sole writer (the client may never write this field — Firestore rules
+   * the sole writer (the client may never write this field, Firestore rules
    * enforce it). Created as null; once claimed it is a permanent trophy and the
    * visit triggers never change it.
    */
@@ -174,11 +174,11 @@ export type VisitedWith = (typeof VISITED_WITH_OPTIONS)[number]
  * Structured, self-reported details for a single visit. Every field is optional
  * (null = not reported). The recording UI splits these into a small "base" set
  * (always shown) and a larger "detailed" set (behind a Show-details toggle), but
- * they are stored flat here. All ratings are on a 1–10 scale.
+ * they are stored flat here. All ratings are on a 1-10 scale.
  */
 export interface VisitStructuredData {
-  // — Base —
-  /** Overall satisfaction, 1–10 */
+  // Base
+  /** Overall satisfaction, 1-10 */
   rating: number | null
   /**
    * How the user reached this onsen. Self-reported; null = not reported.
@@ -186,10 +186,10 @@ export interface VisitStructuredData {
    * challenge types.
    */
   transportMode: TransportMode | null
-  /** Whether the user would return — doubles as a "favorite" flag */
+  /** Whether the user would return (doubles as a "favorite" flag) */
   wouldReturn: boolean | null
 
-  // — Detailed: ratings & impressions (all 1–10) —
+  // Detailed: ratings & impressions (all 1-10)
   /** Overall cleanliness (bath + changing room, merged) */
   cleanlinessRating: number | null
   /** Atmosphere / ambience, including the view */
@@ -203,7 +203,7 @@ export interface VisitStructuredData {
   /** Value for money */
   valueRating: number | null
 
-  // — Detailed: bath & facilities —
+  // Detailed: bath & facilities
   /** Perceived water heat */
   perceivedHeat: PerceivedHeat | null
   /** User-entered string e.g. "42°C" */
@@ -217,13 +217,13 @@ export interface VisitStructuredData {
   hadSoap: boolean | null
   massageChairAvailable: boolean | null
 
-  // — Detailed: visit & company —
+  // Detailed: visit & company
   /** Minutes spent at the onsen */
   duration: number | null
   crowdLevel: CrowdLevel | null
   visitedWith: VisitedWith | null
   interactedWithLocals: boolean | null
-  /** How pleasant the local interaction was, 1–10 */
+  /** How pleasant the local interaction was, 1-10 */
   localInteractionRating: number | null
 }
 
@@ -263,7 +263,7 @@ export const EMPTY_VISIT_STRUCTURED_DATA: VisitStructuredData = {
 /**
  * /users/{userId}/challenges/{challengeId}/visits/{onsenId}
  *
- * Document ID IS the kyuhachiId — deduplication is structural.
+ * Document ID IS the kyuhachiId. Deduplication is structural.
  * Writing a second visit to the same onsen in the same challenge overwrites the first.
  * There is no separate visitId; the onsenId serves as the unique key per challenge.
  */

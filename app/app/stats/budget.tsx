@@ -13,7 +13,7 @@ import {
 } from '@/components/stats/StatPrimitives';
 
 /**
- * Budget — the deterministic cost model (formerly the whole Stats screen), now
+ * Budget: the deterministic cost model (formerly the whole Stats screen), now
  * one section of the hub. Aggregate spend, breakdowns, and named highlights.
  */
 export default function StatsBudget() {
@@ -73,7 +73,7 @@ export default function StatsBudget() {
                 last
               />
             ) : (
-              <StatRow label={t('stats.budget.dearestRemaining')} value="—" last />
+              <StatRow label={t('stats.budget.dearestRemaining')} value="-" last />
             )}
           </Section>
 

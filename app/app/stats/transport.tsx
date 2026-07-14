@@ -20,7 +20,7 @@ import {
 } from '@/components/stats/StatPrimitives';
 import { spacing } from '@/theme';
 
-/** Transport — the mode mix, self-powered share, shortcuts, and a per-prefecture split. */
+/** Transport: the mode mix, self-powered share, shortcuts, and a per-prefecture split. */
 export default function StatsTransport() {
   const { t } = useTranslation();
   const { loading, hasData, transport, baseMode } = useStats();
@@ -94,7 +94,7 @@ export default function StatsTransport() {
                 value={
                   transport.selfPoweredPercent != null
                     ? formatPercent(transport.selfPoweredPercent, t)
-                    : '—'
+                    : '-'
                 }
               />
               {transport.hasBaseMode && (

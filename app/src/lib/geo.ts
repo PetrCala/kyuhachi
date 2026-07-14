@@ -23,7 +23,7 @@ export function haversineKm(a: LatLng, b: LatLng): number {
 /** Metres per degree of latitude (roughly constant everywhere). */
 const METRES_PER_DEG_LAT = 111_320;
 
-/** Projection of the origin (0,0) onto segment a–b in a local planar frame.
+/** Projection of the origin (0,0) onto segment a-b in a local planar frame.
  *  `t` is the clamped position along the segment (0 = a, 1 = b); `distMetres`
  *  is the distance from the origin to that closest point. */
 function projectOriginOntoSegment(
@@ -33,7 +33,7 @@ function projectOriginOntoSegment(
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   const lenSq = dx * dx + dy * dy;
-  // Degenerate segment (duplicate points) — fall back to the endpoint distance.
+  // Degenerate segment (duplicate points): fall back to the endpoint distance.
   const t = lenSq === 0 ? 0 : Math.max(0, Math.min(1, -(a.x * dx + a.y * dy) / lenSq));
   const cx = a.x + t * dx;
   const cy = a.y + t * dy;
@@ -41,7 +41,7 @@ function projectOriginOntoSegment(
 }
 
 /**
- * Shortest distance in kilometres from a point to a polyline — its closest
+ * Shortest distance in kilometres from a point to a polyline: its closest
  * approach to any *segment*, not merely to the nearest vertex. Simplified
  * tracks can space vertices far apart, so a vertex-only check would wrongly
  * report a point beside a long straight segment as distant.

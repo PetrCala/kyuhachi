@@ -16,7 +16,7 @@ export function StampSlot({ size }: StampSlotProps) {
   return (
     <View style={{ width: size }}>
       <View style={[styles.slot, { width: size, height: size }]}>
-        {/* Glyph size is a runtime fraction of the slot — the allowed inline exception. */}
+        {/* Glyph size is a runtime fraction of the slot: the allowed inline exception. */}
         <OnsenIcon color={colors.stampWatermark} size={Math.round(size * 0.4)} />
       </View>
       <View style={styles.dateRow}>

@@ -16,7 +16,7 @@ export function toCachedOnsen(id: string, data: OnsenDocument): CachedOnsen {
 
 /**
  * Sorted copy in the order the catalog used to arrive from Firestore
- * (orderBy areaName, name — plain code-point comparison, matching Firestore's
+ * (orderBy areaName, name: plain code-point comparison, matching Firestore's
  * UTF-8 ordering), so consumers see a stable, deterministic order.
  */
 export function sortCatalog(onsens: CachedOnsen[]): CachedOnsen[] {
@@ -29,7 +29,7 @@ export function sortCatalog(onsens: CachedOnsen[]): CachedOnsen[] {
 
 /**
  * The catalog stored by the previous session, or null when there is none or
- * the blob is unreadable (treated as "no cache" — the next sync rewrites it).
+ * the blob is unreadable (treated as "no cache"; the next sync rewrites it).
  */
 export async function loadStoredCatalog(): Promise<CachedCatalog | null> {
   try {
@@ -54,6 +54,6 @@ export async function storeCatalog(catalog: CachedCatalog): Promise<void> {
   try {
     await AsyncStorage.setItem(CATALOG_KEY, JSON.stringify(catalog));
   } catch {
-    // Storage unavailable — nothing to do; see above.
+    // Storage unavailable: nothing to do; see above.
   }
 }

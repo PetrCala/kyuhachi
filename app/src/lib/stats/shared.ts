@@ -7,8 +7,8 @@
  * onsen display info, and tagging eligibility happens here exactly once.
  *
  * Like `lib/budget.ts`, everything in the stats lib is pure arithmetic over
- * plain Maps/arrays — no Firestore, no hooks, no `Date.now()` (callers pass
- * `now` in) — so it is fully testable and works offline.
+ * plain Maps/arrays: no Firestore, no hooks, no `Date.now()` (callers pass
+ * `now` in), so it is fully testable and works offline.
  */
 import type { VisitDocument } from '@kyuhachi/shared';
 
@@ -66,13 +66,13 @@ export function buildVisitEntries(input: BuildVisitEntriesInput): VisitEntry[] {
   return entries;
 }
 
-/** Eligible visits whose onsen info has loaded — the basis for geo/transport breakdowns. */
+/** Eligible visits whose onsen info has loaded: the basis for geo/transport breakdowns. */
 export function eligibleWithOnsen(entries: VisitEntry[]): VisitEntry[] {
   return entries.filter((e) => e.eligible && e.onsen !== null);
 }
 
 // ---------------------------------------------------------------------------
-// Coverage — opt-in visit fields are sparse, so every derived stat reports how
+// Coverage: opt-in visit fields are sparse, so every derived stat reports how
 // many of the relevant visits actually carried the data behind it.
 // ---------------------------------------------------------------------------
 
@@ -103,7 +103,7 @@ export function meanDefined(values: (number | null)[]): number | null {
   return mean(values.filter((v): v is number => v != null));
 }
 
-/** Percentage (0–100) of `count` out of `total`; null when `total` is 0. */
+/** Percentage (0-100) of `count` out of `total`; null when `total` is 0. */
 export function percent(count: number, total: number): number | null {
   if (total <= 0) return null;
   return (count / total) * 100;
@@ -132,7 +132,7 @@ export function haversineKm(
 /**
  * Parse a user-entered water-temperature string (e.g. `"42°C"`, `"41.5 ℃"`,
  * `"42度"`) to a number of degrees Celsius. Returns null when there's no numeric
- * content or the value is outside a plausible onsen range (0–100°C), which keeps
+ * content or the value is outside a plausible onsen range (0-100°C), which keeps
  * typos out of the average.
  */
 export function parseWaterTempC(raw: string | null): number | null {
@@ -145,7 +145,7 @@ export function parseWaterTempC(raw: string | null): number | null {
 }
 
 // ---------------------------------------------------------------------------
-// Distributions — bucket counts in a fixed canonical order, nulls dropped, zero
+// Distributions: bucket counts in a fixed canonical order, nulls dropped, zero
 // buckets retained so chart axes stay stable.
 // ---------------------------------------------------------------------------
 
@@ -168,12 +168,12 @@ export function distribution<K extends string>(
 }
 
 export interface HistogramBucket {
-  /** Rating value 1–10. */
+  /** Rating value 1-10. */
   bucket: number;
   count: number;
 }
 
-/** Zero-filled 1–10 histogram of rating values (rounded; out-of-range dropped). */
+/** Zero-filled 1-10 histogram of rating values (rounded; out-of-range dropped). */
 export function ratingHistogram(values: (number | null)[]): HistogramBucket[] {
   const counts = new Array<number>(10).fill(0);
   for (const value of values) {

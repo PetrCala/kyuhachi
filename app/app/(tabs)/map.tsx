@@ -47,7 +47,7 @@ const USER_LOCATION_DELTA = 0.05;
 
 /** Camera altitude used when focusing a single onsen via "Show on map". Sits ~85%
  *  of the way up the zoom slider's range toward its closest setting, on the same
- *  log scale the slider uses — i.e. a strongly zoomed-in, near-the-top view. */
+ *  log scale the slider uses: i.e. a strongly zoomed-in, near-the-top view. */
 const FOCUS_ONSEN_ZOOM_FRACTION = 0.85;
 const FOCUS_ONSEN_ALTITUDE = Math.exp(
   Math.log(MAX_ALTITUDE) -
@@ -103,12 +103,12 @@ export default function MapScreen() {
     focusTs?: string;
   }>();
   // kyuhachiIds visited in the active challenge (drives the visited pin color),
-  // plus the active challenge's route — both kept live by the progress hook.
+  // plus the active challenge's route, both kept live by the progress hook.
   const { visitedIds, activeRoute, loading: progressLoading } =
     useActiveChallengeProgress();
   const mapRef = useRef<MapView>(null);
   // Per-onsen Marker handles, keyed by id, so the screen can deselect a pin (hide
-  // its native callout) when its preview sheet closes — otherwise the tapped pin
+  // its native callout) when its preview sheet closes; otherwise the tapped pin
   // stays selected and a re-tap wouldn't re-fire onPress to reopen the sheet.
   const markerRefs = useRef<Record<string, ElementRef<typeof Marker> | null>>({});
   // Pins come from the offline-first catalog store, so the map (Apple Maps
@@ -121,7 +121,7 @@ export default function MapScreen() {
   // draws that specific route; otherwise the map draws the active challenge's
   // route. Both are live subscriptions, and `route` is derived rather than
   // stored, so a route attached, renamed, switched, or cleared while this tab
-  // stays mounted reflects on the map without a remount — which the previous
+  // stays mounted reflects on the map without a remount, which the previous
   // one-shot read could not do.
   const [paramRoute, setParamRoute] = useState<RouteDocument | null>(null);
   const [paramRouteLoaded, setParamRouteLoaded] = useState(!paramRouteId);
@@ -137,7 +137,7 @@ export default function MapScreen() {
   // Flips true once the MapView reports ready. A "Show on map" focus waits on this
   // so its camera move actually lands: with an active route the screen stays in its
   // loading state until the route resolves, so onsens, the route, and the map can
-  // become ready in any order — animating before the map exists would be a no-op.
+  // become ready in any order; animating before the map exists would be a no-op.
   const [mapReady, setMapReady] = useState(false);
 
   // The on-map controls auto-hide together after a spell of no interaction and
@@ -206,7 +206,7 @@ export default function MapScreen() {
   // Center the map on the user. Re-request permission if undecided; if denied,
   // point them at Settings since iOS won't prompt a second time.
   const handleRecenter = useCallback(async () => {
-    // When simulating, recenter on the fake spot — no permission or GPS needed.
+    // When simulating, recenter on the fake spot: no permission or GPS needed.
     if (simulated) {
       mapRef.current?.animateToRegion({
         latitude: simulated.latitude,
@@ -249,7 +249,7 @@ export default function MapScreen() {
       const camera = await mapRef.current?.getCamera();
       if (camera?.altitude !== undefined) setAltitude(camera.altitude);
     } catch {
-      // Map gone or camera unavailable — leave the last known altitude in place.
+      // Map gone or camera unavailable: leave the last known altitude in place.
     }
   }, []);
 
@@ -257,8 +257,8 @@ export default function MapScreen() {
   // below never pile up overlapping getCamera calls.
   const streamingReadRef = useRef(false);
 
-  // Fires continuously while the camera moves — a pinch or a programmatic
-  // recenter animation. Reads the live altitude so the zoom knob tracks the map
+  // Fires continuously while the camera moves (a pinch or a programmatic
+  // recenter animation). Reads the live altitude so the zoom knob tracks the map
   // in near real time instead of only snapping into place once motion settles.
   // Guarded to one read at a time; onRegionChangeComplete still does the final,
   // authoritative read.
@@ -280,7 +280,7 @@ export default function MapScreen() {
   // On a settled camera, warm the disk cache for photos of pins now in view so
   // the preview sheet (and, via the shared cache, the detail screen) opens with
   // the photo already loaded instead of waiting on a cold fetch. `region` comes
-  // straight from onRegionChangeComplete, which fires once per pan/zoom — so this
+  // straight from onRegionChangeComplete, which fires once per pan/zoom, so this
   // is naturally debounced and never runs per gesture frame.
   const handleRegionSettle = useCallback(
     (region: Region) => {
@@ -312,7 +312,7 @@ export default function MapScreen() {
   );
   // Tapping a pin opens its preview half-sheet rather than navigating away.
   // Depends on the onsen list, which only changes when a new catalog version
-  // syncs — rare enough that the memoized markers re-binding then is fine.
+  // syncs, rare enough that the memoized markers re-binding then is fine.
   const handleOnsenPress = useCallback(
     (id: string) => {
       setSelectedOnsen(onsens.find((o) => o.id === id) ?? null);
@@ -321,24 +321,24 @@ export default function MapScreen() {
   );
   // Dismiss the preview. The tapped pin is the iOS map's *selected* annotation,
   // its native callout hidden behind the sheet's backdrop; once the sheet slides
-  // away that callout would be revealed, and — because MapKit only fires onPress
-  // when the selection changes — a re-tap on the still-selected pin would do
+  // away that callout would be revealed, and, because MapKit only fires onPress
+  // when the selection changes, a re-tap on the still-selected pin would do
   // nothing until the user tapped elsewhere to deselect it first. Deselecting the
   // pin as the sheet closes returns it to rest, so re-tapping reopens the preview.
   const handleCloseSheet = useCallback(() => {
     if (selectedOnsen) markerRefs.current[selectedOnsen.id]?.hideCallout();
     setSelectedOnsen(null);
   }, [selectedOnsen]);
-  // The preview's "View full details" CTA: dismiss the sheet — deselecting the pin
-  // as above, so it isn't left active when we return to this tab — then open the
-  // detail screen — the "enlarge" action.
+  // The preview's "View full details" CTA: dismiss the sheet, deselecting the pin
+  // as above, so it isn't left active when we return to this tab, then open the
+  // detail screen: the "enlarge" action.
   const handleViewDetails = useCallback((id: string) => {
     markerRefs.current[id]?.hideCallout();
     setSelectedOnsen(null);
     router.push(`/onsens/${id}`);
   }, []);
 
-  // Subscribe to the param route (when one is given) so it draws live — a rename
+  // Subscribe to the param route (when one is given) so it draws live: a rename
   // or edit reflects without a remount, and the empty→loaded transition mirrors
   // how the active route loads. The active-challenge route needs no work here:
   // the progress hook already subscribes to it and hands it back as activeRoute.
@@ -369,7 +369,7 @@ export default function MapScreen() {
   // Route names are user/Firestore data, shown as-is; fall back to the generic title.
   const title = route?.name ?? t('map.title');
   // A "Show on map" navigation flies the camera in from the Kyushu overview, so
-  // frame the overview at mount — when this screen mounts fresh for that navigation
+  // frame the overview at mount: when this screen mounts fresh for that navigation
   // (the Map tab hadn't been opened yet), the fly-in then starts wide even before
   // the camera commands run. Otherwise frame the route if there is one.
   const initialRegion =
@@ -392,7 +392,7 @@ export default function MapScreen() {
 
   // The drawn route's points in the shape <Polyline> wants. Memoized so the
   // screen's per-frame re-renders don't rebuild this array (and with it the
-  // whole native polyline overlay) on every gesture frame — a fresh array each
+  // whole native polyline overlay) on every gesture frame: a fresh array each
   // pan frame floods the iOS UI thread and can stall the map's own pan gesture,
   // leaving the map frozen. Recomputed only when the route itself changes.
   const routeCoordinates = useMemo(
@@ -407,15 +407,15 @@ export default function MapScreen() {
   }, [navigation, title]);
 
   // Keep the camera on the drawn route. `initialRegion` frames the route known
-  // at mount; this re-frames when the route arrives or changes afterward — e.g.
-  // a route attached or switched while the Map tab stayed mounted — which a
+  // at mount; this re-frames when the route arrives or changes afterward, e.g.
+  // a route attached or switched while the Map tab stayed mounted, which a
   // static `initialRegion` can't. Keyed on the bounds so it animates once per
   // distinct route, not on every snapshot.
   //
   // Exception: a "Show on map" navigation (focus params present) is an explicit
   // request to view one onsen, so it owns the camera. The active route loads
   // asynchronously and would otherwise fire this effect *after* the focus zoom,
-  // yanking the camera back out to frame the whole route — so we yield here and
+  // yanking the camera back out to frame the whole route, so we yield here and
   // let the focus effect below win.
   const framedBoundsRef = useRef<string | null>(null);
   useEffect(() => {
@@ -430,13 +430,13 @@ export default function MapScreen() {
   // Arriving from an onsen's "Show on map": fly in to that pin. We snap to the
   // whole-Kyushu overview first, then ease the camera down to the onsen so the
   // zoom plays as a deliberate descent (Apple Maps' built-in ease-in-out curve)
-  // rather than an instant jump — whatever the map happened to be framing. A short
+  // rather than an instant jump, whatever the map happened to be framing. A short
   // settle separates the snap from the animation: it keeps MapKit from coalescing
   // both into one move from the old view, and gives a freshly mounted map (this
   // screen reached via a tab that hadn't shown the map yet) time to lay out its
   // initial region before we animate, which it would otherwise swallow.
   //
-  // We don't open the preview half-sheet — the user came straight from this
+  // We don't open the preview half-sheet: the user came straight from this
   // onsen's detail screen, so the sheet would just repeat what they already saw.
   // `focusTs` is a per-tap nonce so tapping again re-flies to the same onsen (an
   // unchanging id alone wouldn't re-fire the effect); the guard stops a re-run on
@@ -531,7 +531,7 @@ export default function MapScreen() {
       {/* The on-map controls each sit in their own corner and share one fade:
           they hide together after inactivity and reappear on any map touch or
           control use. Crucially they are NOT wrapped in a single full-screen
-          overlay — even a box-none absoluteFill sibling over the native map can
+          overlay: even a box-none absoluteFill sibling over the native map can
           swallow the map's pan gesture on iOS (it froze the map while leaving
           these buttons tappable). Keeping each control in a small, corner-pinned
           slot means the map's pannable area is never covered. Per slot, box-none
@@ -679,7 +679,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // Dev-only simulated-location dot — amber with a white ring so it reads as
+  // Dev-only simulated-location dot: amber with a white ring so it reads as
   // "me" and stays distinct from the default red onsen pins.
   simDot: {
     width: spacing[4],

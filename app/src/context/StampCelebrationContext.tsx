@@ -10,7 +10,7 @@ const REVEAL_DELAY_MS = 420;
 interface StampCelebrationContextValue {
   /**
    * Show the stamp-collection celebration for a just-recorded visit. Safe to
-   * call right before navigating away from the editor — the reveal is deferred
+   * call right before navigating away from the editor; the reveal is deferred
    * until the editor's dismissal settles.
    */
   celebrateStamp: (reward: StampReward) => void;
@@ -22,7 +22,7 @@ const StampCelebrationContext = createContext<StampCelebrationContextValue>({
 
 /**
  * Holds the pending stamp celebration and renders the claim modal above the whole
- * app, so the reward lands wherever the user is sent after saving — back to the
+ * app, so the reward lands wherever the user is sent after saving: back to the
  * onsen page or all the way home. Sits under PreferencesProvider so it can honor
  * the stamp-animation toggle.
  */

@@ -1,5 +1,5 @@
 /**
- * Experience stats — the rich, opt-in self-reported data (ratings, facilities,
+ * Experience stats: the rich, opt-in self-reported data (ratings, facilities,
  * bath, crowd, company, locals, photos).
  *
  * Computed over ALL visits (a review is about the visit, not eligibility). Every
@@ -68,7 +68,7 @@ export interface SubRatingStat extends RatingStat {
 }
 
 export interface FacilityStat {
-  /** Share of visits (where reported) that used the facility, 0–100; null if none reported. */
+  /** Share of visits (where reported) that used the facility, 0-100; null if none reported. */
   usedPercent: number | null;
   /** Mean rating among visits that rated it; null if none. */
   avgRating: number | null;

@@ -69,7 +69,7 @@ export interface ActiveChallengeProgress {
   tiers: Tier[];
   /**
    * The official progression ranks for the active challenge type, ordered
-   * worst → best (raw — `name` is the canonical Japanese title; localize the
+   * worst to best (raw: `name` is the canonical Japanese title; localize the
    * display label with `rankLabel`). Empty when the type publishes none.
    */
   ranks: Rank[];
@@ -260,7 +260,7 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
         }
         const data = snapshot.data() as ChallengeTypeDocument;
         setTiers((data.tiers ?? []).map((tier) => localizeTier(challenge.typeId, tier, t)));
-        // Ranks stay raw (kanji names) — the UI localizes the label per locale.
+        // Ranks stay raw (kanji names); the UI localizes the label per locale.
         setRanks(data.ranks ?? []);
         setCompletionCount(data.completionCount);
         setBaseMode(data.baseMode ?? null);
@@ -271,7 +271,7 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
 
   // Display data for the eligible IDs, resolved from the offline-first catalog
   // store (which holds every onsen ever published, so a snapshot id always
-  // resolves once the catalog is loaded — even for since-archived onsens).
+  // resolves once the catalog is loaded, even for since-archived onsens).
   const onsenMap = useMemo<Map<string, OnsenDisplayInfo>>(() => {
     const collected = new Map<string, OnsenDisplayInfo>();
     if (!challenge) return collected;
@@ -292,8 +292,8 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
     return collected;
   }, [challenge, catalogMap]);
 
-  // Load the challenge's active route (cosmetic). A dangling activeRouteId —
-  // the route was deleted — resolves to null and is shown as "no route".
+  // Load the challenge's active route (cosmetic). A dangling activeRouteId
+  // (the route was deleted) resolves to null and is shown as "no route".
   useEffect(() => {
     const routeId = challenge?.activeRouteId;
     if (!user || !routeId) {
@@ -336,7 +336,7 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
     return [...visitedIds].filter((id) => eligible.has(id)).length;
   }, [challenge, visitedIds]);
 
-  // Distinct prefectures among eligible visits — the second axis ranks gate on.
+  // Distinct prefectures among eligible visits: the second axis ranks gate on.
   // A missing prefecture ('' until the onsen's display data loads) isn't counted.
   const distinctPrefectures = useMemo(() => {
     if (!challenge) return 0;
@@ -365,7 +365,7 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
     return nextRankToEarn(ranks, progress);
   }, [ranks, eligibleVisitCount, distinctPrefectures]);
 
-  // The tier the challenge currently qualifies for — gates the Claim/Upgrade
+  // The tier the challenge currently qualifies for: gates the Claim/Upgrade
   // button. Mirrors the server's check (the callable re-verifies before writing).
   const eligibleTier = useMemo<Tier | null>(() => {
     if (!challenge || tiers.length === 0) return null;
@@ -388,7 +388,7 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
   }, [challenge, tiers, visits, baseMode, eligibleVisitCount]);
 
   // Opens the unified Routes screen. Attaching a route to the challenge now
-  // happens there via each route's ⋯ menu, not by tapping — so this no longer
+  // happens there via each route's ⋯ menu, not by tapping, so this no longer
   // needs to pass the challenge id.
   const selectRoute = useCallback(() => {
     router.push('/routes');
@@ -406,7 +406,7 @@ export function useActiveChallengeProgress(): ActiveChallengeProgress {
     }
   }, [user, challengeId, t]);
 
-  // Commit a claim through the server callable — the sole writer of earnedTier.
+  // Commit a claim through the server callable: the sole writer of earnedTier.
   // The new value lands via the challenge snapshot, which drives the celebration.
   const claimTier = useCallback(async () => {
     if (!challengeId || claiming) return;

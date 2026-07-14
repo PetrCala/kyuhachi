@@ -40,7 +40,7 @@ const TRANSPORT_ICONS: Record<TransportMode, IoniconName> = {
   car: 'car',
 };
 
-// Tile-disc geometry — component-local, like the badge diameters in ChallengeBadge.
+// Tile-disc geometry: component-local, like the badge diameters in ChallengeBadge.
 const DISC_SIZE = 64;
 const DISC_ICON_RATIO = 0.55;
 

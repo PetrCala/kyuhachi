@@ -17,14 +17,14 @@ const SUGGESTION_COUNT = 3;
 interface SuggestNextCardProps {
   /** Eligible, not-yet-visited onsens for the active challenge, with coordinates. */
   candidates: NextOnsenCandidate[];
-  /** The challenge's active route — seeds the dev-only simulated location. */
+  /** The challenge's active route; seeds the dev-only simulated location. */
   activeRoute: RouteDocument | null;
 }
 
 /**
  * "Nearest unvisited": the closest eligible onsens the user still needs, ranked
  * by current location. Tapping one opens its detail screen, where Call and
- * Directions live — closing the plan → travel loop from the home dashboard.
+ * Directions live: closing the plan to travel loop from the home dashboard.
  *
  * Unlike the onsen list's "Near you" section, this ignores the nearby-radius
  * preference: it always surfaces the nearest target even when that's far away,
@@ -41,13 +41,13 @@ export function SuggestNextCard({ candidates, activeRoute }: SuggestNextCardProp
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       setDeviceCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
     } catch {
-      // No fix available — the card stays hidden rather than nagging.
+      // No fix available; the card stays hidden rather than nagging.
     }
   }, []);
 
   // Ask for location once there's something to suggest. A denial just flips the
   // card to its "enable location" prompt; we never bounce the user to Settings
-  // unprompted — that only happens if they tap Enable and the OS won't ask again.
+  // unprompted; that only happens if they tap Enable and the OS won't ask again.
   useEffect(() => {
     if (__DEV__ || candidates.length === 0) return;
     let cancelled = false;
@@ -78,7 +78,7 @@ export function SuggestNextCard({ candidates, activeRoute }: SuggestNextCardProp
       setDenied(false);
       await fetchPosition();
     } else if (!canAskAgain) {
-      // The OS won't prompt again — send the user to the app's Settings page.
+      // The OS won't prompt again; send the user to the app's Settings page.
       await Linking.openSettings();
     }
   }, [fetchPosition]);
@@ -102,8 +102,8 @@ export function SuggestNextCard({ candidates, activeRoute }: SuggestNextCardProp
     [origin, candidates]
   );
 
-  // Shared fallback CTA. Used when there's nothing to rank by location — either
-  // the challenge is complete (no candidates) or the user declined location —
+  // Shared fallback CTA. Used when there's nothing to rank by location: either
+  // the challenge is complete (no candidates) or the user declined location,
   // so the card never collapses to nothing as the home screen's lead block.
   const browseFallback = (
     <Pressable

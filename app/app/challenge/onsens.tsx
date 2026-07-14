@@ -7,7 +7,7 @@ import { OnsenList, type OnsenListItem } from '@/components/OnsenList';
 /**
  * The challenge-scoped onsen checklist reached from the home "Record a visit"
  * button: the eligible onsens (unvisited first) with a search box. Tapping a row
- * opens the visit editor directly — recording nothing until the user saves there.
+ * opens the visit editor directly, recording nothing until the user saves there.
  * The editor returns Home on Save/Delete (`returnTo`), so this list acts as a
  * launchpad; Cancel/swipe drops back here.
  */

@@ -13,7 +13,7 @@ export const DEFAULT_NEAR_ROUTE_RADIUS_KM = 2;
 /** Selectable radii (km) for the map's "Near route" filter (walk/ride scale). */
 export const NEAR_ROUTE_RADIUS_OPTIONS_KM = [1, 2, 5, 10] as const;
 
-/** Default corridor width for the finder. Tighter than the onsen filter — a
+/** Default corridor width for the finder. Tighter than the onsen filter: a
  *  2 km-off-route stop is a 4 km round-trip detour. */
 export const DEFAULT_FINDER_CORRIDOR_KM = 1;
 
@@ -63,7 +63,7 @@ interface PreferencesContextValue {
   /**
    * Whether recording a new visit plays the celebratory stamp-collection
    * animation (the seal flies in over a glow with sparkles). When off, the stamp
-   * still appears for the user to claim — it just shows up at once without the
+   * still appears for the user to claim; it just shows up at once without the
    * flourish. Default on.
    */
   animateStampCollect: boolean;
@@ -166,7 +166,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
         if (stampAnim !== null) setAnimateStampCollectState(stampAnim !== 'false');
         if (progressAnim !== null) setAnimateProgressState(progressAnim !== 'false');
       } catch {
-        // Storage unavailable — keep defaults.
+        // Storage unavailable: keep defaults.
       } finally {
         if (!cancelled) setLoaded(true);
       }

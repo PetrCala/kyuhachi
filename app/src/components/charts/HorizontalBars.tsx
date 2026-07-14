@@ -29,7 +29,7 @@ function widthPct(value: number, max: number): number {
 }
 
 /**
- * A stack of labelled horizontal bars — the workhorse breakdown chart (spend by
+ * A stack of labelled horizontal bars: the workhorse breakdown chart (spend by
  * prefecture, transport mix, area coverage, …). Plain Views; the math is done by
  * the caller, colors come from the theme/`series`.
  */

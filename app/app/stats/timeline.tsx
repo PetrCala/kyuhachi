@@ -12,7 +12,7 @@ import {
 const WEEKDAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 const SEASON_KEYS = ['spring', 'summer', 'autumn', 'winter'] as const;
 
-/** Timeline — cumulative curve, calendar breakdowns, streaks and records. */
+/** Timeline: cumulative curve, calendar breakdowns, streaks and records. */
 export default function StatsTimeline() {
   const { t, i18n } = useTranslation();
   const { loading, hasData, timeline } = useStats();

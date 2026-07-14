@@ -10,10 +10,10 @@ interface RatingHistogramProps {
 
 // Tallest a bar can draw, derived from spacing tokens (runtime layout height).
 const BAR_MAX_HEIGHT = spacing[12] + spacing[8]; // 80
-const BAR_MIN_HEIGHT = spacing[1] / 2; // 2 — keeps a non-zero bucket visible
+const BAR_MIN_HEIGHT = spacing[1] / 2; // 2; keeps a non-zero bucket visible
 
 /**
- * A 1–10 vertical-bar histogram (overall + sub-rating distributions on the
+ * A 1-10 vertical-bar histogram (overall + sub-rating distributions on the
  * Experience screen). Plain Views scaled to the busiest bucket.
  */
 export function RatingHistogram({ buckets, color }: RatingHistogramProps) {

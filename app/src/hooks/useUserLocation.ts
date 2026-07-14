@@ -4,7 +4,7 @@ import * as Location from 'expo-location';
 /**
  * One-shot foreground location for the "near you" list section. Requests
  * permission once on mount (iOS only re-prompts if undecided) and resolves the
- * current position. Returns null until/unless a fix is available — callers hide
+ * current position. Returns null until/unless a fix is available; callers hide
  * the nearby section when there's no location rather than nagging the user.
  *
  * Pass `enabled = false` to skip the prompt entirely (the onsen list does this
@@ -27,7 +27,7 @@ export function useUserLocation(enabled = true): { lat: number; lng: number } | 
           setCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
         }
       } catch {
-        // No fix available — leave coords null so no nearby section shows.
+        // No fix available: leave coords null so no nearby section shows.
       }
     })();
     return () => {

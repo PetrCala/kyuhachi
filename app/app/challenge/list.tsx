@@ -112,7 +112,7 @@ export default function ChallengeList() {
 
   // Count eligible visits per challenge (snapshot at open; refreshes on add/delete).
   // The tier marker comes from challenge.earnedTier (maintained by the visit
-  // triggers), so it's already in the snapshot above — no computation needed here.
+  // triggers), so it's already in the snapshot above: no computation needed here.
   const progressKey = useMemo(
     () => challenges.map((c) => c.id).sort().join(','),
     [challenges]

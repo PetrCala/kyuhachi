@@ -6,7 +6,7 @@
  *
  * "Now" is captured once per mount (so the projected-completion date is stable),
  * and every computation keys its memo on the Firestore Map/Set identities the
- * hook hands out — a new snapshot is a new identity, which is exactly when a
+ * hook hands out: a new snapshot is a new identity, which is exactly when a
  * recompute is warranted.
  */
 import { useMemo, useRef } from 'react';

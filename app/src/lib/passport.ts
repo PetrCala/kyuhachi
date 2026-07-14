@@ -3,7 +3,7 @@
  *
  * The virtual passport mimics a physical 御湯印帳: a 4×3 grid per page that the
  * user fills one stamp at a time, in visit order. Stamps land in the Japanese
- * stamp-book convention — top→bottom down the rightmost column first, then the
+ * stamp-book convention: top→bottom down the rightmost column first, then the
  * next column to the left (right→left, columns before rows).
  *
  * Pure functions only, so the fill order is unit-testable without a renderer.

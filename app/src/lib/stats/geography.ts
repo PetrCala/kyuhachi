@@ -1,5 +1,5 @@
 /**
- * Geography stats — coverage by prefecture and area, spatial superlatives, and a
+ * Geography stats: coverage by prefecture and area, spatial superlatives, and a
  * rough travelled distance. Visited counts come from eligible visits; eligible
  * counts (the denominators) come from projecting the loaded onsen info over the
  * frozen eligible pool, so "X of Y in this prefecture" is honest.

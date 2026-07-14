@@ -1,5 +1,5 @@
 /**
- * Spend highlights — the named superlatives that complement the aggregate
+ * Spend highlights: the named superlatives that complement the aggregate
  * `computeBudget` numbers on the Budget screen (cheapest/dearest visited, the
  * priciest onsen still to come, and the best value-for-money visits).
  *
@@ -18,7 +18,7 @@ export interface SpendItem {
 }
 
 export interface ValueLeader extends SpendItem {
-  /** The visit's value-for-money rating, 1–10. */
+  /** The visit's value-for-money rating, 1-10. */
   rating: number;
 }
 

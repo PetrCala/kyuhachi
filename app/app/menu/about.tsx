@@ -9,7 +9,7 @@ import { colors, spacing, typography, radii } from '@/theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
-// External destinations. Not translatable — these are configuration, not copy.
+// External destinations. Not translatable: these are configuration, not copy.
 const GITHUB_URL = 'https://github.com/PetrCala/kyuhachi';
 const ISSUES_URL = 'https://github.com/PetrCala/kyuhachi/issues';
 const DATA_SOURCE_URL = 'https://www.88onsen.com';
@@ -18,7 +18,7 @@ const DATA_SOURCE_URL = 'https://www.88onsen.com';
 const PRIVACY_URL = 'https://kyuhachi-fddcc.web.app/privacy';
 const TERMS_URL = 'https://kyuhachi-fddcc.web.app/terms';
 
-// 九 (kyu) over 八 (hachi), set in Klee One — the app's visual identity. Mirrors
+// 九 (kyu) over 八 (hachi), set in Klee One: the app's visual identity. Mirrors
 // the sign-in brand mark; not a translatable string.
 const BRAND_MARK = '九\n八';
 
@@ -55,7 +55,7 @@ function LinkRow({ icon, label, url, last }: LinkRowProps) {
 export default function About() {
   const { t } = useTranslation();
 
-  const version = Constants.expoConfig?.version ?? '—';
+  const version = Constants.expoConfig?.version ?? '-';
   // The iOS build number (CFBundleVersion) is injected by fastlane *after*
   // `expo prebuild`, so it never reaches Constants.expoConfig.ios.buildNumber.
   // Read it from the native Info.plist at runtime instead. See docs/ios-deploy.md.

@@ -25,7 +25,7 @@ interface TierLike {
 
 /**
  * The highest tier (tiers are ordered best → worst) whose conditions are all
- * met. Mirrors the rule the client used to compute inline — kept here because
+ * met. Mirrors the rule the client used to compute inline, kept here because
  * Functions is a separate package from the app and `@kyuhachi/shared`.
  */
 export function computeEarnedTier(

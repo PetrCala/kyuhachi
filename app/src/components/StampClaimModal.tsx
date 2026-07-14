@@ -23,7 +23,7 @@ const SPARKLE_DURATION = 1100;
 // One full pulse of the resting glow (out, then back).
 const GLOW_HALF_CYCLE = 1150;
 const SPARKLE_COUNT = 16;
-// The seal's vertical descent before it lands — height above the page and how
+// The seal's vertical descent before it lands: height above the page and how
 // long the drop takes, accelerating in like a hand pressing down.
 const DROP_DISTANCE = STAMP_SIZE * 0.75;
 const DROP_DURATION = 240;
@@ -37,12 +37,12 @@ const SPARKLE_COLORS = [colors.brandGlyph, colors.tierGold, colors.onsenVisited]
 
 /** The data needed to ink a freshly-collected stamp. */
 export interface StampReward {
-  /** kyuhachiId of the visited onsen — identifies the celebration instance. */
+  /** kyuhachiId of the visited onsen; identifies the celebration instance. */
   onsenId: string;
   prefecture: string;
   areaName: string;
   name: string;
-  /** Visit date in ms — inked beneath the seal. */
+  /** Visit date in ms; inked beneath the seal. */
   dateMs: number;
 }
 
@@ -51,7 +51,7 @@ interface Sparkle {
   distance: number; // px travelled outward
   size: number;
   color: string;
-  delay: number; // 0..0.2 — fraction of the burst before this mote flies
+  delay: number; // 0..0.2: fraction of the burst before this mote flies
 }
 
 function buildSparkles(): Sparkle[] {
@@ -73,7 +73,7 @@ function buildSparkles(): Sparkle[] {
 /**
  * The radial sparkle burst that fans out from behind the stamp as it lands. One
  * Animated driver (0 → 1) feeds every mote through interpolation, so the whole
- * burst rides a single timing — same vanilla-RN approach as Confetti. Purely
+ * burst rides a single timing, the same vanilla-RN approach as Confetti. Purely
  * cosmetic and non-interactive.
  */
 function Sparkles({ burst }: { burst: Animated.Value }) {
@@ -133,19 +133,19 @@ async function fireHaptic() {
   try {
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   } catch {
-    // Haptics are unavailable on some devices/simulators — non-fatal.
+    // Haptics are unavailable on some devices/simulators; non-fatal.
   }
 }
 
 /**
  * The stamp-collection celebration: when the user records a new visit, the
  * earned seal drops straight onto a glowing page like a hand-pressed stamp,
- * squashes on impact as the sparkles burst, and waits — held in the middle of
+ * squashes on impact as the sparkles burst, and waits, held in the middle of
  * the screen until the user taps Collect to add it to their Spaport.
  *
  * Motion is gated twice: the user's "stamp collection animation" preference and
  * the OS Reduce Motion setting. With either off, the stamp simply fades in at
- * once (no drop, glow pulse, or sparkles) and still waits to be claimed — the
+ * once (no drop, glow pulse, or sparkles) and still waits to be claimed: the
  * success haptic always fires, since that's feedback, not motion.
  */
 export function StampClaimModal({ reward, animationsEnabled, onDismiss }: StampClaimModalProps) {
@@ -166,7 +166,7 @@ export function StampClaimModal({ reward, animationsEnabled, onDismiss }: StampC
   const squash = useRef(new Animated.Value(0)).current;
   const glow = useRef(new Animated.Value(0)).current;
   const burst = useRef(new Animated.Value(0)).current;
-  // Whether the flourish is playing — gates the glow halo and sparkles out of the
+  // Whether the flourish is playing; gates the glow halo and sparkles out of the
   // tree entirely when motion is off, so no static circle lingers behind the seal.
   const [animating, setAnimating] = useState(false);
 
@@ -199,8 +199,8 @@ export function StampClaimModal({ reward, animationsEnabled, onDismiss }: StampC
       }
 
       // The seal drops straight onto the page, accelerating in. Everything that
-      // sells the press — the ka-chunk haptic, the squash, the sparkle burst, and
-      // the resting glow — fires at the moment of impact, not before.
+      // sells the press (the ka-chunk haptic, the squash, the sparkle burst, and
+      // the resting glow) fires at the moment of impact, not before.
       Animated.timing(drop, {
         toValue: 1,
         duration: DROP_DURATION,

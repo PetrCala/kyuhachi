@@ -1,6 +1,6 @@
 /**
  * Shared building blocks for the Stats screens, so the hub and six detail pages
- * share one visual language (iOS grouped cards). Presentational only — they take
+ * share one visual language (iOS grouped cards). Presentational only: they take
  * already-formatted strings; all computation lives in `lib/stats`.
  */
 import type { ReactNode } from 'react';
@@ -12,7 +12,7 @@ interface StatScreenFrameProps {
   /** Localized header title. */
   title: string;
   loading: boolean;
-  /** No active challenge — show the empty message instead of content. */
+  /** No active challenge: show the empty message instead of content. */
   isEmpty: boolean;
   emptyText: string;
   children: ReactNode;

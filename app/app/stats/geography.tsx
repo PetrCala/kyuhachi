@@ -9,7 +9,7 @@ import {
   CardBlock,
 } from '@/components/stats/StatPrimitives';
 
-/** Geography — prefecture & area coverage, plus reach (extremes + distance). */
+/** Geography: prefecture & area coverage, plus reach (extremes + distance). */
 export default function StatsGeography() {
   const { t } = useTranslation();
   const { loading, hasData, geography } = useStats();

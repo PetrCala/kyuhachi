@@ -1,7 +1,7 @@
 import type en from './en';
 
 const ja: Record<keyof typeof en, string> = {
-  // common (shared error chrome — see src/lib/firebase-errors.ts)
+  // common (shared error chrome: see src/lib/firebase-errors.ts)
   'common.errorTitle': 'エラー',
   'common.errorGeneric': '問題が発生しました。もう一度お試しください。',
   'common.errorNetwork': 'ネットワークエラーが発生しました。接続を確認してもう一度お試しください。',
@@ -94,7 +94,7 @@ const ja: Record<keyof typeof en, string> = {
   // stats (hub + shared)
   'stats.title': '統計',
   'stats.empty': 'チャレンジを始めると、統計が表示されます。',
-  'stats.noVisits': 'まだ訪問がありません — 巡るほど統計が充実します。',
+  'stats.noVisits': 'まだ訪問がありません。巡るほど統計が充実します。',
   'stats.coverageFraction': '{{covered}} / {{total}}',
   'stats.coverageNote': '訪問{{total}}件中{{reported}}件をもとに',
   'stats.unit.percent': '{{value}}%',
@@ -198,7 +198,7 @@ const ja: Record<keyof typeof en, string> = {
   'stats.avgPerVisit': '1湯あたり平均',
   'stats.pricedNote': '訪問した温泉{{visited}}件のうち{{priced}}件に料金あり',
   'stats.projectedNote': '残り{{count}}湯を最安で巡った場合の費用',
-  'stats.projectedNoneLeft': 'チャレンジ達成 — 残りの費用はありません',
+  'stats.projectedNoneLeft': 'チャレンジ達成、残りの費用はありません',
   'stats.budgetHeading': '費用',
   'stats.byPrefecture': '県別の費用',
   'stats.byTransport': '交通手段別の費用',
@@ -243,7 +243,7 @@ const ja: Record<keyof typeof en, string> = {
   'stats.experience.photoCount_other': '{{count}}枚',
   'stats.experience.empty': '訪問を記録する際に詳細を入力すると、体験の統計が表示されます。',
 
-  // passport (御湯印帳 — official stamp book)
+  // passport (御湯印帳: official stamp book)
   'passport.title': '御湯印帳',
   'passport.progress': '{{visited}} / {{total}}',
   'passport.hint': '湯印は訪問した順に押されます。',
@@ -319,7 +319,7 @@ const ja: Record<keyof typeof en, string> = {
   'finder.categoryMichiNoEki': '道の駅',
   'finder.reverse': '逆方向',
   'finder.reverseHint': 'ルートを反対方向に検索します',
-  'finder.noRouteNote': 'アクティブなルートがありません — 周辺のスポットを表示します。',
+  'finder.noRouteNote': 'アクティブなルートがありません。周辺のスポットを表示します。',
   'finder.aheadKm': '前方 {{km}} km',
   'finder.awayKm': '約 {{km}} km',
   'finder.detourKm': '寄り道 {{km}} km',
@@ -436,7 +436,7 @@ const ja: Record<keyof typeof en, string> = {
   'tierClaim.finaleTitle': '達成おめでとう！',
   'tierClaim.caption': 'このバッジがチャレンジに加わりました。',
   'tierClaim.upgradeCaption': 'チャレンジが{{tier}}バッジになりました。',
-  'tierClaim.finaleCaption': 'すべての称号を制覇 — 九州八十八湯、完全達成。',
+  'tierClaim.finaleCaption': 'すべての称号を制覇。九州八十八湯、完全達成。',
   'tierClaim.nextHint': '次は: {{tier}}',
   'tierClaim.done': '完了',
   'tierClaim.a11yLabel': '称号獲得のお祝い',

@@ -19,7 +19,7 @@ export interface ScheduleGroup {
 }
 
 /** Collapse consecutive days (Mon→Sun) sharing the same window / closed state into
- *  ranges, so an unbroken "09:00–21:00" week renders as one row instead of seven. */
+ *  ranges, so an unbroken "09:00-21:00" week renders as one row instead of seven. */
 export function groupSchedule(schedule: WeeklySchedule): ScheduleGroup[] {
   const groups: ScheduleGroup[] = [];
   for (const day of WEEKDAYS) {

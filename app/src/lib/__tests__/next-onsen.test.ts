@@ -37,7 +37,7 @@ describe('buildNextCandidates', () => {
 
   it('keeps only eligible onsens that are unvisited and have loaded info', () => {
     const result = buildNextCandidates(['a', 'b', 'c', 'missing'], new Set(['b']), onsenInfo);
-    // 'b' is visited; 'missing' has no info — both dropped.
+    // 'b' is visited; 'missing' has no info: both dropped.
     expect(result.map((c) => c.id)).toEqual(['a', 'c']);
     expect(result[0]).toMatchObject({ id: 'a', name: 'Beppu', prefecture: 'Oita' });
   });

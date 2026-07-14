@@ -21,7 +21,7 @@ describe('groupSchedule', () => {
   });
 
   it('merges a run of consecutive closed days', () => {
-    // Mon–Fri open, Sat–Sun closed.
+    // Mon-Fri open, Sat-Sun closed.
     const groups = groupSchedule(
       week([NINE_TO_NINE, NINE_TO_NINE, NINE_TO_NINE, NINE_TO_NINE, NINE_TO_NINE, null, null])
     );
@@ -40,7 +40,7 @@ describe('groupSchedule', () => {
   });
 
   it('breaks a group when adjacent days have different windows', () => {
-    // Mon–Tue 09:00–21:00, Wed 10:00–18:00, Thu–Sun 09:00–21:00.
+    // Mon-Tue 09:00-21:00, Wed 10:00-18:00, Thu-Sun 09:00-21:00.
     const groups = groupSchedule(
       week([NINE_TO_NINE, NINE_TO_NINE, TEN_TO_SIX, NINE_TO_NINE, NINE_TO_NINE, NINE_TO_NINE, NINE_TO_NINE])
     );

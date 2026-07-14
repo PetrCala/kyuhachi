@@ -11,10 +11,10 @@ import { colors, spacing, typography, radii } from '@/theme';
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
 // Canonical Firebase provider id for Sign in with Apple. Used only to label the
-// sign-in method — not user-facing copy, so exempt from the i18n rule.
+// sign-in method; not user-facing copy, so exempt from the i18n rule.
 const APPLE_PROVIDER_ID = 'apple.com';
 
-// Identity avatar glyph. A plain size literal (not a style token) — icon sizing
+// Identity avatar glyph. A plain size literal (not a style token): icon sizing
 // is outside the spacing/font/radius token rules, mirroring about.tsx.
 const AVATAR_SIZE = 64;
 

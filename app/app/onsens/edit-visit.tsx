@@ -67,7 +67,7 @@ const MAX_PHOTOS = 6;
 // A save applies to Firestore's local cache instantly, which would flash the
 // saving overlay for a frame or two. Hold it open long enough for the
 // stamp-press loader to play its full press-lift-reveal story once, so the
-// moment reads as deliberate. This timer alone paces the overlay — never the
+// moment reads as deliberate. This timer alone paces the overlay: never the
 // write's backend acknowledgment, which offline may be days away. Photo
 // uploads still run detached afterwards.
 const SAVE_VISIBLE_MS = STAMP_PRESS_CYCLE_MS;
@@ -100,8 +100,8 @@ export default function EditVisit() {
   const { celebrateStamp } = useStampCelebration();
 
   // When the modal is opened from the record-a-visit list (returnTo='home'), a
-  // successful Save or a Delete pops the whole flow — both the modal and the
-  // list — back to the Home tab. Cancel / swipe-down still use plain back().
+  // successful Save or a Delete pops the whole flow (both the modal and the
+  // list) back to the Home tab. Cancel / swipe-down still use plain back().
   const dismissToHome = returnTo === 'home';
 
   const [notes, setNotes] = useState('');
@@ -150,7 +150,7 @@ export default function EditVisit() {
 
   // Leave the editor when there's nothing left to edit: no onsen id (the modal
   // was re-presented by navigation state restoration on reload), or the visit we
-  // were editing got deleted — via Remove here, or elsewhere. A brand-new visit
+  // were editing got deleted (via Remove here, or elsewhere). A brand-new visit
   // that was never created stays open so the form can be filled. `returnTo=home`
   // pops the whole flow; otherwise fall back to home when there's no screen to
   // pop to.
@@ -197,21 +197,21 @@ export default function EditVisit() {
       duration: durationText ? Number(durationText) : null,
     };
     // Photos already on the visit are uploaded; freshly-picked ones aren't. The
-    // doc is written now with just the uploaded URLs so the save — and the stamp
-    // — lands instantly off Firestore's offline cache, with no Storage round-trip
+    // doc is written now with just the uploaded URLs so the save, and the stamp,
+    // lands instantly off Firestore's offline cache, with no Storage round-trip
     // on the critical path. Any new photos upload in the background (see
     // finalizeVisitPhotos) and patch onto the doc once they finish.
     //
     // The write is deliberately NOT awaited: Firestore applies it to the local
     // cache at once and syncs when connectivity allows, but the returned promise
-    // resolves only on the backend's acknowledgment — awaiting it would hang this
+    // resolves only on the backend's acknowledgment; awaiting it would hang this
     // save (and its overlay) indefinitely at an onsen with no signal, which is
     // exactly where visits get recorded. Snapshots deliver the pending write to
     // every screen immediately; a genuine rejection (e.g. rules) surfaces through
     // the alert.
     const existingUrls = photos.flatMap((p) => (p.kind === 'existing' ? [p.url] : []));
     if (isCreate) {
-      // First save records the visit — the only place a visit is created.
+      // First save records the visit: the only place a visit is created.
       setDoc(docRef, {
         visitedAt: serverTimestamp(),
         notes: notes.trim() || null,
@@ -229,7 +229,7 @@ export default function EditVisit() {
       }).catch((error) => Alert.alert(t('common.errorTitle'), t(firebaseErrorKey(error))));
     }
     // Hold the saving overlay for one full stamp-press cycle (see
-    // SAVE_VISIBLE_MS) — the loader's press-lift-reveal is the save's visible
+    // SAVE_VISIBLE_MS): the loader's press-lift-reveal is the save's visible
     // beat, and this timer is its only pacer.
     await delay(SAVE_VISIBLE_MS);
 
@@ -247,7 +247,7 @@ export default function EditVisit() {
       });
     }
 
-    // The visit is saved — leave the editor rather than holding the user on a
+    // The visit is saved; leave the editor rather than holding the user on a
     // disabled button while photos upload. The upload runs detached from this
     // now-unmounting screen, then patches the doc and sweeps removed files.
     void finalizeVisitPhotos(docRef, existingUrls);
@@ -258,7 +258,7 @@ export default function EditVisit() {
   // Finishes the photo side of a save after the editor has navigated away: uploads
   // any freshly-picked photos, writes the final ordered photo list, then drops the
   // Storage objects for any removed originals. Runs detached from the (unmounting)
-  // screen, so it never touches React state — a failure surfaces as a single alert
+  // screen, so it never touches React state; a failure surfaces as a single alert
   // and the visit keeps whatever photos did upload. With no new photos the
   // synchronous save already wrote the URLs, leaving only the removed-file sweep.
   async function finalizeVisitPhotos(
@@ -295,8 +295,8 @@ export default function EditVisit() {
     if (!docRef) return;
     setRemoving(true);
     // Not awaited, same rationale as the save: the delete applies to the local
-    // cache instantly — the visit subscription drops to null, which dismisses
-    // the modal via the effect above — while the promise resolves only on the
+    // cache instantly: the visit subscription drops to null, which dismisses
+    // the modal via the effect above, while the promise resolves only on the
     // backend's acknowledgment and would deadlock this button offline. The
     // onVisitDeleted Function cleans up any photos. Re-enable only on failure,
     // since success unmounts this screen.
@@ -319,7 +319,7 @@ export default function EditVisit() {
 
   // Uploads one freshly-picked photo to Storage and returns its download URL. The
   // index keeps names distinct when several upload in the same Save. User /
-  // challenge / id are present here — the caller checked visitRef() first.
+  // challenge / id are present here: the caller checked visitRef() first.
   async function uploadPhotoFile(uri: string, index: number): Promise<string> {
     const name = `photo_${Date.now()}_${index}.jpg`;
     const photoRef = ref(storage, `visits/${user!.uid}/${challengeId}_${id}/${name}`);
@@ -402,7 +402,7 @@ export default function EditVisit() {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
         >
-          {/* — Photos (staged locally; uploaded on Save) — */}
+          {/* Photos (staged locally; uploaded on Save) */}
           <View style={styles.photoGrid}>
             {photos.map((photo, index) => (
               <View
@@ -431,7 +431,7 @@ export default function EditVisit() {
             )}
           </View>
 
-          {/* — Base — */}
+          {/* Base */}
           <Field label={t('onsenDetail.labelRating')}>
             <RatingStars value={details.rating} onChange={(v) => setField('rating', v)} />
           </Field>
@@ -459,7 +459,7 @@ export default function EditVisit() {
             <BoolChips value={details.wouldReturn} onChange={(v) => setField('wouldReturn', v)} />
           </Field>
 
-          {/* — Show / hide detailed fields — */}
+          {/* Show / hide detailed fields */}
           <Pressable
             style={styles.detailsToggle}
             onPress={() => setShowDetails((v) => !v)}

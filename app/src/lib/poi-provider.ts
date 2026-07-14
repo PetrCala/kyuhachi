@@ -27,7 +27,7 @@ const MAX_SEARCH_RADIUS_M = 50_000;
 /**
  * Whether the finder can return real results. True when the native MKLocalSearch
  * module is linked; also true in dev (we stand in mock data there). In a release
- * build without the module it is false — callers should show an unavailable state
+ * build without the module it is false; callers should show an unavailable state
  * rather than the fabricated mock data, which must never reach a real user.
  */
 export const finderSearchAvailable = __DEV__ || isLocalSearchAvailable;
@@ -37,7 +37,7 @@ function dedupeKey(p: { name: string; lat: number; lng: number }): string {
 }
 
 // Deterministic stand-ins for DEV ONLY, so the UI is buildable without a custom
-// native build. Never used in release builds — see rawSearch. Small fixed offsets
+// native build. Never used in release builds; see rawSearch. Small fixed offsets
 // keep them inside a typical corridor so route mode still shows something.
 const MOCK_OFFSETS_KM: [number, number][] = [
   [0.05, 0.1],

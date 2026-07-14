@@ -5,7 +5,7 @@
 
 export const radii = {
   sm:   6,
-  md:   8,    // buttons, inputs — most common
+  md:   8,    // buttons, inputs, most common
   lg:   12,
   xl:   16,
   full: 9999, // pills, circular elements

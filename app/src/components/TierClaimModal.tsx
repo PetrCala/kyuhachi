@@ -37,7 +37,7 @@ export interface TierCelebration {
   /** Localized tier name (already run through the i18n tier helper). */
   tierName: string;
   transportMode: TransportMode | null;
-  /** A first-time claim vs. an upgrade from a lower tier — drives the copy. */
+  /** A first-time claim vs. an upgrade from a lower tier; drives the copy. */
   variant: 'claim' | 'upgrade';
   /** The best tier in the set: gets the finale treatment. */
   isTopTier: boolean;
@@ -58,17 +58,17 @@ async function fireHaptics(finale: boolean) {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     }
   } catch {
-    // Haptics are unavailable on some devices/simulators — non-fatal.
+    // Haptics are unavailable on some devices/simulators; non-fatal.
   }
 }
 
 /**
  * The tier-claim celebration: a full-screen reveal of the earned medallion that
  * springs in, catches a metal gleam, rains tier-colored confetti, and fires a
- * success haptic — the payoff moment for the one action the whole app builds to.
+ * success haptic: the payoff moment for the one action the whole app builds to.
  *
  * Honors Reduce Motion: under it the modal simply fades in, with no pop, gleam,
- * or confetti (the haptic still fires — that's feedback, not motion).
+ * or confetti (the haptic still fires; that's feedback, not motion).
  */
 export function TierClaimModal({ celebration, onDismiss }: TierClaimModalProps) {
   const { t } = useTranslation();

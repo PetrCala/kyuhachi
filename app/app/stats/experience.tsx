@@ -14,7 +14,7 @@ import {
 import { colors, spacing, typography } from '@/theme';
 
 // Reuse the onsen-detail vocabulary for shared rating/enum labels (single source
-// of truth) — these are the same concepts the record-a-visit form labels.
+// of truth): these are the same concepts the record-a-visit form labels.
 const SUB_RATING_LABELS: Record<SubRatingKey, string> = {
   cleanliness: 'onsenDetail.labelCleanliness',
   atmosphere: 'onsenDetail.labelAtmosphere',
@@ -44,7 +44,7 @@ function hasAnyDetail(e: ExperienceResult): boolean {
   );
 }
 
-/** Experience — the opt-in self-reported impressions, every block coverage-aware. */
+/** Experience: the opt-in self-reported impressions, every block coverage-aware. */
 export default function StatsExperience() {
   const { t } = useTranslation();
   const { loading, hasData, experience } = useStats();
@@ -98,7 +98,7 @@ export default function StatsExperience() {
                 <CardBlock>
                   <View style={styles.avgRow}>
                     <Text style={styles.avgValue}>
-                      {experience.overall.avg != null ? round1(experience.overall.avg) : '—'}
+                      {experience.overall.avg != null ? round1(experience.overall.avg) : '-'}
                     </Text>
                     <Text style={styles.avgOutOf}>{t('stats.experience.outOf')}</Text>
                   </View>
@@ -121,7 +121,7 @@ export default function StatsExperience() {
                       key={s.key}
                       label={t(SUB_RATING_LABELS[s.key])}
                       caption={s.top ? t('stats.experience.topPick', { name: s.top.name }) : undefined}
-                      value={s.avg != null ? round1(s.avg) : '—'}
+                      value={s.avg != null ? round1(s.avg) : '-'}
                       last={i === arr.length - 1}
                     />
                   ))}
@@ -195,7 +195,7 @@ export default function StatsExperience() {
                   <StatRow
                     label={t('stats.experience.waterTemp')}
                     value={t('stats.experience.celsius', {
-                      value: experience.bath.avgWaterTempC != null ? round1(experience.bath.avgWaterTempC) : '—',
+                      value: experience.bath.avgWaterTempC != null ? round1(experience.bath.avgWaterTempC) : '-',
                     })}
                     last={experience.bath.heatCoverage.reported === 0}
                   />

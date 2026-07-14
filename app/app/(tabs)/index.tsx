@@ -34,7 +34,7 @@ import { buildNextCandidates } from '@/lib/next-onsen';
 import { rankLabel } from '@/lib/challenge-i18n';
 import { colors, spacing, typography, radii } from '@/theme';
 
-// Brand wordmark: 九八 (kyuhachi) set in Klee One. Not a translatable string —
+// Brand wordmark: 九八 (kyuhachi) set in Klee One. Not a translatable string:
 // it's the app's visual identity and renders identically in every locale.
 const HOME_WORDMARK = '九八';
 
@@ -67,7 +67,7 @@ export default function Home() {
   } = useActiveChallengeProgress();
 
   // Tier thresholds plotted on the bar come from each tier's minVisits
-  // condition — never hardcoded (see buildTierMarkers).
+  // condition; never hardcoded (see buildTierMarkers).
   const markers = useMemo(
     () => buildTierMarkers(tiers, eligibleVisitCount),
     [tiers, eligibleVisitCount]
@@ -119,7 +119,7 @@ export default function Home() {
   // Celebrate when the active challenge's claimed tier steps up. earnedTier is
   // written server-side by the claimTier callable, so it arrives via the
   // snapshot after a successful claim; we track the last-seen tier per challenge
-  // to fire only on a genuine increase during the session — switching challenges
+  // to fire only on a genuine increase during the session; switching challenges
   // or the first load syncs silently.
   const seenTierRef = useRef<{ challengeId: string | null; tierId: string | null }>({
     challengeId: null,
@@ -129,7 +129,7 @@ export default function Home() {
     const current = challenge?.earnedTier ?? null;
     const prev = seenTierRef.current;
     if (prev.challengeId !== challengeId) {
-      // Switched challenge (or first observation) — sync without celebrating.
+      // Switched challenge (or first observation): sync without celebrating.
       seenTierRef.current = { challengeId, tierId: current };
       return;
     }
@@ -159,7 +159,7 @@ export default function Home() {
   // (reaching the first rank counts). Switching challenges syncs silently.
   //
   // The rank is derived from data that hydrates in stages (visits, then the
-  // per-onsen prefecture map), so we only arm once it has SETTLED — `!loading`
+  // per-onsen prefecture map), so we only arm once it has SETTLED: `!loading`
   // and `onsenMap` populated. Establishing the baseline before then would make
   // ordinary load-in look like a rank-up on every launch. After settling, the
   // only thing that moves the rank is the user recording a qualifying visit.
@@ -187,7 +187,7 @@ export default function Home() {
   }, [currentRank, challengeId, ranks, loading, onsenMap, t]);
 
   // Animate the hero number + bar fill when a recorded visit raises the eligible
-  // count — but only on a genuine increase during the session. Mirrors the
+  // count, but only on a genuine increase during the session. Mirrors the
   // seenRankRef/seenTierRef latches: the first observation per challengeId syncs
   // silently (so launch and challenge switches never animate from the old value),
   // and only a later increase tweens. Motion is gated by the animateProgress
@@ -236,7 +236,7 @@ export default function Home() {
   useEffect(() => {
     const prev = seenVisitRef.current;
     if (prev.challengeId !== challengeId) {
-      // Switched challenge (or first observation) — show the final value at once.
+      // Switched challenge (or first observation): show the final value at once.
       seenVisitRef.current = { challengeId, count: eligibleVisitCount };
       visitedAnim.value = eligibleVisitCount;
       setDisplayVisited(eligibleVisitCount);
@@ -412,8 +412,8 @@ export default function Home() {
           )}
         </View>
 
-        {/* Route, demoted to a compact bottom card. All four actions stay —
-            View on map / Change / Clear / Select — just rendered smaller. */}
+        {/* Route, demoted to a compact bottom card. All four actions stay:
+            View on map / Change / Clear / Select, just rendered smaller. */}
         <View style={styles.routeSection}>
           <Text style={styles.routeHeading}>{t('challengeProgress.routeHeading')}</Text>
           {activeRoute ? (

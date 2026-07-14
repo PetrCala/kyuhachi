@@ -21,7 +21,7 @@ describe('toCachedOnsen', () => {
     expect(cached.name).toBe('竹瓦温泉');
     expect(cached).not.toHaveProperty('createdAt');
     expect(cached).not.toHaveProperty('updatedAt');
-    // Round-trips through JSON untouched — the property the cache relies on.
+    // Round-trips through JSON untouched: the property the cache relies on.
     expect(JSON.parse(JSON.stringify(cached))).toEqual(cached);
   });
 });

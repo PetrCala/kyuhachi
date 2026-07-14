@@ -118,7 +118,7 @@ export default function RoutesList() {
   }, [user]);
 
   // Manual order first (set by drag-reorder), then any unordered routes newest
-  // first — a just-imported route has no sortOrder and a null serverTimestamp,
+  // first: a just-imported route has no sortOrder and a null serverTimestamp,
   // so it surfaces at the top until the user places it. See compareRoutes.
   const sorted = useMemo(() => {
     return [...routes].sort((a, b) =>
@@ -136,8 +136,8 @@ export default function RoutesList() {
     };
   }, []);
 
-  // Open the pending route on the map. Run-once: whichever fires first — the
-  // dwell timer or a skip tap on the overlay — navigates; the other is a no-op.
+  // Open the pending route on the map. Run-once: whichever fires first (the
+  // dwell timer or a skip tap on the overlay) navigates; the other is a no-op.
   function goToMap() {
     if (navigated.current) return;
     const routeId = pendingRouteId.current;
@@ -148,7 +148,7 @@ export default function RoutesList() {
       dwellTimer.current = null;
     }
     setDrawing(null);
-    // `push` (not `replace`): this is the routes list, not a transient picker —
+    // `push` (not `replace`): this is the routes list, not a transient picker;
     // Back should return here. The routeId param renders the route immediately.
     router.push({ pathname: '/map', params: { routeId } });
   }
@@ -181,7 +181,7 @@ export default function RoutesList() {
 
   // Attach this route to the active challenge (or detach it). Used by tapping
   // (attach) and the active route's ⋯ "Remove from challenge" (detach). Cosmetic
-  // only — never touches completion logic. Silent on success (the live challenge
+  // only; never touches completion logic. Silent on success (the live challenge
   // subscription flips the badge/menu); the offline cache reflects it immediately.
   async function applyChallengeRoute(nextActiveRouteId: string | null) {
     if (!user || !challengeId || attaching.current) return;
@@ -200,7 +200,7 @@ export default function RoutesList() {
 
   // Parse one picked file (route-import module) and store the simplified track.
   // Never throws: every failure is reported as an ImportOutcome so a bulk import
-  // can keep going. Only parse / no-track failures are the file's fault —
+  // can keep going. Only parse / no-track failures are the file's fault:
   // file-read, Firestore-write, permission and network errors map to `save`, so
   // a `permission-denied` from the routes rule isn't mislabelled as corruption.
   async function importOne(
@@ -234,7 +234,7 @@ export default function RoutesList() {
   }
 
   // Pick file(s) and import them (bulk selection allowed). A single file keeps
-  // its payoff — open it on the map, or show the exact reason it failed; several
+  // its payoff: open it on the map, or show the exact reason it failed; several
   // files stay on the list (the live query already shows the new routes) and
   // report a tally.
   async function handleImport() {
@@ -269,7 +269,7 @@ export default function RoutesList() {
       }
 
       // Single file keeps its payoff: play the same draw preview as a tap, then
-      // land on the map — or explain the failure.
+      // land on the map, or explain the failure.
       if (assets.length === 1) {
         if (firstOk) {
           previewThenOpen(firstOk.routeId, { name: firstOk.name, points: firstOk.points });
@@ -347,7 +347,7 @@ export default function RoutesList() {
   // Persist a drag-reorder. Writes sortOrder = new index to only the routes
   // whose position actually changed, in one batch. Firestore's offline cache
   // applies it immediately, so the live query re-sorts to the same order the
-  // user just dropped — no visible jump.
+  // user just dropped, no visible jump.
   async function persistOrder(orderedIds: string[]) {
     if (!user) return;
     const currentById = new Map(routes.map((r) => [r.id, r.data.sortOrder]));
@@ -380,7 +380,7 @@ export default function RoutesList() {
   function renderCard({ id, data }: RouteRow, drag: DragRowState) {
     // The route in use by the active challenge gets the "Active" badge and a
     // ⋯ action to remove it. Selecting a route is done by tapping it, so there's
-    // no "use in challenge" action — only the detach for the one already in use.
+    // no "use in challenge" action: only the detach for the one already in use.
     const isActiveRoute = challengeId != null && id === activeRouteId;
     const actions: RowAction[] = [
       ...(isActiveRoute
@@ -573,7 +573,7 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     color: colors.textMuted,
   },
-  // "Active" pill on the route in use by the active challenge — mirrors the
+  // "Active" pill on the route in use by the active challenge: mirrors the
   // default-challenge badge in the challenge list.
   activeBadge: {
     fontSize: typography.sizes.xs,

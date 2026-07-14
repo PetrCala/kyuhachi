@@ -30,8 +30,8 @@ const RAIL_WIDTH = 3;
 // the camera `zoom` field is Google-Maps-only and a no-op on PROVIDER_DEFAULT.
 // Lower altitude = closer in. The slider clamps to a comfortable browsing band;
 // pinch can still reach beyond it.
-export const MIN_ALTITUDE = 1_000; // knob at top — streets
-export const MAX_ALTITUDE = 2_000_000; // knob at bottom — the whole region
+export const MIN_ALTITUDE = 1_000; // knob at top: streets
+export const MAX_ALTITUDE = 2_000_000; // knob at bottom: the whole region
 const STEP_FACTOR = 2; // each +/- tap halves / doubles the altitude
 
 // While the knob is dragged it rides the UI thread and updates every frame, but
@@ -150,7 +150,7 @@ export default function MapZoomControl({
     pendingOffsetRef.current = null;
   }, [moveCamera]);
 
-  // Follow the map when it reports a new altitude (pinch/pan settle) — but never
+  // Follow the map when it reports a new altitude (pinch/pan settle), but never
   // fight an in-progress drag, which owns the knob until released.
   useEffect(() => {
     if (altitude === undefined || draggingRef.current) return;

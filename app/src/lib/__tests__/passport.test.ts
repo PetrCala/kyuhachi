@@ -38,7 +38,7 @@ describe('pageCells', () => {
     expect(cells).toHaveLength(STAMPS_PER_PAGE);
     // First visit lands top-right.
     expect(cells[0]).toEqual({ slot: 0, row: 0, col: GRID_COLS - 1 });
-    // The right column (slots 0–3) fills before the middle column starts.
+    // The right column (slots 0-3) fills before the middle column starts.
     expect(cells[3]).toEqual({ slot: 3, row: 3, col: GRID_COLS - 1 });
     expect(cells[4]).toEqual({ slot: 4, row: 0, col: GRID_COLS - 2 });
     // Last cell of a full page is bottom-left.
@@ -46,7 +46,7 @@ describe('pageCells', () => {
   });
 
   it('returns a partial final page without padding', () => {
-    // 88 slots → page 7 holds slots 84–87 only, all in the rightmost column.
+    // 88 slots → page 7 holds slots 84-87 only, all in the rightmost column.
     const cells = pageCells(7, 88);
     expect(cells).toHaveLength(4);
     expect(cells.map((c) => c.slot)).toEqual([84, 85, 86, 87]);

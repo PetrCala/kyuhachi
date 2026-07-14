@@ -11,15 +11,15 @@ interface LoadingOverlayProps {
 
 /**
  * A full-bleed blocking overlay for a short in-progress moment. Absolutely fills
- * its nearest positioned parent, dims it behind a scrim, and — because it renders
- * on top with default hit-testing — swallows every touch so the user can't tap
+ * its nearest positioned parent, dims it behind a scrim, and (because it renders
+ * on top with default hit-testing) swallows every touch so the user can't tap
  * away or interact with a half-saved form underneath. The indicator and caption
  * sit on an opaque paper card (the same card language as the celebrations and
  * the route loader) so they stay legible over any form content.
  *
  * The moving part is delegated to {@link LoadingIndicator} so the busy visual can
  * evolve independently of this container. On the paper card it renders in its
- * default dark ink — the stamp block as it actually looks on the counter.
+ * default dark ink: the stamp block as it actually looks on the counter.
  */
 export function LoadingOverlay({ visible, label }: LoadingOverlayProps) {
   if (!visible) return null;

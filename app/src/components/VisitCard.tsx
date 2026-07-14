@@ -22,7 +22,7 @@ const TRANSPORT_ICONS: Record<TransportMode, IoniconName> = {
 interface VisitCardProps {
   item: VisitFeedItem;
   onPress?: () => void;
-  /** Hide the avatar/name/location header — used on the onsen's own detail
+  /** Hide the avatar/name/location header: used on the onsen's own detail
    *  screen, where the name is already shown above. The date is kept. */
   hideOnsenHeader?: boolean;
   /** When set, render an "Edit details" affordance in the header. */
@@ -45,7 +45,7 @@ export function VisitCard({
   const { t, i18n } = useTranslation();
   const { showReadings } = usePreferences();
   const { visit, onsenName, nameKana, nameRomaji, areaName, prefecture } = item;
-  // Reading shown under the kanji name — romaji in a non-JP UI, kana in Japanese.
+  // Reading shown under the kanji name: romaji in a non-JP UI, kana in Japanese.
   const reading = onsenReading({ nameRomaji, nameKana, language: i18n.language, showReadings });
   const { rating, transportMode, duration, waterTemp, wouldReturn } = visit.structuredData;
 

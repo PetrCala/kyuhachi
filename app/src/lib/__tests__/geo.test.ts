@@ -21,7 +21,7 @@ describe('distanceToPolylineKm', () => {
   });
 
   it('measures distance to the nearest segment, not just the nearest vertex', () => {
-    // Point due north of the segment midpoint (131.05) — far from both the
+    // Point due north of the segment midpoint (131.05): far from both the
     // 131.0 and 131.1 vertices, but the segment passes right below it. A
     // vertex-only check would over-report this; the segment check stays small.
     const point = { lat: 33.018, lng: 131.05 }; // ~2 km north of the line
@@ -32,7 +32,7 @@ describe('distanceToPolylineKm', () => {
   });
 
   it('clamps to an endpoint for points beyond the route ends', () => {
-    // West of the start vertex — closest approach is the start point itself.
+    // West of the start vertex: closest approach is the start point itself.
     const point = { lat: 33.0, lng: 130.9 };
     expect(distanceToPolylineKm(point, ROUTE)).toBeCloseTo(
       haversineKm(point, ROUTE[0]),

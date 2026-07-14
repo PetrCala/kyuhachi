@@ -62,7 +62,7 @@ export default function ChallengePreview() {
 
   // Existing names disambiguate the auto-generated default (e.g. a second
   // "Walking Challenge" becomes "Walking Challenge 2"). A one-shot read is
-  // enough — the set only needs to be current when this screen creates.
+  // enough: the set only needs to be current when this screen creates.
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
@@ -92,7 +92,7 @@ export default function ChallengePreview() {
     // The eligible pool is frozen onto the challenge at creation. If the type
     // document is missing it (e.g. seeded before the onsen catalog was
     // published), writing `undefined` throws a cryptic, codeless Firestore error
-    // — surfaced only as the generic "something went wrong" alert — and an empty
+    // (surfaced only as the generic "something went wrong" alert), and an empty
     // pool would create an uncompletable 0/88 challenge. Fail clearly instead.
     const eligibleOnsenIds = challengeType.eligibleOnsenIds;
     if (!Array.isArray(eligibleOnsenIds) || eligibleOnsenIds.length === 0) {
@@ -162,7 +162,7 @@ export default function ChallengePreview() {
 
       // The commit is deliberately NOT awaited: Firestore applies the batch to
       // the local cache at once and syncs when connectivity allows, but the
-      // returned promise resolves only on the backend's acknowledgment —
+      // returned promise resolves only on the backend's acknowledgment;
       // awaiting it would pin the button on "Starting…" forever with no signal
       // (same rationale as the visit editor's save; see ADR-005/007). Home's
       // snapshot listeners pick the pending challenge up immediately; a genuine
@@ -180,7 +180,7 @@ export default function ChallengePreview() {
       // diagnosable.
       if (__DEV__) console.warn('[challenge] create failed', error);
       Alert.alert(t('challenge.errorCreate'), t(firebaseErrorKey(error)));
-      // Only re-enable on failure — success navigates away and unmounts.
+      // Only re-enable on failure: success navigates away and unmounts.
       setCreating(false);
     }
   }

@@ -92,7 +92,7 @@ describe('distribution & histogram', () => {
     ]);
   });
 
-  it('ratingHistogram is zero-filled 1–10, rounds, drops out-of-range', () => {
+  it('ratingHistogram is zero-filled 1-10, rounds, drops out-of-range', () => {
     const h = ratingHistogram([1, 1, 5.4, 10, null, 11, 0]);
     expect(h).toHaveLength(10);
     expect(h[0]).toEqual({ bucket: 1, count: 2 });

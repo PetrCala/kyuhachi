@@ -1,5 +1,5 @@
 /**
- * Developer tools — mock-data generators and destructive resets.
+ * Developer tools: mock-data generators and destructive resets.
  *
  * Intentionally NOT internationalized: this screen never reaches end users
  * (gated behind {@link DEV_TOOLS_ENABLED}, off in App Store builds), so the
@@ -86,7 +86,7 @@ export default function DevTools() {
   const completionCount = selected?.type.completionCount ?? 0;
 
   // Expo Router bundles every file under app/, so the screen must redirect when
-  // dev tools are disabled — hiding the menu entry is not enough on its own.
+  // dev tools are disabled; hiding the menu entry is not enough on its own.
   if (!DEV_TOOLS_ENABLED) return <Redirect href="/" />;
 
   function applyCount(n: number) {

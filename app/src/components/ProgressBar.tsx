@@ -21,7 +21,7 @@ const BADGE = spacing[5];
 export interface ProgressMarker {
   /** Visit-count position on the track (e.g. a tier's minVisits threshold). */
   position: number;
-  /** "gold" | "silver" | "bronze" — selects the badge + fill colour. */
+  /** "gold" | "silver" | "bronze": selects the badge + fill colour. */
   tierId: string;
   /** Whether `value` has reached this marker's position. */
   reached: boolean;
@@ -35,7 +35,7 @@ interface ProgressBarProps {
   markers: ProgressMarker[];
   /**
    * Tween the fill (and ping any newly crossed tier marker) when `value`
-   * changes, instead of snapping. The caller decides this per change — only true
+   * changes, instead of snapping. The caller decides this per change; only true
    * on a genuine in-session increase, never on first load or challenge switch.
    * The first observed value always snaps regardless. Default false.
    */
@@ -73,7 +73,7 @@ function pct(n: number, total: number): number {
  * the metal colour of the highest threshold reached so far.
  *
  * Note: this reflects visit count only. Full tier eligibility also depends on
- * transport and time conditions — that's gated by the claim button and the
+ * transport and time conditions; that's gated by the claim button and the
  * rules screen, not shown here.
  */
 export function ProgressBar({ value, total, markers, animate = false }: ProgressBarProps) {

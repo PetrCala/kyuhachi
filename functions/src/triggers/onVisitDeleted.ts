@@ -9,8 +9,8 @@ import { updateChallengeProgress } from '../util/tier';
  *
  * Photos live at visits/{userId}/{challengeId}_{onsenId}/photo_{ts}.jpg, one
  * object per photo (see the upload path in app/app/onsens/edit-visit.tsx).
- * Deleting the visit doc — whether a single-visit delete or as part of deleting
- * a whole challenge — would otherwise leak those photos in Storage forever.
+ * Deleting the visit doc, whether a single-visit delete or as part of deleting
+ * a whole challenge, would otherwise leak those photos in Storage forever.
  * Deletes by prefix, so every object under the visit's folder is removed; a
  * visit with no photos is normal (an empty prefix is a no-op and must not
  * throw).
@@ -28,7 +28,7 @@ export const onVisitDeleted = onDocumentDeleted(
     try {
       await getStorage().bucket().deleteFiles({ prefix });
     } catch (err) {
-      // A visit with no photo deletes nothing — that is expected and harmless.
+      // A visit with no photo deletes nothing. That is expected and harmless.
       // Anything else (e.g. a transient Storage error) is swallowed so the
       // delete trigger never throws; the orphan can be cleaned up later.
       const code = (err as { code?: number }).code;

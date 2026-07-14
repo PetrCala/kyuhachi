@@ -26,7 +26,7 @@ function segPct(value: number, total: number): number {
 }
 
 /**
- * A list of labelled stacked bars — each row split into colored segments by
+ * A list of labelled stacked bars: each row split into colored segments by
  * proportion (the per-prefecture transport split). Segment colors are supplied
  * by the caller from `series`.
  */

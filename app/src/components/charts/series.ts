@@ -1,7 +1,7 @@
 /**
  * Categorical colors for the Stats charts. A fixed series ramp plus stable
  * per-category maps so a transport mode (or season) keeps the same color across
- * every screen it appears on. All values come from the theme — never literals.
+ * every screen it appears on. All values come from the theme; never literals.
  */
 import { TRANSPORT_MODES, type TransportMode } from '@kyuhachi/shared';
 import { UNREPORTED_TRANSPORT, type TransportBucket } from '@/lib/budget';
@@ -35,5 +35,5 @@ export function transportColor(bucket: TransportBucket): string {
   return TRANSPORT_COLORS[bucket];
 }
 
-/** Transport buckets in canonical order (modes then unreported) — display order. */
+/** Transport buckets in canonical order (modes then unreported): display order. */
 export const TRANSPORT_BUCKET_ORDER: TransportBucket[] = [...TRANSPORT_MODES, UNREPORTED_TRANSPORT];

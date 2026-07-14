@@ -34,7 +34,7 @@ export function formatDate(ms: number, language: string): string {
   });
 }
 
-/** Localized month + year for a millis instant, e.g. "Mar 2027" — compact for tiles. */
+/** Localized month + year for a millis instant, e.g. "Mar 2027": compact for tiles. */
 export function formatMonthYear(ms: number, language: string): string {
   return new Date(ms).toLocaleDateString(language, { year: 'numeric', month: 'short' });
 }

@@ -2,7 +2,7 @@
  * Deterministic cost/budget model for the Stats screen.
  *
  * Everything here is pure arithmetic over the user's actual visits and the
- * catalog's numeric `adultFee` — no Monte Carlo, no random sampling, no text
+ * catalog's numeric `adultFee`: no Monte Carlo, no random sampling, no text
  * parsing. The screen feeds it the Maps already subscribed by
  * `useActiveChallengeProgress` (visits + eligible-onsen info), so it does no
  * Firestore access of its own and works fully offline.
@@ -28,7 +28,7 @@ export interface BudgetInput {
   eligibleOnsenIds: readonly string[];
   /** Every onsen id visited in the challenge; eligibility is intersected here. */
   visitedOnsenIds: ReadonlySet<string>;
-  /** Onsen info keyed by kyuhachiId — covers the eligible onsens that have loaded. */
+  /** Onsen info keyed by kyuhachiId: covers the eligible onsens that have loaded. */
   onsenInfo: ReadonlyMap<string, BudgetOnsenInfo>;
   /** Reported transport mode per visited onsen (null = unreported). */
   transportByOnsen: ReadonlyMap<string, TransportMode | null>;
@@ -107,7 +107,7 @@ export function computeBudget(input: BudgetInput): BudgetResult {
 
   // Cheapest path to finish: the `remaining` smallest priced fees among eligible
   // onsens not yet visited. Unpriced (null-fee) unvisited onsens can't be costed,
-  // so they're left out — projectedPricedCount tells how many we could price.
+  // so they're left out; projectedPricedCount tells how many we could price.
   const unvisitedFees: number[] = [];
   for (const id of eligibleOnsenIds) {
     if (visitedOnsenIds.has(id)) continue;

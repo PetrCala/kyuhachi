@@ -20,7 +20,7 @@ type LocalSearchNativeModule = {
 };
 
 // `requireOptionalNativeModule` returns null (instead of throwing) when the
-// native module isn't linked — e.g. in a JS-only build or under tests — so this
+// native module isn't linked (e.g. in a JS-only build or under tests), so this
 // file is always safe to import.
 const LocalSearch = requireOptionalNativeModule<LocalSearchNativeModule>('LocalSearch');
 

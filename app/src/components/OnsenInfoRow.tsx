@@ -19,7 +19,7 @@ interface OnsenInfoRowProps {
 /**
  * A labelled value row used across the onsen detail screen and the map-pin preview
  * sheet. The value renders either as plain selectable text, an inline-action variant
- * (a tappable icon after the text), or — when `onPress` is given — a link-style
+ * (a tappable icon after the text), or, when `onPress` is given, a link-style
  * pressable spanning the whole value.
  */
 export function OnsenInfoRow({ label, value, onPress, action }: OnsenInfoRowProps) {
