@@ -18,6 +18,7 @@ import { VisitCard } from '@/components/VisitCard';
 import { OnsenInfoRow } from '@/components/OnsenInfoRow';
 import { OnsenFee } from '@/components/OnsenFee';
 import { OnsenHours } from '@/components/OnsenHours';
+import { AreaGuideRow } from '@/components/AreaGuideRow';
 import RecordVisitFab from '@/components/RecordVisitFab';
 import { useVisit } from '@/hooks/useVisit';
 import { onsenReading } from '@/lib/onsen-name';
@@ -182,6 +183,7 @@ export default function OnsenDetail() {
             <OnsenInfoRow label={t('onsenDetail.labelSpringQuality')} value={onsen.springQuality} />
           )}
           {onsen.businessHours && <OnsenHours hours={onsen.businessHours} />}
+          <AreaGuideRow areaId={onsen.areaId} />
         </View>
 
         {showOnsenMapPreview && (

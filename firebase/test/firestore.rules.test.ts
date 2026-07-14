@@ -110,6 +110,52 @@ describe('challenge_types', () => {
 });
 
 // ---------------------------------------------------------------------------
+// /area_guides
+// ---------------------------------------------------------------------------
+
+describe('area_guides', () => {
+  test('unauthenticated: read denied', async () => {
+    await assertFails(getDoc(doc(unauthDb(), 'area_guides/area-1')));
+  });
+
+  test('authenticated: read allowed', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'area_guides/area-1'), { name: { en: 'Beppu', ja: '別府' } });
+    });
+    await assertSucceeds(getDoc(doc(authDb('user-1'), 'area_guides/area-1')));
+  });
+
+  test('authenticated: write denied', async () => {
+    await assertFails(setDoc(doc(authDb('user-1'), 'area_guides/area-1'), { name: 'Hacked' }));
+  });
+
+  test('authenticated: delete denied', async () => {
+    await assertFails(deleteDoc(doc(authDb('user-1'), 'area_guides/area-1')));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// /area_guides_meta
+// ---------------------------------------------------------------------------
+
+describe('area_guides_meta', () => {
+  test('unauthenticated: read denied', async () => {
+    await assertFails(getDoc(doc(unauthDb(), 'area_guides_meta/current')));
+  });
+
+  test('authenticated: read allowed', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'area_guides_meta/current'), { version: 1 });
+    });
+    await assertSucceeds(getDoc(doc(authDb('user-1'), 'area_guides_meta/current')));
+  });
+
+  test('authenticated: write denied', async () => {
+    await assertFails(setDoc(doc(authDb('user-1'), 'area_guides_meta/current'), { version: 999 }));
+  });
+});
+
+// ---------------------------------------------------------------------------
 // /users/{userId}
 // ---------------------------------------------------------------------------
 

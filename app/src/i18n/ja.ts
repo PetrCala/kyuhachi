@@ -334,6 +334,19 @@ const ja: Record<keyof typeof en, string> = {
   'finder.unavailableTitle': '検索を利用できません',
   'finder.unavailableBody': 'スポット検索には最新のアプリが必要です。Kyuhachiを更新してください。',
 
+  // area guides (About this area / Your area: evergreen tourist info per region)
+  'areaGuide.title': 'エリアガイド',
+  'areaGuide.yourArea': '現在地のエリア',
+  'areaGuide.aboutThisArea': 'このエリアについて',
+  'areaGuide.detectedNearby': '現在地から判定したエリア',
+  'areaGuide.notFound': 'このエリアのガイドはまだありません。',
+  'areaGuide.noLocation': '位置情報をオンにすると、周辺エリアを表示します。',
+  'areaGuide.section.specialties': '名物・グルメ',
+  'areaGuide.section.produce': '特産品',
+  'areaGuide.section.attractions': '見どころ',
+  'areaGuide.section.history': '歴史',
+  'areaGuide.section.culture': '文化',
+
   // stamp-collection celebration (shown after recording a new visit)
   'stampClaim.title': '新しいスタンプ！',
   'stampClaim.caption': 'スパポートに新しい御湯印を。',
