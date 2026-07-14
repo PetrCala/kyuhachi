@@ -339,6 +339,19 @@ const en = {
   'finder.unavailableBody':
     'Place search needs the latest app build. Please update Kyuhachi.',
 
+  // area guides (About this area / Your area: evergreen tourist info per region)
+  'areaGuide.title': 'Area guide',
+  'areaGuide.yourArea': 'Your area',
+  'areaGuide.aboutThisArea': 'About this area',
+  'areaGuide.detectedNearby': 'Your area, detected nearby',
+  'areaGuide.notFound': 'No area guide for this place yet.',
+  'areaGuide.noLocation': 'Turn on location to see the area around you.',
+  'areaGuide.section.specialties': 'Local specialties',
+  'areaGuide.section.produce': 'Local produce',
+  'areaGuide.section.attractions': 'Attractions',
+  'areaGuide.section.history': 'History',
+  'areaGuide.section.culture': 'Culture',
+
   // stamp-collection celebration (shown after recording a new visit)
   'stampClaim.title': 'New stamp!',
   'stampClaim.caption': 'A fresh seal for your Spaport.',

@@ -30,6 +30,19 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Area guides (tourist info per region): read-only for any authenticated user.
+    // Writes go through the data repo service account, never the app.
+    match /area_guides/{areaId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
+    // Area-guides metadata (publish version): read-only for any authenticated user.
+    match /area_guides_meta/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
     // User documents and all subcollections — owner only
     match /users/{userId} {
       allow read, write: if isOwner(userId);

@@ -112,6 +112,11 @@ export default function Menu() {
           icon="search-outline"
           label={t('finder.title')}
           onPress={() => router.push('/finder')}
+        />
+        <Row
+          icon="compass-outline"
+          label={t('areaGuide.yourArea')}
+          onPress={() => router.push('/area-guides')}
           last
         />
       </View>
