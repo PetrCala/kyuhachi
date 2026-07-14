@@ -336,6 +336,10 @@ const ja: Record<keyof typeof en, string> = {
 
   // area guides (About this area / Your area: evergreen tourist info per region)
   'areaGuide.title': 'エリアガイド',
+  'areaGuide.browseTitle': 'エリアガイド',
+  'areaGuide.allRegions': 'すべてのエリア',
+  'areaGuide.nearYou': '現在地の近く',
+  'areaGuide.empty': 'エリアガイドはまだありません。',
   'areaGuide.yourArea': '現在地のエリア',
   'areaGuide.aboutThisArea': 'このエリアについて',
   'areaGuide.detectedNearby': '現在地から判定したエリア',

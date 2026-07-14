@@ -341,6 +341,10 @@ const en = {
 
   // area guides (About this area / Your area: evergreen tourist info per region)
   'areaGuide.title': 'Area guide',
+  'areaGuide.browseTitle': 'Area guides',
+  'areaGuide.allRegions': 'All regions',
+  'areaGuide.nearYou': 'Near you',
+  'areaGuide.empty': "Area guides aren't available yet.",
   'areaGuide.yourArea': 'Your area',
   'areaGuide.aboutThisArea': 'About this area',
   'areaGuide.detectedNearby': 'Your area, detected nearby',

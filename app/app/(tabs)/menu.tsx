@@ -115,7 +115,7 @@ export default function Menu() {
         />
         <Row
           icon="compass-outline"
-          label={t('areaGuide.yourArea')}
+          label={t('areaGuide.browseTitle')}
           onPress={() => router.push('/area-guides')}
           last
         />

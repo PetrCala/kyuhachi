@@ -32,3 +32,19 @@ export function nearestAreaGuide(
   }
   return best;
 }
+
+/**
+ * The guides sorted by their localized display name, for the browse list.
+ * Locale-aware via localeCompare: English sorts alphabetically and Japanese kana
+ * by reading. Kanji names fall back to the collator's default order (deterministic,
+ * not true reading order) since guides carry no reading field, which is fine for
+ * the small, coarse region set. Returns a new array; the input is not mutated.
+ */
+export function sortAreaGuidesByName(
+  guides: CachedAreaGuide[],
+  language: string
+): CachedAreaGuide[] {
+  return [...guides].sort((a, b) =>
+    pickLocalized(a.name, language).localeCompare(pickLocalized(b.name, language), language)
+  );
+}

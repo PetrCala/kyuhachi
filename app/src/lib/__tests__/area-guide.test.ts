@@ -1,5 +1,5 @@
 import type { CachedAreaGuide } from '@kyuhachi/shared';
-import { pickLocalized, nearestAreaGuide } from '@/lib/area-guide';
+import { pickLocalized, nearestAreaGuide, sortAreaGuidesByName } from '@/lib/area-guide';
 import { toCachedAreaGuide } from '@/lib/area-guide-store';
 import { areaGuideDoc } from '@/lib/__fixtures__/area-guide-doc';
 
@@ -41,5 +41,39 @@ describe('nearestAreaGuide', () => {
 
   it('returns null when there are no guides', () => {
     expect(nearestAreaGuide({ lat: 33, lng: 131 }, [])).toBeNull();
+  });
+});
+
+describe('sortAreaGuidesByName', () => {
+  const aso = toCachedAreaGuide('aso', areaGuideDoc({ name: { en: 'Aso', ja: '阿蘇' } }));
+  const beppu = toCachedAreaGuide('beppu', areaGuideDoc({ name: { en: 'Beppu', ja: '別府' } }));
+  const yufuin = toCachedAreaGuide('yufuin', areaGuideDoc({ name: { en: 'Yufuin', ja: '由布院' } }));
+  const guides: CachedAreaGuide[] = [yufuin, beppu, aso];
+
+  it('sorts by English name ascending for a non-ja locale', () => {
+    expect(sortAreaGuidesByName(guides, 'en').map((g) => g.id)).toEqual([
+      'aso',
+      'beppu',
+      'yufuin',
+    ]);
+  });
+
+  it('sorts deterministically for ja, keeping every region exactly once', () => {
+    const ids = sortAreaGuidesByName(guides, 'ja').map((g) => g.id);
+    // Same set, no drops or duplicates.
+    expect([...ids].sort()).toEqual(['aso', 'beppu', 'yufuin']);
+    // Sorting again yields the identical order.
+    expect(sortAreaGuidesByName(guides, 'ja').map((g) => g.id)).toEqual(ids);
+  });
+
+  it('does not mutate the input array', () => {
+    const input = [yufuin, beppu, aso];
+    const before = input.map((g) => g.id);
+    sortAreaGuidesByName(input, 'en');
+    expect(input.map((g) => g.id)).toEqual(before);
+  });
+
+  it('returns an empty array for empty input', () => {
+    expect(sortAreaGuidesByName([], 'en')).toEqual([]);
   });
 });
