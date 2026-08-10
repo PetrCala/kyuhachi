@@ -1,0 +1,38 @@
+Kyuhachi keeps the record of your 九州八十八湯 (Kyushu 88 Hot Springs) challenge: visit 88 of Kyushu's historic hot springs, chosen from an official pool of around 155 eligible onsens.
+
+It is a personal, fan-made app. It is not affiliated with or endorsed by the 九州八十八湯 organisation or 88onsen.com.
+
+RECORD EVERY BATH
+Log a visit in a few taps: the date, how you got there, how long you stayed, what you paid, and a photo. Rate the water, the atmosphere, the cleanliness, the sauna, the rest area. Or skip all of it and simply tick the onsen off.
+
+A SPAPORT THAT FILLS UP
+Every visit presses a stamp into your Spaport. Pages fill in the order you bathe, so the book ends up being the story of the trip.
+
+FIND THE NEXT ONE
+Browse the catalog by prefecture or by reading, search it, or open the map and see what is around you. Each onsen page carries the address, phone number, opening hours, admission fee and spring quality. Tap the heart on the ones you want to come back to.
+
+FOUR WAYS TO TAKE IT ON
+Do it by car, by public transport, by bicycle, or entirely on foot. Each challenge has its own rules and its own bronze, silver and gold tiers, and every visit you log moves you along the 見習い to 泉人 rank ladder.
+
+BRING YOUR OWN ROUTE
+Import a GPS track (.gpx, .kml, .tcx) from whatever you already plan with, attach it to a challenge, and see which onsens sit near the line. Finder then looks ahead along that route for convenience stores, supermarkets, roadside stations, campsites and hotels.
+
+AREA GUIDES
+Short guides to the onsen regions of Kyushu: local food, produce, things worth seeing, and the history behind the water.
+
+STATS FOR A LONG CHALLENGE
+Pace and projected finish date, prefectures covered, visits over time, how you travelled, what you have spent and what finishing will cost, and how you rated everything you soaked in.
+
+WORKS WITHOUT SIGNAL
+The onsen catalog lives on your device, so the list, the detail pages and the map pins are there in a valley with no bars. Visits you record offline sync the next time you have a connection.
+
+ENGLISH AND JAPANESE
+The app follows your device language.
+
+YOUR RECORDS STAY YOURS
+Visits, photos and notes are stored against your account, visible only to you, and never shown to anyone else. No ads, no analytics SDKs, no tracking. You can delete your account and everything in it from inside the app.
+
+Free, with no in-app purchases.
+
+
+Onsen information comes from 88onsen.com and is provided as is. It may be incomplete or out of date, so please confirm opening hours, prices and access with the onsen before you travel. Kyuhachi is an independent app and has no connection to the 九州八十八湯 organisation or to 88onsen.com.
