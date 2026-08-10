@@ -1,0 +1,22 @@
+Kyuhachi tracks a user's personal progress through the 九州八十八湯 (Kyushu 88 Hot Springs) challenge, a well-known hot spring stamp challenge in Kyushu, Japan. The app is independent and fan-made. It is not affiliated with, endorsed by, or licensed from the 九州八十八湯 organisation or 88onsen.com, and it says so on the About screen, in the App Store description, and in the Terms and Privacy Policy. Onsen names, addresses and opening hours are factual reference information about publicly listed public baths.
+
+SIGN-IN IS REQUIRED (no anonymous mode)
+Everything the app does is a per-user record: the challenges you start, the onsens you have bathed in, your photos, your notes and your imported routes. All of it is stored under the signed-in account in Firebase and is read back only by that account, enforced by Firestore security rules. There is no useful content to show a signed-out user and no server-side identity to attach records to, so the app requires an account. Sign in with Apple and email/password are both offered.
+
+DEMO ACCOUNT
+A demo account is provided in the Demo Account fields of this App Review Information section (username and password). Sign in with the email/password form on the first screen. The account is pre-seeded with an active challenge and a set of recorded visits so every screen has content: home, map, onsen list and detail, the Spaport stamp book, the stats section, imported routes and area guides.
+
+LOCATION
+Location is optional and requested only when in use. It powers three things: showing your position on the map alongside the onsen pins, the "Near you" section of the onsen list, and Finder, which looks ahead along an imported route for convenience stores, roadside stations, campsites and hotels. The app does not track or store a location history, and it works without location permission: everything remains reachable through search and the full onsen list.
+
+PHOTOS AND USER-GENERATED CONTENT
+A user may attach a photo to a visit. Photos are private to the account that uploaded them. There is no feed, no sharing, no following, no comments, no public profiles and no way for one user to see another user's visits, photos or notes. Storage security rules restrict every photo path to its owner's uid. Because no user content is ever shown to another user, the app has no in-app moderation, reporting or blocking, and Guideline 1.2 user-generated content requirements do not apply.
+
+ACCOUNT DELETION
+Account deletion is available in the app under Menu > Account > Delete account. It removes the profile, all challenges and visits, all visit photos and all imported routes.
+
+PURCHASES
+The app is free. There are no in-app purchases, no subscriptions and no tipping.
+
+THIRD-PARTY SERVICES
+Firebase (Authentication, Firestore, Storage, App Check) for the backend, Apple Maps for the map, and MapKit local search for Finder. No advertising or analytics SDKs.

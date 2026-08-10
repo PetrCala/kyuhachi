@@ -1,0 +1,13 @@
+First release.
+
+Kyuhachi is an independent tracker for the 九州八十八湯 (Kyushu 88 Hot Springs) challenge. Version 1.0 includes:
+
+- Four challenges: by car, by public transport, by bicycle, on foot. Each with its own rules, bronze/silver/gold tiers, and the 見習い to 泉人 rank ladder.
+- Visit logging with date, transport, duration, price, notes, a photo, and optional ratings for the water, atmosphere, cleanliness, sauna and rest area.
+- The Spaport: a stamp for every onsen, filling in the order you bathe.
+- The full onsen catalog with search, per-prefecture browsing, favourites, and a map.
+- Imported GPS routes (.gpx, .kml, .tcx) with the onsens near them, plus Finder for shops, roadside stations, campsites and hotels ahead along the route.
+- Area guides for the onsen regions of Kyushu.
+- Stats: progress, timeline, geography, transport, budget and experience.
+- Offline use: the catalog is on your device and visits recorded without signal sync later.
+- English and Japanese.

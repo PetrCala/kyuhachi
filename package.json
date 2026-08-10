@@ -10,6 +10,7 @@
 	},
 	"scripts": {
 		"build:legal": "node scripts/build-legal-html.mjs",
+		"check:metadata": "node scripts/check-metadata-lengths.mjs",
 		"deploy:functions": "firebase deploy --only functions",
 		"deploy:hosting": "firebase deploy --only hosting",
 		"version:bump": "node scripts/version.mjs"
