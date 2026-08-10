@@ -425,7 +425,12 @@ export default function EditVisit() {
               </View>
             ))}
             {photos.length < MAX_PHOTOS && (
-              <Pressable style={[styles.photoThumb, styles.photoAdd]} onPress={handleAddPhoto}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t('onsenDetail.addPhoto')}
+                style={[styles.photoThumb, styles.photoAdd]}
+                onPress={handleAddPhoto}
+              >
                 <Ionicons name="add" size={typography.sizes.xxl} color={colors.actionPrimary} />
               </Pressable>
             )}
@@ -438,6 +443,7 @@ export default function EditVisit() {
 
           <Field label={t('onsenDetail.labelNotes')}>
             <TextInput
+              accessibilityLabel={t('onsenDetail.labelNotes')}
               style={styles.notesInput}
               value={notes}
               onChangeText={setNotes}
@@ -461,6 +467,8 @@ export default function EditVisit() {
 
           {/* Show / hide detailed fields */}
           <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: showDetails }}
             style={styles.detailsToggle}
             onPress={() => setShowDetails((v) => !v)}
             hitSlop={6}
@@ -527,6 +535,7 @@ export default function EditVisit() {
               </Field>
               <Field label={t('onsenDetail.labelWaterTemp')}>
                 <TextInput
+                  accessibilityLabel={t('onsenDetail.labelWaterTemp')}
                   style={styles.fieldInput}
                   value={details.waterTemp ?? ''}
                   onChangeText={(text) => setField('waterTemp', text)}
@@ -599,6 +608,7 @@ export default function EditVisit() {
               <Text style={styles.sectionHeader}>{t('onsenDetail.sectionCompany')}</Text>
               <Field label={t('onsenDetail.labelDuration')}>
                 <TextInput
+                  accessibilityLabel={t('onsenDetail.labelDuration')}
                   style={styles.fieldInput}
                   value={durationText}
                   onChangeText={setDurationText}
@@ -644,6 +654,8 @@ export default function EditVisit() {
           <View style={styles.spacer} />
 
           <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: saving || removing, busy: saving }}
             style={[styles.saveButton, (saving || removing) && styles.buttonDisabled]}
             onPress={handleSaveVisit}
             disabled={saving || removing}
@@ -653,6 +665,8 @@ export default function EditVisit() {
             </Text>
           </Pressable>
           <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: saving || removing }}
             style={styles.cancelButton}
             onPress={() => router.back()}
             disabled={saving || removing}
@@ -661,6 +675,8 @@ export default function EditVisit() {
           </Pressable>
           {displayVisit && (
             <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: saving || removing, busy: removing }}
               style={[styles.removeButton, removing && styles.buttonDisabled]}
               onPress={confirmRemoveVisit}
               disabled={saving || removing}

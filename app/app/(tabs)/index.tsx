@@ -291,8 +291,14 @@ export default function Home() {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.centerContent}>
-          <Text style={styles.wordmark}>{HOME_WORDMARK}</Text>
-          <Pressable style={styles.primaryButton} onPress={() => router.push('/challenge/new')}>
+          <Text accessibilityElementsHidden style={styles.wordmark}>
+            {HOME_WORDMARK}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            style={styles.primaryButton}
+            onPress={() => router.push('/challenge/new')}
+          >
             <Text style={styles.primaryButtonText}>{t('home.startChallenge')}</Text>
           </Pressable>
         </View>
@@ -307,7 +313,9 @@ export default function Home() {
             hero below, not here, so it appears exactly once. */}
         <View style={styles.brandStrip}>
           <View style={styles.brandRow}>
-            <Text style={styles.brandWordmark}>{HOME_WORDMARK}</Text>
+            <Text accessibilityElementsHidden style={styles.brandWordmark}>
+              {HOME_WORDMARK}
+            </Text>
             <Text style={styles.brandChallengeName} numberOfLines={1}>
               {challenge.name}
             </Text>
@@ -318,7 +326,9 @@ export default function Home() {
                     name: currentRank ? rankLabel(currentRank, t) : t('challengeRank.unranked'),
                   })}
                 </Text>
-                <Text style={styles.rankBadgeChevron}>›</Text>
+                <Text accessibilityElementsHidden style={styles.rankBadgeChevron}>
+                  ›
+                </Text>
               </Pressable>
             )}
           </View>
@@ -341,7 +351,7 @@ export default function Home() {
             <View style={styles.progressHeaderRow}>
               <Text style={styles.sectionHeading}>{t('challengeProgress.progressHeading')}</Text>
               {tiers.length > 0 && (
-                <Pressable onPress={openRules}>
+                <Pressable accessibilityRole="button" onPress={openRules}>
                   <Text style={styles.howTiersLink}>{t('challengeProgress.howTiers')} ›</Text>
                 </Pressable>
               )}
@@ -358,6 +368,7 @@ export default function Home() {
                 onPress={claimTier}
                 disabled={claiming}
                 accessibilityRole="button"
+                accessibilityState={{ disabled: claiming, busy: claiming }}
               >
                 {claiming ? (
                   <ActivityIndicator color={colors.actionPrimaryText} />
@@ -394,7 +405,7 @@ export default function Home() {
           <View style={styles.recentHeaderRow}>
             <Text style={styles.sectionHeading}>{t('home.recentVisits.title')}</Text>
             {feed.length > RECENT_VISITS_PREVIEW && (
-              <Pressable onPress={() => router.push('/visits')}>
+              <Pressable accessibilityRole="button" onPress={() => router.push('/visits')}>
                 <Text style={styles.howTiersLink}>{t('home.recentVisits.seeAll')} ›</Text>
               </Pressable>
             )}
@@ -421,6 +432,7 @@ export default function Home() {
               <Text style={styles.routeName}>{activeRoute.name}</Text>
               <View style={styles.routeActions}>
                 <Pressable
+                  accessibilityRole="button"
                   style={styles.routeButton}
                   onPress={() => {
                     if (challenge.activeRouteId) {
@@ -435,10 +447,10 @@ export default function Home() {
                     {t('challengeProgress.viewRouteOnMap')}
                   </Text>
                 </Pressable>
-                <Pressable style={styles.routeButton} onPress={selectRoute}>
+                <Pressable accessibilityRole="button" style={styles.routeButton} onPress={selectRoute}>
                   <Text style={styles.routeButtonText}>{t('challengeProgress.changeRoute')}</Text>
                 </Pressable>
-                <Pressable style={styles.routeButton} onPress={clearRoute}>
+                <Pressable accessibilityRole="button" style={styles.routeButton} onPress={clearRoute}>
                   <Text style={styles.routeButtonText}>{t('challengeProgress.clearRoute')}</Text>
                 </Pressable>
               </View>
@@ -446,7 +458,7 @@ export default function Home() {
           ) : (
             <View style={styles.routeEmptyRow}>
               <Text style={styles.routeEmptyText}>{t('challengeProgress.noRoute')}</Text>
-              <Pressable style={styles.routeButton} onPress={selectRoute}>
+              <Pressable accessibilityRole="button" style={styles.routeButton} onPress={selectRoute}>
                 <Text style={styles.routeButtonText}>{t('challengeProgress.selectRoute')}</Text>
               </Pressable>
             </View>

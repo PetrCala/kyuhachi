@@ -120,6 +120,7 @@ export default function DeleteAccount() {
         <>
           <Text style={styles.sectionHeader}>{t('deleteAccount.passwordLabel')}</Text>
           <TextInput
+            accessibilityLabel={t('deleteAccount.passwordLabel')}
             style={styles.input}
             value={password}
             onChangeText={setPassword}

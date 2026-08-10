@@ -50,7 +50,11 @@ function Row({ icon, label, onPress, badge, destructive, disabled, last, numberO
   );
 
   if (onPress && !disabled) {
-    return <Pressable onPress={onPress}>{body}</Pressable>;
+    return (
+      <Pressable accessibilityRole="button" onPress={onPress}>
+        {body}
+      </Pressable>
+    );
   }
   return body;
 }

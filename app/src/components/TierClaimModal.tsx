@@ -202,6 +202,7 @@ export function TierClaimModal({ celebration, onDismiss }: TierClaimModalProps) 
           ) : null}
 
           <Pressable
+            accessibilityRole="button"
             style={({ pressed }) => [styles.doneButton, pressed && styles.doneButtonPressed]}
             onPress={handleDismiss}
           >

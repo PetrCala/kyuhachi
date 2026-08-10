@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors, spacing, typography, radii } from '@/theme';
 
 /**
@@ -9,8 +10,11 @@ import { colors, spacing, typography, radii } from '@/theme';
  * idiom (a chevron on the browse tab, an empty circle on the checklist).
  */
 export function VisitedBadge() {
+  const { t } = useTranslation();
+  // Grouped into one element with a spoken label: the bare glyph would
+  // otherwise be announced as "check mark", which says nothing useful.
   return (
-    <View style={styles.badge}>
+    <View accessible accessibilityLabel={t('onsenList.a11yVisited')} style={styles.badge}>
       <Text style={styles.check}>✓</Text>
     </View>
   );

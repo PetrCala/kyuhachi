@@ -279,7 +279,13 @@ export default function ChallengeList() {
                   />
                 </View>
               ) : null}
-              <Pressable style={styles.cardMain} onPress={() => switchTo(id)} disabled={isActive}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ disabled: isActive, selected: isActive }}
+                style={styles.cardMain}
+                onPress={() => switchTo(id)}
+                disabled={isActive}
+              >
                 <Text style={styles.cardName}>{data.name}</Text>
                 <Text style={styles.cardType}>
                   {challengeTypeName(data.typeId, info?.name ?? data.typeId, t)}
@@ -319,7 +325,11 @@ export default function ChallengeList() {
           );
         })}
 
-        <Pressable style={styles.newButton} onPress={() => router.push('/challenge/new')}>
+        <Pressable
+          accessibilityRole="button"
+          style={styles.newButton}
+          onPress={() => router.push('/challenge/new')}
+        >
           <Text style={styles.newButtonText}>{t('challengeProgress.newChallenge')}</Text>
         </Pressable>
       </ScrollView>

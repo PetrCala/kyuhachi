@@ -85,7 +85,9 @@ export default function SignIn() {
     >
       <View style={styles.container}>
         <View style={styles.brandMark}>
-          <Text style={styles.brandGlyph}>{BRAND_MARK}</Text>
+          <Text accessibilityElementsHidden style={styles.brandGlyph}>
+            {BRAND_MARK}
+          </Text>
         </View>
         <Text style={styles.title}>{t('signIn.title')}</Text>
 
@@ -100,6 +102,7 @@ export default function SignIn() {
         <Text style={styles.divider}>{t('signIn.divider')}</Text>
 
         <TextInput
+          accessibilityLabel={t('signIn.emailPlaceholder')}
           style={styles.input}
           placeholder={t('signIn.emailPlaceholder')}
           value={email}
@@ -111,6 +114,7 @@ export default function SignIn() {
           editable={!loading}
         />
         <TextInput
+          accessibilityLabel={t('signIn.passwordPlaceholder')}
           style={styles.input}
           placeholder={t('signIn.passwordPlaceholder')}
           value={password}
@@ -122,6 +126,8 @@ export default function SignIn() {
         />
 
         <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !canSubmit, busy: loading }}
           style={[styles.button, !canSubmit && styles.buttonDisabled]}
           onPress={handleEmailAuth}
           disabled={!canSubmit}
@@ -132,6 +138,8 @@ export default function SignIn() {
         </Pressable>
 
         <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled: loading }}
           style={styles.toggle}
           onPress={() => setMode(mode === 'sign-in' ? 'create-account' : 'sign-in')}
           disabled={loading}
