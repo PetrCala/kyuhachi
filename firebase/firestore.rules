@@ -66,13 +66,42 @@ service cloud.firestore {
       // server-only, written exclusively by the claimTier callable (admin
       // credentials bypass rules). The client may create them as null and may
       // never change them, so a tier can't be forged.
+      //
+      // immutableOnUpdate() additionally freezes the fields a challenge is
+      // defined by. Two reasons:
+      //
+      //   1. ADR 003 says a challenge's snapshot is frozen at creation, and
+      //      until now nothing enforced it: the invariant lived only in the
+      //      client's write paths.
+      //   2. claimTier re-derives eligibility from snapshotEligibleOnsenIds,
+      //      typeId and startDate (functions/src/util/tier.ts). Leaving them
+      //      writable meant the "server-only" tier was still computed from
+      //      client-controlled inputs, so guarding earnedTier alone bought less
+      //      than it looked like it did.
+      //
+      // completedAt is here for the same reason: the visit triggers own it, and
+      // they write with admin credentials, which bypass these rules.
+      //
+      // diff() reports only keys whose value actually changed, so a full
+      // document overwrite that preserves these fields still passes; only a real
+      // change is rejected. The app never updates any of them after creation:
+      // it writes name, isDefault, activeRouteId and updatedAt (see
+      // challenge/list.tsx, routes/index.tsx, useActiveChallengeProgress.ts).
       match /challenges/{challengeId} {
+        function immutableOnUpdate() {
+          return [
+            'earnedTier', 'earnedTierAt', 'completedAt',
+            'typeId', 'snapshotEligibleOnsenIds', 'snapshotCatalogVersion',
+            'startDate', 'createdAt'
+          ];
+        }
+
         allow read, delete: if isOwner(userId);
         allow create: if isOwner(userId)
           && (!('earnedTier' in request.resource.data) || request.resource.data.earnedTier == null)
           && (!('earnedTierAt' in request.resource.data) || request.resource.data.earnedTierAt == null);
         allow update: if isOwner(userId)
-          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['earnedTier', 'earnedTierAt']);
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(immutableOnUpdate());
 
         match /visits/{onsenId} {
           allow read, write: if isOwner(userId);

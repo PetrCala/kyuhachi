@@ -17,9 +17,11 @@ v1.0 is free, with no in-app purchases and no third-party ad or analytics SDKs.
 | Marketing version | `version` in [app/package.json](../app/package.json) | `npm run version:bump -- minor` |
 | Encryption declaration | `ios.infoPlist.ITSAppUsesNonExemptEncryption: false` | already set in app.config.js |
 | Permission prompt strings | `expo-image-picker` / `expo-location` plugin options + `app/locales/{en,ja}.json` | shown in the iOS system prompts |
+| Firestore rules | [firebase/firestore.rules](../firebase/firestore.rules) | [firestore-rules-audit.md](firestore-rules-audit.md); emulator suite runs in CI |
 
-Tracked separately, not covered here: the accessibility pass, the Firestore
-production rules audit, and App Check enforcement.
+Tracked separately, not covered here: the accessibility pass and App Check
+enforcement. The rules review is written up in
+[firestore-rules-audit.md](firestore-rules-audit.md).
 
 ## Privacy manifest
 

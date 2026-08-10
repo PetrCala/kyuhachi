@@ -351,6 +351,112 @@ describe('users/challenges', () => {
       updateDoc(doc(authDb('user-1'), challengePath), { earnedTierAt: new Date() })
     );
   });
+
+  // -------------------------------------------------------------------------
+  // Frozen definition fields (ADR 003: snapshots are frozen at creation).
+  //
+  // These matter beyond tidiness: claimTier re-derives eligibility from
+  // snapshotEligibleOnsenIds, typeId and startDate, so leaving them writable
+  // would let the owner move the goalposts and then ask the server to bless the
+  // result. See functions/src/util/tier.ts.
+  // -------------------------------------------------------------------------
+
+  /** A challenge as the client writes it at creation. */
+  const seedChallenge = {
+    typeId: 'kyushu-88',
+    name: 'My Challenge',
+    startDate: new Date('2026-01-01'),
+    isDefault: true,
+    snapshotEligibleOnsenIds: ['onsen-a', 'onsen-b'],
+    snapshotCatalogVersion: 3,
+    activeRouteId: null,
+    earnedTier: null,
+    earnedTierAt: null,
+    completedAt: null,
+    createdAt: new Date('2026-01-01'),
+  };
+
+  async function seed() {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), challengePath), seedChallenge);
+    });
+  }
+
+  const frozen: [string, unknown][] = [
+    ['typeId', 'kyushu-88-walk'],
+    ['snapshotEligibleOnsenIds', ['onsen-a', 'onsen-b', 'onsen-forged']],
+    ['snapshotCatalogVersion', 99],
+    ['startDate', new Date('2020-01-01')],
+    ['createdAt', new Date('2020-01-01')],
+    ['completedAt', new Date('2026-06-01')],
+  ];
+
+  test.each(frozen)('owner: cannot change %s after creation', async (field, value) => {
+    await seed();
+    await assertFails(updateDoc(doc(authDb('user-1'), challengePath), { [field]: value }));
+  });
+
+  // The whole point of freezing the pool: widening it is the cheap half of
+  // forging a tier (the other half, writing visit docs, the owner can already do).
+  test('owner: cannot widen the eligible pool then claim against it', async () => {
+    await seed();
+    await assertFails(
+      updateDoc(doc(authDb('user-1'), challengePath), {
+        snapshotEligibleOnsenIds: [...seedChallenge.snapshotEligibleOnsenIds, 'onsen-forged'],
+      })
+    );
+  });
+
+  // The real client write paths must keep working: rename (challenge/list.tsx),
+  // switch active (challenge/list.tsx), attach/clear a route (routes/index.tsx,
+  // useActiveChallengeProgress.ts).
+  test('owner: rename, re-default and re-route still allowed', async () => {
+    await seed();
+    await assertSucceeds(
+      updateDoc(doc(authDb('user-1'), challengePath), {
+        name: 'Renamed',
+        isDefault: false,
+        activeRouteId: 'route-9',
+        updatedAt: new Date(),
+      })
+    );
+  });
+
+  // diff() reports only keys whose value actually changed, so a full-document
+  // overwrite that carries the frozen fields through unchanged is fine. This is
+  // what keeps the freeze from breaking any set() the client already does.
+  test('owner: full overwrite preserving frozen fields allowed', async () => {
+    await seed();
+    await assertSucceeds(
+      setDoc(doc(authDb('user-1'), challengePath), { ...seedChallenge, name: 'Renamed' })
+    );
+  });
+
+  // The classic bypass: rather than editing a guarded field, drop it by
+  // overwriting the document without it. Removing a key counts as an affected
+  // key, so this is denied too.
+  test('owner: full overwrite that drops a frozen field denied', async () => {
+    await seed();
+    const { snapshotEligibleOnsenIds: _dropped, ...withoutPool } = seedChallenge;
+    await assertFails(setDoc(doc(authDb('user-1'), challengePath), withoutPool));
+  });
+
+  test('owner: full overwrite that drops earnedTier denied', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), challengePath), { ...seedChallenge, earnedTier: 'gold' });
+    });
+    const { earnedTier: _dropped, ...withoutTier } = seedChallenge;
+    await assertFails(setDoc(doc(authDb('user-1'), challengePath), withoutTier));
+  });
+
+  test('unauthenticated: read denied', async () => {
+    await seed();
+    await assertFails(getDoc(doc(unauthDb(), challengePath)));
+  });
+
+  test('unauthenticated: write denied', async () => {
+    await assertFails(setDoc(doc(unauthDb(), challengePath), { name: 'Anon' }));
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -398,6 +504,34 @@ describe('users/challenges/visits', () => {
   test('unauthenticated: read denied', async () => {
     await assertFails(getDoc(doc(unauthDb(), visitPath)));
   });
+
+  test('unauthenticated: write denied', async () => {
+    await assertFails(setDoc(doc(unauthDb(), visitPath), { notes: 'anon' }));
+  });
+
+  test('other user: delete denied', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), visitPath), { visitedAt: new Date() });
+    });
+    await assertFails(deleteDoc(doc(authDb('user-2'), visitPath)));
+  });
+
+  // Un-recording a visit is a real client action (edit-visit.tsx), and the
+  // delete trigger recomputes completedAt from what is left.
+  test('owner: delete own visit allowed', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), visitPath), { visitedAt: new Date() });
+    });
+    await assertSucceeds(deleteDoc(doc(authDb('user-1'), visitPath)));
+  });
+
+  // Visits live under the challenge, so they must not be reachable through
+  // another user's uid even when the challenge and onsen ids are guessed right.
+  test('other user: cannot list visits under a challenge they do not own', async () => {
+    await assertFails(
+      getDocs(collection(authDb('user-2'), 'users/user-1/challenges/challenge-1/visits'))
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -443,6 +577,17 @@ describe('users/favorites', () => {
   test('unauthenticated: read denied', async () => {
     await assertFails(getDoc(doc(unauthDb(), favoritePath)));
   });
+
+  test('unauthenticated: write denied', async () => {
+    await assertFails(setDoc(doc(unauthDb(), favoritePath), { createdAt: new Date() }));
+  });
+
+  test('other user: delete denied', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), favoritePath), { createdAt: new Date() });
+    });
+    await assertFails(deleteDoc(doc(authDb('user-2'), favoritePath)));
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -476,5 +621,33 @@ describe('users/routes', () => {
     await assertFails(
       setDoc(doc(authDb('user-2'), routePath), { name: 'Hacked' })
     );
+  });
+
+  test('other user: delete denied', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), routePath), { name: 'My Route' });
+    });
+    await assertFails(deleteDoc(doc(authDb('user-2'), routePath)));
+  });
+
+  // Drag-reorder writes sortOrder across the list (routes/index.tsx).
+  test('owner: reorder and delete own route allowed', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), routePath), { name: 'My Route', sortOrder: 0 });
+    });
+    await assertSucceeds(updateDoc(doc(authDb('user-1'), routePath), { sortOrder: 3 }));
+    await assertSucceeds(deleteDoc(doc(authDb('user-1'), routePath)));
+  });
+
+  test('unauthenticated: read denied', async () => {
+    await assertFails(getDoc(doc(unauthDb(), routePath)));
+  });
+
+  test('unauthenticated: write denied', async () => {
+    await assertFails(setDoc(doc(unauthDb(), routePath), { name: 'Anon' }));
+  });
+
+  test('other user: cannot list routes they do not own', async () => {
+    await assertFails(getDocs(collection(authDb('user-2'), 'users/user-1/routes')));
   });
 });
