@@ -1,27 +1,34 @@
-name: Deploy Firestore rules
+name: Deploy Firestore and Storage rules
 
-# Keep the deployed Firestore security rules and indexes in lockstep with the
-# repo. Without this, edits to firebase/firestore.rules merge to master but only
-# take effect in production once someone remembers to run `firebase deploy` by
-# hand — exactly how the route_plans -> routes rename shipped to the repo but
-# not to Firebase, breaking route imports with permission-denied in production.
+# Keep the deployed security rules and indexes in lockstep with the repo.
+# Without this, edits to firebase/firestore.rules merge to master but only take
+# effect in production once someone remembers to run `firebase deploy` by hand:
+# exactly how the route_plans -> routes rename shipped to the repo but not to
+# Firebase, breaking route imports with permission-denied in production.
+#
+# firebase/storage.rules is deployed here for the same reason. It was previously
+# left out, so every storage.rules edit was an undeployed no-op until someone
+# noticed.
 #
 # Required setup (in the kyuhachi-fddcc Google Cloud project):
 #   - Secret FIREBASE_SERVICE_ACCOUNT: the full JSON key of a service account,
 #     stored under Settings -> Secrets and variables -> Actions.
 #   - That service account needs all THREE of these roles:
-#       * roles/firebaserules.admin            (deploy firestore:rules)
+#       * roles/firebaserules.admin            (deploy firestore:rules + storage)
 #       * roles/datastore.indexAdmin           (deploy firestore:indexes)
 #       * roles/serviceusage.serviceUsageConsumer
 #           The Firebase CLI calls the Service Usage API to verify
 #           firestore.googleapis.com is enabled before deploying; without this
 #           role the deploy fails with a 403 on serviceusage.googleapis.com.
+#     If the storage half 403s, the account is missing firebaserules.admin on
+#     the bucket; grant it rather than dropping storage from the deploy.
 on:
   push:
     branches: [master]
     paths:
       - firebase/firestore.rules
       - firebase/firestore.indexes.json
+      - firebase/storage.rules
   # Manual trigger: lets a maintainer re-deploy the current rules/indexes on
   # demand (e.g. to verify the service-account auth, or to push state that has
   # drifted) without having to touch a rules file.
@@ -35,7 +42,7 @@ concurrency:
 
 jobs:
   rules-test:
-    name: Firestore rules tests
+    name: Firestore and Storage rules tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -58,8 +65,9 @@ jobs:
         run: npm ci
         working-directory: firebase
 
-      - name: Run Firestore rules tests
-        run: firebase emulators:exec --only firestore --project kyuhachi-test "npm test"
+      # Both emulators: firebase/test covers firestore.rules and storage.rules.
+      - name: Run rules tests
+        run: firebase emulators:exec --only firestore,storage --project kyuhachi-test "npm test"
         working-directory: firebase
 
   deploy:
@@ -94,7 +102,7 @@ jobs:
 
       # Runs from the repo root so firebase.json (which maps the rules/indexes to
       # firebase/firestore.*) is picked up.
-      - name: Deploy Firestore rules and indexes
+      - name: Deploy Firestore rules, indexes and Storage rules
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
-        run: firebase deploy --only firestore:rules,firestore:indexes --project kyuhachi-fddcc --non-interactive
+        run: firebase deploy --only firestore:rules,firestore:indexes,storage --project kyuhachi-fddcc --non-interactive

@@ -3,10 +3,40 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Visit photos — owner read/write only
+    // Visit photos: owner read/write only, with a per-object size ceiling.
     // Path: /visits/{userId}/{visitId}/photo.jpg
+    //
+    // The ceiling bounds a single upload, nothing more. The path segments
+    // visitId and fileName are client-chosen, so an authenticated user can
+    // still create unlimited objects under their own prefix; rules cannot
+    // express a count or a quota. Capping total consumption needs a Function
+    // or a bucket lifecycle policy, not this file.
+    //
+    // Deliberately NO contentType check. The client sets that header, so an
+    // abuser just declares image/jpeg regardless of the bytes, while a
+    // legitimate save can arrive as application/octet-stream: RNFirebase's
+    // putFile derives the type from the *source* URI's extension (see
+    // mimeTypeForPath in RNFBStorageCommon.m) and falls back to
+    // octet-stream when it cannot resolve one. It would cost real photos to
+    // stop nothing.
     match /visits/{userId}/{visitId}/{fileName} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      function isOwner() {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      allow read: if isOwner();
+
+      // Split from create/update because in Storage rules `write` covers
+      // delete too, and on a delete request.resource is null: folding the
+      // size check into `write` would deny every delete. The app deletes
+      // (removing a photo from a visit, see app/app/onsens/edit-visit.tsx).
+      allow delete: if isOwner();
+
+      // 10MB. Visit photos are re-encoded JPEGs at quality 0.7 with no
+      // resize, normally 1.5-4MB, but a panorama runs well past 5MB and a
+      // rejected upload costs the user their photo.
+      allow create, update: if isOwner()
+        && request.resource.size < 10 * 1024 * 1024;
     }
 
     // Rehosted onsen catalog photos: explicitly denied.
