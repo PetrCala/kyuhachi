@@ -22,6 +22,8 @@ export function OptionChips({ options, value, onChange }: OptionChipsProps) {
         return (
           <Pressable
             key={opt.value}
+            accessibilityRole="radio"
+            accessibilityState={{ selected }}
             style={[styles.chip, selected && styles.chipSelected]}
             onPress={() => onChange(selected ? null : opt.value)}
           >

@@ -214,6 +214,7 @@ function ToggleRowBody({
         <Text style={styles.rowLabel}>{label}</Text>
         <InfoToggle open={open} onPress={toggle} label={t('preferences.explain', { label })} />
         <Switch
+          accessibilityLabel={label}
           value={value}
           onValueChange={onValueChange}
           trackColor={{ false: colors.separator, true: colors.actionPrimary }}

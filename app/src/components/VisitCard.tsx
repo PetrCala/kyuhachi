@@ -65,6 +65,7 @@ export function VisitCard({
 
   return (
     <Pressable
+      accessibilityRole="button"
       style={completed ? [styles.card, styles.cardCompleted, shadows.sm] : styles.card}
       onPress={onPress}
     >
@@ -72,7 +73,9 @@ export function VisitCard({
         {completed ? (
           <>
             <View style={styles.completedSeal}>
-              <Text style={styles.completedSealMark}>{sealMark}</Text>
+              <Text accessibilityElementsHidden style={styles.completedSealMark}>
+                {sealMark}
+              </Text>
             </View>
             <View style={styles.headerText}>
               <Text style={styles.completedTitle}>{t('onsenDetail.visitedCardTitle')}</Text>
@@ -107,7 +110,7 @@ export function VisitCard({
           </>
         )}
         {onEdit ? (
-          <Pressable onPress={onEdit} hitSlop={8}>
+          <Pressable accessibilityRole="button" onPress={onEdit} hitSlop={8}>
             <Text style={styles.editLink}>{t('onsenDetail.editDetails')}</Text>
           </Pressable>
         ) : null}

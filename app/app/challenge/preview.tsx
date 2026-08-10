@@ -217,6 +217,7 @@ export default function ChallengePreview() {
           <View style={styles.nameField}>
             <Text style={styles.nameLabel}>{t('challenge.nameLabel')}</Text>
             <TextInput
+              accessibilityLabel={t('challenge.nameLabel')}
               style={styles.nameInput}
               value={name}
               onChangeText={setName}
@@ -231,6 +232,8 @@ export default function ChallengePreview() {
         </ScrollView>
         <View style={styles.footer}>
           <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: creating, busy: creating }}
             style={[styles.startButton, creating && styles.startButtonDisabled]}
             onPress={handleCreate}
             disabled={creating}

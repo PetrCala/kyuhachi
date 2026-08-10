@@ -65,6 +65,7 @@ const ja: Record<keyof typeof en, string> = {
   'onsenList.prefectureUnknown': 'その他',
   'onsenList.emptySearch': '「{{query}}」に一致する温泉はありません',
   'onsenList.emptyData': '温泉データがありません',
+  'onsenList.a11yVisited': '訪問済み',
   'onsenList.favoritesOnly': 'お気に入りのみ表示',
   'onsenList.showAll': 'すべて表示',
   'onsenList.emptyFavorites':
@@ -617,6 +618,7 @@ const ja: Record<keyof typeof en, string> = {
   'onsenDetail.transport.car': '車',
   'onsenDetail.labelWouldReturn': 'また行きたい？',
   'onsenDetail.removePhoto': '写真を削除',
+  'onsenDetail.a11yRatingStar': '{{total}}段階中{{value}}を選ぶ',
   'onsenDetail.showDetails': '詳細を表示',
   'onsenDetail.hideDetails': '詳細を隠す',
   'onsenDetail.sectionRatings': '評価・印象',

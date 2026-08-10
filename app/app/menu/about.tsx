@@ -70,7 +70,9 @@ export default function About() {
 
       <View style={styles.identity}>
         <View style={styles.brandMark}>
-          <Text style={styles.brandGlyph}>{BRAND_MARK}</Text>
+          <Text accessibilityElementsHidden style={styles.brandGlyph}>
+            {BRAND_MARK}
+          </Text>
         </View>
         <Text style={styles.appName}>{Constants.expoConfig?.name ?? 'Kyuhachi'}</Text>
         <Text style={styles.tagline}>{t('about.tagline')}</Text>

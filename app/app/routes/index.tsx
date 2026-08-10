@@ -407,6 +407,8 @@ export default function RoutesList() {
           <Ionicons name="reorder-three" size={HANDLE_ICON_SIZE} color={colors.textTertiary} />
         </View>
         <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled: drawing != null }}
           style={styles.cardMain}
           disabled={drawing != null}
           onPress={() => selectAndPreview(id, { name: data.name, points: data.points })}
@@ -469,6 +471,8 @@ export default function RoutesList() {
         )}
 
         <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled: importing, busy: importing }}
           style={[styles.importButton, importing && styles.importButtonDisabled]}
           onPress={handleImport}
           disabled={importing}

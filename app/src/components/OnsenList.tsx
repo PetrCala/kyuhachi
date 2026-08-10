@@ -86,6 +86,7 @@ const OnsenListRow = memo(function OnsenListRow({
 }) {
   return (
     <Pressable
+      accessibilityRole="button"
       style={styles.row}
       onPress={() => (onPress ? onPress(item) : router.push(`/onsens/${item.id}`))}
     >
@@ -284,6 +285,7 @@ export function OnsenList({
   return (
     <View style={styles.container}>
       <TextInput
+        accessibilityLabel={t('onsenList.searchPlaceholder')}
         style={styles.searchInput}
         placeholder={t('onsenList.searchPlaceholder')}
         placeholderTextColor={colors.textPlaceholder}
