@@ -21,6 +21,7 @@ import { COLLECTIONS, CATALOG_META_DOC_ID } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/firebase';
 import { loadStoredCatalog, sortCatalog, storeCatalog, toCachedOnsen } from '@/lib/catalog-store';
+import { SHOW_CATALOG_PHOTOS } from '@/lib/catalog-photos';
 
 interface OnsenCatalogContextValue {
   /** Every onsen ever published (active and archived), in areaName/name order. */
@@ -62,10 +63,10 @@ const OnsenCatalogContext = createContext<OnsenCatalogContextValue>({
  * with includeMetadataChanges so a sync that failed offline retries when
  * connectivity returns, without polling or a network-info dependency.
  *
- * After a sync (and once per launch from an existing cache) every catalog
- * photo is prefetched into expo-image's disk cache so onsen images are also
- * available offline; the blurhash placeholder remains the fallback for any
- * photo that never made it.
+ * After a sync (and once per launch from an existing cache), every catalog
+ * photo would be prefetched into expo-image's disk cache so onsen images are
+ * also available offline; this is currently off along with `SHOW_CATALOG_PHOTOS`
+ * (see that constant), so the prefetch effect below is a no-op for now.
  *
  * Frozen-challenge-snapshot invariant: this cache is display data only. It is
  * never consulted when a challenge is created: `snapshotCatalogVersion` still
@@ -166,7 +167,12 @@ export function OnsenCatalogProvider({ children }: { children: ReactNode }) {
   // evicted). Already-cached URLs are skipped by the prefetcher, so the warm
   // path costs nothing. Fire-and-forget by design: a photo that never lands
   // falls back to its blurhash placeholder.
+  //
+  // Gated on SHOW_CATALOG_PHOTOS: while catalog photos aren't rendered (see
+  // that constant), warming their disk cache would only burn bandwidth and
+  // storage on device for images nothing ever displays.
   useEffect(() => {
+    if (!SHOW_CATALOG_PHOTOS) return;
     if (version === null || onsens.length === 0) return;
     if (prefetchedVersionRef.current === version) return;
     prefetchedVersionRef.current = version;

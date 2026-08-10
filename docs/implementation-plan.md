@@ -321,8 +321,9 @@ The challenge is: visit any 88 onsens from the official eligible pool. The pool 
   `/onsens` documents are persisted as one snapshot keyed to
   `catalog_meta/current.version` and served from `OnsenCatalogContext`; a
   version listener re-syncs the whole snapshot when a new catalog is published
-- Onsen images (`expo-image` disk cache, prefetched in bulk after each catalog
-  sync; blurhash placeholder as fallback)
+- ~~Onsen images (`expo-image` disk cache, prefetched in bulk after each
+  catalog sync; blurhash placeholder as fallback)~~ off for v1: see
+  [docs/storage-image-exposure.md](storage-image-exposure.md)
 - User's challenges and visits (automatic via Firestore persistence)
 - Imported routes (automatic via Firestore persistence)
 

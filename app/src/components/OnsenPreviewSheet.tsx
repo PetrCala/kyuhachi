@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import BottomSheet, {
@@ -11,6 +10,7 @@ import BottomSheet, {
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
 import type { CachedOnsen } from '@kyuhachi/shared';
+import OnsenHeroImage from '@/components/OnsenHeroImage';
 import { OnsenInfoRow } from '@/components/OnsenInfoRow';
 import { OnsenFee } from '@/components/OnsenFee';
 import { OnsenHours } from '@/components/OnsenHours';
@@ -25,9 +25,6 @@ type OnsenRow = CachedOnsen;
 const SNAP_POINTS = ['78%'];
 // Hero image height: the image-forward focal point of the sheet.
 const HERO_HEIGHT = 200;
-// Glyph size for the placeholder mark when an onsen has no photo; a layout
-// dimension, not part of the type scale.
-const PLACEHOLDER_GLYPH = 56;
 
 interface OnsenPreviewSheetProps {
   /** The selected onsen, or null when the sheet is dismissed. */
@@ -42,10 +39,10 @@ interface OnsenPreviewSheetProps {
 
 /**
  * An image-forward bottom-sheet preview shown when a map marker is tapped. A
- * large hero image (or a themed placeholder when the onsen has no photo) is
- * pinned at the top with the name overlaid on a scrim and a close affordance;
- * below it a scrollable info area mirrors the detail screen's rows, and a pinned
- * primary CTA opens the full detail screen.
+ * large hero (a photo, or the place-tinted `OnsenHeroImage` stand-in while
+ * `SHOW_CATALOG_PHOTOS` is off) is pinned at the top with the name overlaid on
+ * a scrim and a close affordance; below it a scrollable info area mirrors the
+ * detail screen's rows, and a pinned primary CTA opens the full detail screen.
  *
  * Built on `@gorhom/bottom-sheet`'s inline `BottomSheet` (rendered in place as a
  * sibling of the map). We deliberately do NOT use the portal-based
@@ -182,26 +179,11 @@ export default function OnsenPreviewSheet({
             bounces={false}
           >
             <View style={styles.hero}>
-              {shown.imageUrl ? (
-                <Image
-                  source={shown.imageUrl}
-                  style={styles.heroImage}
-                  contentFit="cover"
-                  transition={200}
-                  cachePolicy="memory-disk"
-                  placeholder={shown.blurhash ? { blurhash: shown.blurhash } : undefined}
-                  placeholderContentFit="cover"
-                />
-              ) : (
-                <View style={styles.heroPlaceholder}>
-                  <Ionicons
-                    name="image-outline"
-                    size={PLACEHOLDER_GLYPH}
-                    color={colors.textMuted}
-                    accessibilityLabel={t('onsenPreview.imagePlaceholder')}
-                  />
-                </View>
-              )}
+              <OnsenHeroImage
+                imageUrl={shown.imageUrl}
+                blurhash={shown.blurhash}
+                style={styles.heroImage}
+              />
               <View style={styles.heroScrim} pointerEvents="none" />
               <View style={styles.heroText} pointerEvents="none">
                 <Text style={styles.heroName} numberOfLines={2}>
@@ -297,14 +279,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     backgroundColor: colors.backgroundSecondary,
-  },
-  // Themed block standing in for a missing photo so the layout still reads as
-  // image-forward.
-  heroPlaceholder: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.backgroundSecondary,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   // Bottom-up dark band stand-in so the overlaid name stays legible over any
   // image. A solid translucent band rather than a true gradient (no gradient lib).

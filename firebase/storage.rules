@@ -9,5 +9,23 @@ service firebase.storage {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
+    // Rehosted onsen catalog photos: explicitly denied.
+    // Path: /onsen-images/{kyuhachiId}.webp
+    //
+    // These are scraped from 88onsen.com with no cleared copyright provenance
+    // (see docs/storage-image-exposure.md), and the app no longer displays
+    // them (SHOW_CATALOG_PHOTOS in app/src/lib/catalog-photos.ts). This rule
+    // is belt-and-suspenders, not the actual fix: the data repo's uploader
+    // writes each object with a `firebaseStorageDownloadTokens` metadata
+    // value, and Firebase serves a request bearing a valid token regardless
+    // of these rules. Rules only govern access through the Storage SDK/REST
+    // surface, which never carries a token; they cannot revoke one already
+    // issued. Actually stopping the tokenized download URLs from working
+    // requires rotating or clearing that metadata on the live objects, which
+    // is outside this repo; see docs/storage-image-exposure.md.
+    match /onsen-images/{fileName} {
+      allow read, write: if false;
+    }
+
   }
 }

@@ -112,12 +112,11 @@ it('re-syncs from the server when a newer catalog version is published', async (
   // Same area, so ordered by name code points: 別 (U+5225) before 新 (U+65B0).
   expect(screen.getByTestId('names')).toHaveTextContent('別温泉|新温泉');
 
-  // The new snapshot is persisted for the next (possibly offline) launch, and
-  // its photos are handed to the disk prefetcher.
+  // The new snapshot is persisted for the next (possibly offline) launch. Its
+  // photos are NOT handed to the disk prefetcher: SHOW_CATALOG_PHOTOS is off
+  // (see app/src/lib/catalog-photos.ts), so nothing ever displays them.
   await waitFor(async () => expect((await loadStoredCatalog())?.version).toBe(3));
-  expect(mockPrefetch).toHaveBeenCalledWith(['https://img.example/a.jpg'], {
-    cachePolicy: 'disk',
-  });
+  expect(mockPrefetch).not.toHaveBeenCalled();
 });
 
 it('keeps the existing catalog when a sync returns no documents', async () => {
