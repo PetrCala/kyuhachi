@@ -20,8 +20,12 @@ name: Deploy Firestore and Storage rules
 #           The Firebase CLI calls the Service Usage API to verify
 #           firestore.googleapis.com is enabled before deploying; without this
 #           role the deploy fails with a 403 on serviceusage.googleapis.com.
-#     If the storage half 403s, the account is missing firebaserules.admin on
-#     the bucket; grant it rather than dropping storage from the deploy.
+#   - The Storage step additionally needs the permission
+#     `firebasestorage.defaultBucket.get`, which firebaserules.admin does NOT
+#     include: the CLI resolves the default bucket before it can deploy the
+#     rules. Until that is granted the Storage step 403s and firebase/storage.rules
+#     stays undeployed. Deploy it by hand in the meantime with
+#     `firebase deploy --only storage --project kyuhachi-fddcc`.
 on:
   push:
     branches: [master]
@@ -102,7 +106,21 @@ jobs:
 
       # Runs from the repo root so firebase.json (which maps the rules/indexes to
       # firebase/firestore.*) is picked up.
-      - name: Deploy Firestore rules, indexes and Storage rules
+      #
+      # Firestore and Storage deploy as SEPARATE steps, Firestore first, and that
+      # ordering is load-bearing. `firebase deploy` resolves every requested
+      # target's config before deploying any of them, so a single combined
+      # invocation that cannot reach the Storage bucket aborts before the
+      # Firestore rules ever go out. That is exactly what happened when storage
+      # was first added here: a 403 on the bucket took the Firestore deploy down
+      # with it. Split this way, a Storage-side problem still fails the job
+      # loudly but can never block the Firestore rules.
+      - name: Deploy Firestore rules and indexes
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
-        run: firebase deploy --only firestore:rules,firestore:indexes,storage --project kyuhachi-fddcc --non-interactive
+        run: firebase deploy --only firestore:rules,firestore:indexes --project kyuhachi-fddcc --non-interactive
+
+      - name: Deploy Storage rules
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
+        run: firebase deploy --only storage --project kyuhachi-fddcc --non-interactive
