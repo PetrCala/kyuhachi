@@ -18,10 +18,20 @@ v1.0 is free, with no in-app purchases and no third-party ad or analytics SDKs.
 | Encryption declaration | `ios.infoPlist.ITSAppUsesNonExemptEncryption: false` | already set in app.config.js |
 | Permission prompt strings | `expo-image-picker` / `expo-location` plugin options + `app/locales/{en,ja}.json` | shown in the iOS system prompts |
 | Firestore rules | [firebase/firestore.rules](../firebase/firestore.rules) | [firestore-rules-audit.md](firestore-rules-audit.md); emulator suite runs in CI |
+| Dev tools off in the store build | `extra.enableDevTools` in [app/app.config.js](../app/app.config.js) | `deploy.yml` sets no `EXPO_PUBLIC_ENABLE_DEV_TOOLS`, so it resolves to false |
+| Accessibility | labels/roles on interactive elements | `app/src/__tests__/accessibility-coverage.test.ts` fails on any element that loses them |
+| App Check | monitoring only, not enforced | [app-check.md](app-check.md); see the warning below before enabling enforcement |
 
-Tracked separately, not covered here: the accessibility pass and App Check
-enforcement. The rules review is written up in
-[firestore-rules-audit.md](firestore-rules-audit.md).
+Two reviews back this checklist rather than being steps in it: the rules review
+in [firestore-rules-audit.md](firestore-rules-audit.md) and the App Check
+rollout in [app-check.md](app-check.md).
+
+**Do not enable App Check enforcement while a build is in review.** Enforcement
+takes effect immediately and applies to every client at once. If the reviewer's
+build cannot attest, every Firestore read fails and the app looks broken to
+them, which is a rejection with no useful error to explain it. Enable it between
+submissions, one service at a time, per the rollout order in
+[app-check.md](app-check.md).
 
 ## Privacy manifest
 
