@@ -6,9 +6,12 @@ import Constants from 'expo-constants';
  *
  * True in any local / dev-client build (`__DEV__`) and in release-mode builds
  * that opt in via the `enableDevTools` Expo extra. `app.config.js` derives that
- * extra from the `EXPO_PUBLIC_ENABLE_DEV_TOOLS` env var, which `eas.json` sets
- * to "true" on the `development` and `preview` profiles and leaves unset (→
- * false) on `production`. The App Store build therefore never exposes them.
+ * extra from the `EXPO_PUBLIC_ENABLE_DEV_TOOLS` env var. Two build paths set it:
+ * `eas.json` on the `development` and `preview` profiles, and
+ * `.github/workflows/preview-build.yml` for the fastlane PR previews that
+ * actually ship to TestFlight today (EAS is only a fallback, see
+ * docs/ios-deploy.md). Nothing sets it for the production deploy, so it is unset
+ * (→ false) there and the App Store build never exposes them.
  *
  * Gate BOTH the menu entry and the screen itself on this: Expo Router bundles
  * every file under `app/`, so without a redirect the screen stays reachable by
