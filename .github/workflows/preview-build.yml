@@ -48,6 +48,13 @@ jobs:
       # fastlane's defaults so build_app doesn't time out reading settings.
       FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT: "120"
       FASTLANE_XCODEBUILD_SETTINGS_RETRIES: "5"
+      # In-app dev tools (mock-data generators) on for previews, matching the
+      # intent recorded in eas.json's `preview` profile. Previews build through
+      # fastlane, not EAS, so the profile's env block never applied here and
+      # preview builds were silently shipping without the generators. Read at
+      # prebuild time by app.config.js -> extra.enableDevTools. deploy.yml
+      # deliberately does NOT set this, so App Store builds stay clean.
+      EXPO_PUBLIC_ENABLE_DEV_TOOLS: "true"
     steps:
       # Build the PR's HEAD commit (not the synthetic merge ref), so the preview
       # matches exactly what's in the PR and is deterministic if the branch is

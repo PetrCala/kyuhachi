@@ -28,9 +28,9 @@ let initialization: Promise<void> | null = null;
  * Provider choice is gated on `__DEV__`, not DEV_TOOLS_ENABLED (app/src/lib/dev/flags.ts):
  * DeviceCheck attests the real, App-Store-signed binary and cannot work under
  * Metro, while the debug provider needs a token registered by hand in the
- * console. DEV_TOOLS_ENABLED is also true for the `preview` EAS profile, and
- * those TestFlight builds are exactly the real-device traffic we want measured,
- * so they take the DeviceCheck path along with production.
+ * console. DEV_TOOLS_ENABLED is also true for preview builds, and those
+ * TestFlight builds are exactly the real-device traffic we want measured, so
+ * they take the DeviceCheck path along with production.
  *
  * Idempotent, and never rejects: a failed attestation must not affect the app
  * while nothing is enforced.

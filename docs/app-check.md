@@ -33,11 +33,14 @@ Provider per build type:
 | Build | Provider | Notes |
 |---|---|---|
 | Metro / simulator / dev client (`__DEV__`) | debug | Needs a debug token registered by hand, see step (e) |
-| EAS `preview` (TestFlight) | DeviceCheck | Real device traffic, this is what we want measured |
-| EAS `production` (App Store) | DeviceCheck | Same |
+| PR preview (`preview-build.yml` -> TestFlight) | DeviceCheck | Real device traffic, this is what we want measured |
+| Production (`deploy.yml` -> TestFlight -> App Store) | DeviceCheck | Same |
+
+Both shipped builds go through fastlane; the EAS profiles in `eas.json` are a
+fallback and take the same paths.
 
 The gate is `__DEV__`, not `DEV_TOOLS_ENABLED` from `app/src/lib/dev/flags.ts`.
-`DEV_TOOLS_ENABLED` is also true on the `preview` profile, and preview builds are
+`DEV_TOOLS_ENABLED` is also true for preview builds, and preview builds are
 real signed binaries on real devices: they should attest with DeviceCheck like
 production, not fall back to a debug token they do not have.
 
