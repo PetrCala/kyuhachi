@@ -11,20 +11,20 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Onsen catalog — read-only for any authenticated user
+    // Onsen catalog: read-only for any authenticated user
     // Writes go through the data repo service account, never the app
     match /onsens/{kyuhachiId} {
       allow read: if isAuthenticated();
       allow write: if false;
     }
 
-    // Catalog metadata — read-only for any authenticated user
+    // Catalog metadata: read-only for any authenticated user
     match /catalog_meta/{docId} {
       allow read: if isAuthenticated();
       allow write: if false;
     }
 
-    // Challenge type definitions — read-only for any authenticated user
+    // Challenge type definitions: read-only for any authenticated user
     match /challenge_types/{typeId} {
       allow read: if isAuthenticated();
       allow write: if false;
@@ -43,7 +43,22 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // User documents and all subcollections — owner only
+    // User documents and all subcollections: owner only.
+    //
+    // The blanket write on the user document itself is deliberate and was
+    // re-audited for the public release. The document carries displayName,
+    // email, defaultChallengeId and createdAt, and none of them is trusted:
+    // displayName/email are denormalized copies of the Auth record that nothing
+    // reads back (the account screen reads the Auth user), defaultChallengeId
+    // only picks which of the owner's own challenges the owner sees, no rule
+    // here does a get() on this path, and no Function reads a field off it.
+    // There is no role, admin flag, entitlement, tier or denormalized count, so
+    // forging any of it gains the forger nothing.
+    //
+    // The day a field lands here that a Function, a rule, or another user's
+    // view has to trust (a role, an entitlement, a denormalized count), that
+    // stops being true: guard the field the way earnedTier is guarded below,
+    // and update the "no field on the user document is server-only" test.
     match /users/{userId} {
       allow read, write: if isOwner(userId);
 

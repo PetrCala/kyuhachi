@@ -189,6 +189,81 @@ describe('users', () => {
   test('unauthenticated: read denied', async () => {
     await assertFails(getDoc(doc(unauthDb(), 'users/user-1')));
   });
+
+  test('unauthenticated: write denied', async () => {
+    await assertFails(setDoc(doc(unauthDb(), 'users/user-1'), { displayName: 'Anon' }));
+  });
+
+  test('other user: update denied', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users/user-1'), { defaultChallengeId: null });
+    });
+    await assertFails(
+      updateDoc(doc(authDb('user-2'), 'users/user-1'), { defaultChallengeId: 'challenge-1' })
+    );
+  });
+
+  test('other user: delete denied', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users/user-1'), { displayName: 'Alice' });
+    });
+    await assertFails(deleteDoc(doc(authDb('user-2'), 'users/user-1')));
+  });
+
+  // The real client write path: switching, creating or deleting a challenge
+  // repoints defaultChallengeId (app/app/challenge/list.tsx, preview.tsx).
+  test('owner: update defaultChallengeId allowed', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users/user-1'), { defaultChallengeId: null });
+    });
+    await assertSucceeds(
+      updateDoc(doc(authDb('user-1'), 'users/user-1'), { defaultChallengeId: 'challenge-1' })
+    );
+  });
+
+  // A challenge can be created before the onUserCreated Auth trigger has landed
+  // the user document, so the client's set+merge has to work on a missing doc.
+  test('owner: create own document allowed (before onUserCreated lands)', async () => {
+    await assertSucceeds(
+      setDoc(
+        doc(authDb('user-1'), 'users/user-1'),
+        { defaultChallengeId: 'challenge-1' },
+        { merge: true }
+      )
+    );
+  });
+
+  /**
+   * Pins the audited conclusion, not an aspiration: NO field on the user
+   * document is trusted by client logic, by these rules, or by any Function.
+   * The document holds displayName, email, defaultChallengeId and createdAt.
+   * displayName/email are denormalized copies of the Auth record that nothing
+   * reads back; defaultChallengeId only selects which of the owner's own
+   * challenges the owner sees; no rule does a get() on this path and no
+   * Function reads a field off it. There is no role, admin flag, entitlement,
+   * or denormalized count here, so the blanket owner write grants nothing
+   * beyond what the owner already has.
+   *
+   * If that ever stops being true, this test is the tripwire: adding a
+   * server-only field means guarding it the way the challenges subcollection
+   * guards earnedTier, which makes this assertion fail and forces the decision
+   * to be made deliberately.
+   */
+  test('owner: no field on the user document is server-only', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users/user-1'), {
+        displayName: 'Alice',
+        email: 'alice@example.com',
+        defaultChallengeId: null,
+      });
+    });
+    await assertSucceeds(
+      updateDoc(doc(authDb('user-1'), 'users/user-1'), {
+        displayName: 'Alice Renamed',
+        email: 'someone-else@example.com',
+      })
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------
