@@ -25,6 +25,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useOnsenCatalog } from '@/context/OnsenCatalogContext';
 import { usePreferences } from '@/context/PreferencesContext';
 import { db } from '@/firebase';
+import { SHOW_CATALOG_PHOTOS } from '@/lib/catalog-photos';
 import { simulatedCoordinate } from '@/lib/dev-location';
 import { distanceToPolylineKm } from '@/lib/geo';
 import { useActiveChallengeProgress } from '@/hooks/useActiveChallengeProgress';
@@ -282,9 +283,13 @@ export default function MapScreen() {
   // the photo already loaded instead of waiting on a cold fetch. `region` comes
   // straight from onRegionChangeComplete, which fires once per pan/zoom, so this
   // is naturally debounced and never runs per gesture frame.
+  //
+  // Gated on SHOW_CATALOG_PHOTOS: while catalog photos aren't rendered (see
+  // that constant), there's nothing for a warm cache to speed up.
   const handleRegionSettle = useCallback(
     (region: Region) => {
       handleCameraSettle();
+      if (!SHOW_CATALOG_PHOTOS) return;
       const latMin = region.latitude - region.latitudeDelta / 2;
       const latMax = region.latitude + region.latitudeDelta / 2;
       const lngMin = region.longitude - region.longitudeDelta / 2;

@@ -7,7 +7,6 @@ import {
   Linking,
   ActivityIndicator,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
@@ -19,6 +18,7 @@ import { OnsenInfoRow } from '@/components/OnsenInfoRow';
 import { OnsenFee } from '@/components/OnsenFee';
 import { OnsenHours } from '@/components/OnsenHours';
 import { AreaGuideRow } from '@/components/AreaGuideRow';
+import OnsenHeroImage from '@/components/OnsenHeroImage';
 import RecordVisitFab from '@/components/RecordVisitFab';
 import { useVisit } from '@/hooks/useVisit';
 import { onsenReading } from '@/lib/onsen-name';
@@ -148,17 +148,7 @@ export default function OnsenDetail() {
         style={styles.container}
         contentContainerStyle={[styles.content, showVisitButton && styles.contentWithFab]}
       >
-        {onsen.imageUrl && (
-          <Image
-            source={onsen.imageUrl}
-            style={styles.image}
-            contentFit="cover"
-            transition={200}
-            cachePolicy="memory-disk"
-            placeholder={onsen.blurhash ? { blurhash: onsen.blurhash } : undefined}
-            placeholderContentFit="cover"
-          />
-        )}
+        <OnsenHeroImage imageUrl={onsen.imageUrl} blurhash={onsen.blurhash} style={styles.image} />
 
         <View style={styles.header}>
           <Text style={styles.name} selectable>
