@@ -21,6 +21,11 @@ attach it to their Firebase calls. **Nothing is enforced.** Firestore, Storage a
 Functions all still accept unattested requests, exactly as before, and no callable
 in `functions/` sets `enforceAppCheck`.
 
+Step (a) below is done: the DeviceCheck key was registered on 2026-08-10, and the
+console shows `com.kyuhachi.app` as Registered with DeviceCheck and App Attest.
+Steps (b) and (c) are the live ones, and verified traffic sits at 0% until a build
+carrying this code reaches real devices.
+
 That split is deliberate. Enforcement takes effect the moment it is switched on,
 and it applies to every client, including the TestFlight builds already sitting on
 the maintainer's and the testers' phones, which contain no App Check code at all
@@ -98,6 +103,14 @@ particular can look quiet for days, because `claimTier` is called rarely.
 
 Only after (c) looks healthy, and as a separate deliberate decision, not part of
 this change.
+
+**Never enable enforcement while a build is in App Review.** Enforcement applies
+to every client at once, and the reviewer is running a build you cannot register a
+debug token for. If it fails to attest, every Firestore read fails and the app
+looks broken to them, with no error they can act on and none you can explain after
+the fact. That is a rejection. Enable between submissions, never during one. Same
+warning, from the submission side:
+[app-store-submission.md](app-store-submission.md).
 
 Same screen: **Project settings**, **App Check**, **APIs**, click the service, then
 **Enforce**. Do one service, watch for a day, then the next. Suggested order is
