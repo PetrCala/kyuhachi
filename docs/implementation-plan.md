@@ -265,7 +265,9 @@ Do not route standard user reads/writes through Functions in Phase 1.
 
 ### App Check
 
-Enable with DeviceCheck (iOS) from Phase 1. Enforce on Firestore, Storage, and Functions. App Check is defense-in-depth; it does not replace security rules.
+Enable with DeviceCheck (iOS). App Check is defense-in-depth; it does not replace security rules.
+
+Status: the app initializes App Check and real builds attest, but nothing is enforced yet. Enforcement on Firestore, Storage and Functions is a separate step taken only once the console metrics show attestation landing for real traffic, because switching it on locks out every already-installed build that cannot attest. Rollout order and the console steps: [app-check.md](app-check.md).
 
 ### Catalog versioning
 
