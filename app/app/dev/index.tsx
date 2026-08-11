@@ -170,7 +170,11 @@ export default function DevTools() {
   return (
     <>
       <Stack.Screen options={{ title: 'Developer', headerShown: true }} />
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.warning}>
           Dev only. Writes mock data to your account. Hidden from App Store builds.
         </Text>
