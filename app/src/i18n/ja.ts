@@ -51,7 +51,7 @@ const ja: Record<keyof typeof en, string> = {
 
   // onsen preview (map marker → image-forward half-sheet)
   'onsenPreview.areaPrefecture': '{{area}} ・ {{prefecture}}',
-  'onsenPreview.imagePlaceholder': '写真はありません',
+  'onsenPreview.onsenMark': '温泉の装飾マーク',
   'onsenPreview.viewFullDetails': '詳細を見る',
   'onsenPreview.close': '閉じる',
   'onsenPreview.visited': '訪問済み',

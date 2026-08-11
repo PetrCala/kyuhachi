@@ -29,6 +29,38 @@ problem and is unaffected by any of this.
   `allow read, write: if false;` block for `onsen-images/{fileName}`. Read on
   for why this rule is necessary but not sufficient.
 
+## What fills the hero slot instead
+
+*Added 2026-08-11.*
+
+Gating the photos left a 200-220pt photo-shaped hole tinted with the average
+colour of the very photos being walked away from — no information in it, and
+still coupled to `blurhash`. Licensed per-onsen photography isn't obtainable
+(Wikimedia covers towns, not facilities; generic stock on a named business is a
+factual misstatement; Google Places Photos forbids caching and breaks
+offline-first), so the slot stopped imitating a photo and started carrying
+information instead.
+
+[`app/src/components/OnsenHeroMark.tsx`](../app/src/components/OnsenHeroMark.tsx)
+draws a deterministic SVG mark from data the catalog already publishes:
+`prefecture` picks the ground ink (one per Kyushu prefecture), `springQuality`
+picks the traditional pattern tiled over it (青海波 for a chloride spring, 麻の葉 for
+the mineral springs, bubbles for a carbonated one, steam otherwise), and the
+stable `kyuhachiId` seeds the pattern phase and the composition, so every onsen
+looks like itself on every device and after a reinstall. The derivation is
+[`app/src/lib/onsen-mark.ts`](../app/src/lib/onsen-mark.ts); see
+[`images/onsen-hero-mark.png`](images/onsen-hero-mark.png) for the set at a
+glance.
+
+Nothing about it is networked, so it works offline and carries no licensing
+surface of its own. It reads unmistakably as a drawn mark, so it never sets an
+expectation of photography it can't meet. Nothing on that path reads `blurhash`
+any more — the field survives only as the placeholder for the photo branch — so
+the data repo is free to stop publishing either field whenever it wants.
+`OnsenHeroImage`'s photo branch is untouched, so re-enabling remains the
+one-constant flip described above, and shared user visit photos will land in the
+same branch when they arrive.
+
 ## Why the photos are still publicly reachable, and the rules change alone can't fix that
 
 `firebase/storage.rules` had no match block at all for `onsen-images/`, so

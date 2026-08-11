@@ -148,7 +148,7 @@ export default function OnsenDetail() {
         style={styles.container}
         contentContainerStyle={[styles.content, showVisitButton && styles.contentWithFab]}
       >
-        <OnsenHeroImage imageUrl={onsen.imageUrl} blurhash={onsen.blurhash} style={styles.image} />
+        <OnsenHeroImage onsen={onsen} style={styles.hero} />
 
         <View style={styles.header}>
           <Text style={styles.name} selectable>
@@ -281,9 +281,12 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     color: colors.textMuted,
   },
-  image: {
+  // A header band rather than a photo slot: the generated mark identifies the
+  // onsen at a glance, and the facts below it (address, fee, spring quality,
+  // hours) start high enough on the page to be read without scrolling.
+  hero: {
     width: '100%',
-    height: 220,
+    height: 140,
     backgroundColor: colors.backgroundSecondary,
   },
   header: {
