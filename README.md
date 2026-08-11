@@ -88,6 +88,7 @@ Rules tests run against the Firebase Emulator Suite from `firebase/`.
 - [docs/styling-guide.md](docs/styling-guide.md) for the styling rules and the
   token reference.
 - [docs/ios-deploy.md](docs/ios-deploy.md) for the build and TestFlight pipeline,
+  [docs/versioning.md](docs/versioning.md) for how the version number is chosen,
   [docs/hosting.md](docs/hosting.md) for the legal pages.
 - [docs/app-store-listing.md](docs/app-store-listing.md) and
   [docs/app-store-screenshots.md](docs/app-store-screenshots.md) for the store
