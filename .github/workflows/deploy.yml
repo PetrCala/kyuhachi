@@ -10,26 +10,177 @@ name: Deploy
 #
 # eas.json / EXPO_TOKEN are intentionally kept as a fallback (and for
 # `eas credentials` cert export / dev-client builds).
+#
+# The marketing version is bumped by the `version` job below before the build,
+# so every deploy ships a version the repo agreed on rather than only a new
+# TestFlight build number. See docs/versioning.md.
 
 on:
   push:
     branches: [master]
   # Manual trigger: lets a maintainer run a verification build from any branch
-  # (e.g. before merging this pipeline) without pushing to master.
+  # (e.g. before merging this pipeline) without pushing to master. Only runs
+  # from master bump the version; from any other branch this builds as-is.
   workflow_dispatch:
+    inputs:
+      version_level:
+        description: Marketing version bump for this deploy
+        required: false
+        default: auto
+        type: choice
+        options: [auto, none, patch, minor, major]
+
+permissions:
+  # Push the release commit and its tag back to master.
+  contents: write
+  # Read the `version:*` labels off the PRs being released.
+  pull-requests: read
 
 # Serialize deploys. A new push waits for the running deploy to finish rather
 # than racing it; while one runs, a burst of pushes collapses to a single
 # queued follow-up. cancel-in-progress is false so an in-flight build/submit is
 # never killed midway. This prevents two overlapping runs from each resolving
 # "the latest build" to the same binary (the ITMS-90189 redundant-upload bug).
+# It also keeps the version job's push to master from racing another deploy's.
 concurrency:
   group: deploy-ios
   cancel-in-progress: false
 
 jobs:
+  # Resolve how far to bump CFBundleShortVersionString, apply it, and hand the
+  # resulting commit to the build. The build number (CFBundleVersion) is NOT
+  # decided here: fastlane still derives it from TestFlight at build time.
+  version:
+    name: Resolve marketing version
+    runs-on: ubuntu-latest
+    # Last of three guards against a release commit re-triggering this
+    # workflow (see docs/versioning.md). Skipping here also skips the build,
+    # which `needs` this job.
+    if: github.actor != 'github-actions[bot]'
+    outputs:
+      # The commit the build must check out: the release commit when a bump
+      # happened, otherwise the branch tip.
+      sha: ${{ steps.apply.outputs.sha }}
+      version: ${{ steps.apply.outputs.version }}
+      level: ${{ steps.resolve.outputs.level }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Release from the tip of the branch, not from github.sha: a run that
+          # sat in the concurrency queue while another commit landed would
+          # otherwise build a stale tree and push a non-fast-forward release
+          # commit.
+          ref: ${{ github.ref_name }}
+          # Full history and tags: the release range starts at the last v* tag.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Everything since the last released tag, not just the head commit. A
+      # push that resolves to `none` leaves no tag behind, so its files and its
+      # PR labels roll forward into the next release instead of being lost.
+      - name: Collect the release range
+        id: range
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eo pipefail
+
+          LAST_TAG=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
+          if [ -n "$LAST_TAG" ]; then
+            RANGE="$LAST_TAG..HEAD"
+          else
+            # No release has been tagged yet; look at the head commit alone.
+            RANGE="HEAD~1..HEAD"
+          fi
+          echo "Release range: $RANGE" >> "$GITHUB_STEP_SUMMARY"
+
+          {
+            echo 'changed_files<<CHANGED_FILES_EOF'
+            git diff --name-only "$RANGE"
+            echo 'CHANGED_FILES_EOF'
+          } >> "$GITHUB_OUTPUT"
+
+          # Squash-merge subjects end in "(#123)", which is the only link back
+          # to the PR that carries the version label.
+          PR_NUMBERS=$(git log --pretty=%s "$RANGE" | sed -n 's/.*(#\([0-9][0-9]*\))$/\1/p' | sort -u)
+
+          {
+            echo 'pr_labels<<PR_LABELS_EOF'
+            for pr in $PR_NUMBERS; do
+              gh pr view "$pr" --json labels --jq '.labels[].name' 2>/dev/null || true
+            done
+            echo 'PR_LABELS_EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Resolve the bump level
+        id: resolve
+        env:
+          DISPATCH_LEVEL: ${{ inputs.version_level }}
+          PR_LABELS: ${{ steps.range.outputs.pr_labels }}
+          CHANGED_FILES: ${{ steps.range.outputs.changed_files }}
+        run: |
+          set -eo pipefail
+          node scripts/resolve-version-level.mjs > "$RUNNER_TEMP/level.txt"
+          cat "$RUNNER_TEMP/level.txt" >> "$GITHUB_OUTPUT"
+          sed 's/^/- /' "$RUNNER_TEMP/level.txt" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Apply the bump
+        id: apply
+        env:
+          LEVEL: ${{ steps.resolve.outputs.level }}
+          ON_MASTER: ${{ github.ref == 'refs/heads/master' }}
+        run: |
+          set -eo pipefail
+
+          read_version() { node -p "require('./app/package.json').version"; }
+
+          if [ "$ON_MASTER" != "true" ]; then
+            echo "::notice::Not on master; building without a version bump."
+            LEVEL=none
+          fi
+
+          if [ "$LEVEL" = "none" ]; then
+            VERSION=$(read_version)
+            echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+            echo "No version bump; building $VERSION." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          node scripts/version.mjs "$LEVEL"
+          VERSION=$(read_version)
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/package.json package-lock.json
+          if git diff --cached --quiet; then
+            echo "::error::version.mjs reported a $LEVEL bump but changed nothing."
+            exit 1
+          fi
+
+          # A GITHUB_TOKEN push does not trigger workflows, so this cannot loop;
+          # [skip ci] states the intent and covers a future token change.
+          git commit -m "chore(release): v$VERSION [skip ci]"
+          git tag "v$VERSION"
+
+          # Tag pushes only after the branch push succeeds, so a rejected push
+          # cannot leave a tag pointing at a commit master never took.
+          if ! git push origin "HEAD:$GITHUB_REF_NAME"; then
+            echo "::error::Could not push v$VERSION; master moved while this run was queued. The follow-up deploy will pick these changes up."
+            exit 1
+          fi
+          git push origin "v$VERSION"
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "Released **v$VERSION** ($LEVEL bump)." >> "$GITHUB_STEP_SUMMARY"
+
   build-and-submit:
     name: iOS Build + TestFlight (self-owned)
+    needs: version
     runs-on: macos-26
     timeout-minutes: 90
     env:
@@ -41,7 +192,12 @@ jobs:
       FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT: "120"
       FASTLANE_XCODEBUILD_SETTINGS_RETRIES: "5"
     steps:
+      # The release commit the version job just pushed (or the branch tip when
+      # it decided not to bump). Checking out the default ref would build the
+      # commit that triggered the run, which still carries the old version.
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version.outputs.sha }}
 
       - uses: actions/setup-node@v4
         with:
