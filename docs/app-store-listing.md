@@ -23,13 +23,15 @@ app/fastlane/metadata/
 ├── ja/                            same nine files
 └── review_information/
     ├── notes.txt                  what App Review needs to know
-    ├── demo_user.txt              placeholder, see below
-    ├── demo_password.txt          placeholder, see below
     ├── first_name.txt
     ├── last_name.txt
-    ├── email_address.txt
-    └── phone_number.txt           placeholder
+    └── email_address.txt
 ```
+
+The demo account's email and password and the review contact number are **not**
+in the tree. They reach App Store Connect through the environment instead, see
+[Uploading](#uploading). `npm run check:metadata` fails if any of the three
+files reappears, because `deliver` would upload whatever they contained.
 
 One field per file, exactly as `deliver` expects. The file names are the
 contract: `deliver` maps them to App Store Connect fields by name, so do not
@@ -85,21 +87,13 @@ Keep all of that if the copy is rewritten.
 
 ## Before the first submission
 
-Three placeholders have to be replaced. They are deliberately loud so a
-`deliver` run cannot quietly upload them:
+The demo account (a seeded user with a challenge in progress and enough visits
+that every screen has content) is created by
+[scripts/seed-demo-account.ts](../scripts/seed-demo-account.ts). `notes.txt`
+already tells the reviewer where the credentials are and explains why the app
+has no anonymous mode.
 
-| File | Replace with |
-|---|---|
-| `review_information/demo_user.txt` | the demo account's email address |
-| `review_information/demo_password.txt` | the demo account's password |
-| `review_information/phone_number.txt` | a contact number for App Review |
-
-The demo account itself (a seeded user with a challenge in progress and enough
-visits that every screen has content) is set up separately. `notes.txt` already
-tells the reviewer that the credentials are in these fields and explains why the
-app has no anonymous mode.
-
-Also confirm before submitting:
+Confirm before submitting:
 
 - The app name is still free on the App Store in both storefronts. Last checked
   and free:
@@ -117,30 +111,35 @@ Also confirm before submitting:
 
 ## Uploading
 
-Today: open App Store Connect and paste each file into the matching field. The
-tree is the source of truth, so paste from it rather than editing in the browser
-and letting the two drift.
+The `metadata` lane in [app/fastlane/Fastfile](../app/fastlane/Fastfile) uploads
+the text and the screenshots together. Run it from `app/`:
 
-Later, when the metadata upload is automated, add a `deliver` lane to
-[app/fastlane/Fastfile](../app/fastlane/Fastfile):
-
-```ruby
-desc "Upload App Store metadata and screenshots (no binary)"
-lane :metadata do
-  deliver(
-    api_key_path: ENV.fetch("ASC_API_KEY_PATH"),
-    skip_binary_upload: true,
-    skip_app_version_update: false,
-    force: true,              # no HTML preview prompt on CI
-    precheck_include_in_app_purchases: false,
-  )
-end
+```bash
+cd app && ASC_API_KEY_PATH=/path/to/asc_api_key.json DEMO_USER=... DEMO_PASSWORD=... REVIEW_PHONE=... bundle exec fastlane metadata
 ```
 
-`deliver` picks up `fastlane/metadata/` and `fastlane/screenshots/` relative to
-the `fastlane/` directory automatically, so the lane needs no paths. Run it from
-`app/`. Add `skip_screenshots: true` while the screenshot set is still empty.
+`ASC_API_KEY_PATH` is the same App Store Connect API key JSON the `beta` lane
+uses (`{ key_id, issuer_id, key, in_house }`), so a key that can already ship to
+TestFlight can do this too. The other three are the fields deliberately kept out
+of the tree.
 
-Do not wire this into the deploy workflow without thinking it through: the
-existing `beta` and `preview` lanes upload builds to TestFlight only and never
-touch App Store metadata, and that separation is worth keeping.
+What the lane does and does not do:
+
+- Uploads every locale's text plus `fastlane/screenshots/<locale>/`.
+- `skip_binary_upload: true`, so it never touches the build. Upload that through
+  the `beta` lane as usual.
+- `overwrite_screenshots: true`, so re-running after a re-capture replaces the
+  set instead of appending to it.
+- **`submit_for_review: false`.** It fills the version in App Store Connect and
+  stops. Pressing Submit stays a human decision.
+
+Run `npm run check:metadata` first: it catches an over-length field before
+Apple does, and fails if a demo credential has been written into the tree.
+
+Keep this lane out of the deploy workflow. `beta` and `preview` upload builds to
+TestFlight and never touch the public listing; that separation is the reason a
+bad merge cannot rewrite your store page.
+
+Pasting by hand into App Store Connect also works and needs no key. The tree
+stays the source of truth either way, so paste from it rather than editing in
+the browser and letting the two drift.
