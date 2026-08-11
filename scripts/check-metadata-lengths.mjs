@@ -75,17 +75,29 @@ for (const locale of LOCALES) {
   }
 }
 
-// The placeholders that must be replaced before the first submission. Warn
-// rather than fail: the tree is committed with them in place on purpose.
-const placeholders = ['demo_user.txt', 'demo_password.txt', 'phone_number.txt'];
-const outstanding = placeholders.filter((file) => {
-  const path = join(METADATA, 'review_information', file);
-  return existsSync(path) && readFileSync(path, 'utf8').includes('TODO_');
-});
+// The demo credentials and the review contact number are supplied to the
+// `metadata` lane through the environment, never through the tree. If one of
+// these files exists, someone has written a secret into the repo and `deliver`
+// would upload whatever it says, so fail rather than warn.
+const SECRET_FILES = {
+  'demo_user.txt': 'DEMO_USER',
+  'demo_password.txt': 'DEMO_PASSWORD',
+  'phone_number.txt': 'REVIEW_PHONE',
+};
 
-if (outstanding.length > 0) {
-  console.log(`\nreview_information still has placeholders: ${outstanding.join(', ')}`);
-  console.log('Replace them before submitting (see docs/app-store-listing.md).');
+console.log('\nreview_information');
+for (const [file, variable] of Object.entries(SECRET_FILES)) {
+  const path = join(METADATA, 'review_information', file);
+  if (existsSync(path)) {
+    fail(`${file} exists. This field comes from $${variable}; delete the file.`);
+  } else {
+    console.log(`  ok    ${file.padEnd(22)} not in the tree, comes from $${variable}`);
+  }
+}
+
+for (const file of ['first_name.txt', 'last_name.txt', 'email_address.txt', 'notes.txt']) {
+  const path = join(METADATA, 'review_information', file);
+  if (!existsSync(path)) fail(`review_information/${file} is missing`);
 }
 
 if (failed) {
