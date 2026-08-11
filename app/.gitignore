@@ -40,11 +40,14 @@ yarn-error.*
 /ios
 /android
 
-# Firebase credentials (never commit — add via EAS secrets or local download)
+# Firebase credentials (never commit: add via EAS secrets or local download)
 GoogleService-Info.plist
 google-services.json
 
 # fastlane / build artifacts (the build runs in CI; these are local-run leftovers)
+# Store screenshots are captured locally and uploaded by deliver, not committed:
+# 16 PNGs at 1320x2868 would add tens of megabytes per re-capture.
+fastlane/screenshots/
 fastlane/report.xml
 fastlane/Preview.html
 fastlane/test_output
