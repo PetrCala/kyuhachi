@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  Keyboard,
 } from 'react-native';
 import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -91,6 +92,7 @@ export default function DeleteAccount() {
   }
 
   function confirmDelete() {
+    Keyboard.dismiss();
     Alert.alert(t('deleteAccount.confirmTitle'), t('deleteAccount.confirmMessage'), [
       { text: t('deleteAccount.cancel'), style: 'cancel' },
       { text: t('deleteAccount.confirm'), style: 'destructive', onPress: runDelete },
@@ -100,7 +102,11 @@ export default function DeleteAccount() {
   const canDelete = !busy && (!isPasswordUser || password.length > 0);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+    >
       <Stack.Screen options={{ title: t('deleteAccount.title'), headerShown: true }} />
 
       <View style={styles.iconWrap}>

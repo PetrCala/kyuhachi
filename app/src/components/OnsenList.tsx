@@ -7,6 +7,7 @@ import {
   Pressable,
   StyleSheet,
   ActivityIndicator,
+  Keyboard,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -82,14 +83,10 @@ const OnsenListRow = memo(function OnsenListRow({
   distanceLabel?: string;
   /** Romaji reading shown under the name in non-JP UI; omitted when there's none. */
   reading?: string;
-  onPress?: (item: OnsenListItem) => void;
+  onPress: (item: OnsenListItem) => void;
 }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      style={styles.row}
-      onPress={() => (onPress ? onPress(item) : router.push(`/onsens/${item.id}`))}
-    >
+    <Pressable accessibilityRole="button" style={styles.row} onPress={() => onPress(item)}>
       <View style={styles.rowText}>
         <Text style={styles.rowName}>{item.name}</Text>
         {reading ? <Text style={styles.rowReading}>{reading}</Text> : null}
@@ -242,12 +239,24 @@ export function OnsenList({
     return [...nearSection, ...block(false), ...block(true)];
   }, [data, searchQuery, center, nearRadiusKm]);
 
+  // Rows stay tappable while the search keyboard is up (see
+  // `keyboardShouldPersistTaps` below), so the keyboard is dismissed here
+  // instead: without this it would linger over whatever the tap opens.
+  const handlePress = useCallback(
+    (item: OnsenListItem) => {
+      Keyboard.dismiss();
+      if (onItemPress) onItemPress(item);
+      else router.push(`/onsens/${item.id}`);
+    },
+    [onItemPress]
+  );
+
   const renderItem = useCallback(
     ({ item, section }: { item: DisplayItem; section: OnsenSection }) => (
       <OnsenListRow
         item={item}
         unvisitedVariant={unvisitedVariant}
-        onPress={onItemPress}
+        onPress={handlePress}
         reading={
           onsenReading({
             nameRomaji: item.nameRomaji,
@@ -263,7 +272,7 @@ export function OnsenList({
         }
       />
     ),
-    [unvisitedVariant, onItemPress, t, i18n.language, showReadings]
+    [unvisitedVariant, handlePress, t, i18n.language, showReadings]
   );
 
   const renderSectionHeader = useCallback(
@@ -312,6 +321,10 @@ export function OnsenList({
             </Text>
           }
           contentContainerStyle={sections.length === 0 && styles.emptyContainer}
+          // A tap on a row goes straight through while the search keyboard is
+          // open, instead of being swallowed by a dismiss-the-keyboard tap.
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           stickySectionHeadersEnabled
           initialNumToRender={16}
           windowSize={11}
