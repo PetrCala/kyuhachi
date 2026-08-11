@@ -20,12 +20,32 @@ name: Deploy Firestore and Storage rules
 #           The Firebase CLI calls the Service Usage API to verify
 #           firestore.googleapis.com is enabled before deploying; without this
 #           role the deploy fails with a 403 on serviceusage.googleapis.com.
-#   - The Storage step additionally needs the permission
-#     `firebasestorage.defaultBucket.get`, which firebaserules.admin does NOT
-#     include: the CLI resolves the default bucket before it can deploy the
-#     rules. Until that is granted the Storage step 403s and firebase/storage.rules
-#     stays undeployed. Deploy it by hand in the meantime with
-#     `firebase deploy --only storage --project kyuhachi-fddcc`.
+#   - roles/firebasestorage.admin was added for the Storage step (it holds
+#     `firebasestorage.defaultBucket.get`, which firebaserules.admin lacks). That
+#     cleared the original 403, but the step still fails, so KNOW THIS BEFORE
+#     EDITING firebase/storage.rules:
+#
+#     THE STORAGE STEP IS CURRENTLY EXPECTED TO FAIL. Deploy storage rules by
+#     hand until it is fixed:
+#         firebase deploy --only storage --project kyuhachi-fddcc
+#
+#     What happens: `firebase deploy --only storage` calls
+#     GET v1alpha/projects/{project}/defaultBucket to resolve the bucket, and
+#     firebase-tools turns a 404 from it into the (misleading) message "Firebase
+#     Storage has not been set up on project". Storage IS set up; that same call
+#     returns 200 with kyuhachi-fddcc.firebasestorage.app under a user account,
+#     and only 404s under this service account. The missing grant has not been
+#     identified. Diagnosing it needs to impersonate the service account, i.e.
+#     roles/iam.serviceAccountTokenCreator on it, and then read what the v1alpha
+#     endpoint returns for that principal.
+#
+#     Do NOT "fix" this by switching firebase.json's `storage` to the array form
+#     with an explicit bucket. It does skip the failing lookup (see
+#     lib/deploy/storage/prepare.js), but the array form requires a `target` per
+#     entry and the Storage emulator resolves targets per PROJECT ID, so the
+#     rules tests, which run as kyuhachi-test, would need contrived targets, and
+#     under a demo-* project the emulator silently falls back to OPEN rules and
+#     the tests stop testing anything. That was tried and reverted.
 on:
   push:
     branches: [master]
