@@ -51,6 +51,18 @@ const palette = {
 
   // Scrim behind modal sheets (semi-transparent black)
   scrim: 'rgba(0, 0, 0, 0.4)',
+
+  // Onsen mark grounds: deep dye tones, named for the traditional Japanese
+  // colour each is drawn from. Seven distinct hues plus a neutral, all dark
+  // enough that inverted text laid over them stays legible.
+  ai:          '#38558a', // 藍 indigo
+  seiheki:     '#2d6b66', // 青碧 celadon teal
+  edomurasaki: '#584a86', // 江戸紫 plum
+  matsuba:     '#456b3c', // 松葉 pine green
+  karashi:     '#93762c', // 芥子 ochre
+  bengara:     '#a04a2b', // 弁柄 rust
+  suou:        '#7c3242', // 蘇芳 crimson
+  sumi:        '#4a4a52', // 墨 neutral ink
 } as const;
 
 export const colors = {
@@ -112,6 +124,22 @@ export const colors = {
   stampInk:       palette.black,   // seal frame, kanji, and inked date
   stampFrame:     palette.gray300, // outline of an unstamped slot
   stampWatermark: palette.gray200, // faint ♨ inside an unstamped slot
+
+  // Generated onsen hero marks: the ground each mark is drawn on. One per
+  // Kyushu prefecture, so a mark reads as its place at a glance, plus a neutral
+  // for an onsen whose prefecture is outside the seven or not yet published.
+  // Indexed rather than named for a prefecture (like the chart ramp): the
+  // prefecture → ground mapping lives in lib/onsen-mark.ts so the theme keeps
+  // no domain knowledge. Every ground is dark enough to carry the inverted
+  // onsen name the map preview sheet overlays on it.
+  markGround1: palette.ai,
+  markGround2: palette.seiheki,
+  markGround3: palette.edomurasaki,
+  markGround4: palette.matsuba,
+  markGround5: palette.karashi,
+  markGround6: palette.bengara,
+  markGround7: palette.suou,
+  markGroundNeutral: palette.sumi,
 } as const;
 
 export type Color = keyof typeof colors;

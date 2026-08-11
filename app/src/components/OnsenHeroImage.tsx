@@ -1,50 +1,42 @@
-import { Image, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Image as ExpoImage, type ImageStyle } from 'expo-image';
 import { useTranslation } from 'react-i18next';
-import { averageRgbFromBlurhash, contrastingTint, rgbToCss } from '@/lib/blurhash-color';
+import type { CachedOnsen } from '@kyuhachi/shared';
+import OnsenHeroMark from '@/components/OnsenHeroMark';
 import { SHOW_CATALOG_PHOTOS } from '@/lib/catalog-photos';
 
-const GLYPH = require('../../assets/onsen-symbol.png');
-
-// Glyph size for the placeholder mark; callers whose hero is a different
-// scale (the map preview sheet vs. the detail screen) may override it.
-const DEFAULT_GLYPH_SIZE = 56;
-
 interface OnsenHeroImageProps {
-  imageUrl: string | null;
-  blurhash: string | null;
+  onsen: CachedOnsen;
   /** Sizing/position for the hero frame; each caller lays out its own. */
   style: StyleProp<ViewStyle>;
-  /** Size of the onsen-symbol glyph shown over the tint when there's no photo. */
-  glyphSize?: number;
 }
 
 /**
- * An onsen's hero image, or its stand-in when there's no photo to show.
+ * An onsen's hero: its photograph, or the mark drawn in its place.
  *
- * Catalog photographs are currently gated off entirely by
- * `SHOW_CATALOG_PHOTOS` (see that constant for why), so today every onsen
- * renders the stand-in: the source photo's BlurHash decoded down to just its
- * average colour, tinting a plate behind the app's onsen-symbol mark. Each
- * onsen keeps a distinct, place-derived colour instead of one flat empty
- * block, and the glyph's own tint flips between ink and inverted so it stays
- * readable against arbitrarily light or dark derived colours.
+ * Catalog photographs are gated off entirely by `SHOW_CATALOG_PHOTOS` (see that
+ * constant for why), so today every onsen renders `OnsenHeroMark`: an emblem
+ * generated from the onsen's prefecture, spring quality, and id. That carries
+ * real information about the place and reads as a designed mark, so the slot
+ * neither looks broken nor promises a photo it can't show. The mark is
+ * deliberately independent of `blurhash`, which only ever described the scraped
+ * photo set — nothing on this path reads it.
+ *
+ * Both fields stay on the document and the photo branch below stays intact, so
+ * re-enabling photography is still the one-constant flip it was. Shared user
+ * visit photos are the eventual answer here, and will slot into the same
+ * branch.
  *
  * Shared by the map preview sheet and the onsen detail screen so the gate and
- * the placeholder logic live in exactly one place.
+ * the stand-in live in exactly one place.
  */
-export default function OnsenHeroImage({
-  imageUrl,
-  blurhash,
-  style,
-  glyphSize = DEFAULT_GLYPH_SIZE,
-}: OnsenHeroImageProps) {
+export default function OnsenHeroImage({ onsen, style }: OnsenHeroImageProps) {
   const { t } = useTranslation();
 
-  if (SHOW_CATALOG_PHOTOS && imageUrl) {
+  if (SHOW_CATALOG_PHOTOS && onsen.imageUrl) {
     return (
       <ExpoImage
-        source={imageUrl}
+        source={onsen.imageUrl}
         // expo-image's ImageStyle narrows a couple of RN's ViewStyle unions
         // (e.g. `overflow`); the frame styles callers actually pass (size,
         // position, background) sit in the overlap, so this cast is safe.
@@ -52,32 +44,23 @@ export default function OnsenHeroImage({
         contentFit="cover"
         transition={200}
         cachePolicy="memory-disk"
-        placeholder={blurhash ? { blurhash } : undefined}
+        placeholder={onsen.blurhash ? { blurhash: onsen.blurhash } : undefined}
         placeholderContentFit="cover"
       />
     );
   }
 
-  const rgb = averageRgbFromBlurhash(blurhash);
   return (
-    <View
-      style={[style, styles.placeholder, { backgroundColor: rgbToCss(rgb) }]}
-      accessibilityLabel={t('onsenPreview.imagePlaceholder')}
-    >
-      <Image
-        source={GLYPH}
-        // width/height/tintColor are runtime values derived from the onsen's
-        // own BlurHash: the allowed exception to the no-inline-literal rule.
-        style={{ width: glyphSize, height: glyphSize, tintColor: contrastingTint(rgb) }}
-        resizeMode="contain"
-      />
+    // One accessibility element: the mark is decorative, and what it encodes
+    // (prefecture, spring quality) is already on the screen as text.
+    <View style={[style, styles.mark]} accessible accessibilityLabel={t('onsenPreview.onsenMark')}>
+      <OnsenHeroMark onsen={onsen} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  placeholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
+  mark: {
+    overflow: 'hidden',
   },
 });

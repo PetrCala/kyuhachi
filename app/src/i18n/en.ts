@@ -49,7 +49,9 @@ const en = {
 
   // onsen preview (map marker → image-forward half-sheet)
   'onsenPreview.areaPrefecture': '{{area}} ・ {{prefecture}}',
-  'onsenPreview.imagePlaceholder': 'No photo available',
+  // The generated mark shown where a photo would be; decorative, and what it
+  // encodes (prefecture, spring quality) is on screen as text anyway.
+  'onsenPreview.onsenMark': 'Decorative onsen mark',
   'onsenPreview.viewFullDetails': 'View full details',
   'onsenPreview.close': 'Close',
   // The check icon beside this label carries the tick, so the text omits it.

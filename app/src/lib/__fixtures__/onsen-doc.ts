@@ -3,7 +3,7 @@
  * `__fixtures__/` (not `__tests__/`) so jest's default testMatch doesn't treat
  * it as a suite.
  */
-import type { OnsenDocument } from '@kyuhachi/shared';
+import type { CachedOnsen, OnsenDocument } from '@kyuhachi/shared';
 import { ts } from '@/lib/stats/__fixtures__/factories';
 
 export function onsenDoc(overrides: Partial<OnsenDocument> = {}): OnsenDocument {
@@ -31,4 +31,10 @@ export function onsenDoc(overrides: Partial<OnsenDocument> = {}): OnsenDocument 
     updatedAt: ts(0),
     ...overrides,
   };
+}
+
+/** The same onsen as the catalog cache holds it: no Timestamps, plus its id. */
+export function cachedOnsen(overrides: Partial<CachedOnsen> = {}): CachedOnsen {
+  const { createdAt: _createdAt, updatedAt: _updatedAt, ...rest } = onsenDoc();
+  return { id: 'onsen-1', ...rest, ...overrides };
 }
