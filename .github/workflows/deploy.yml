@@ -103,15 +103,21 @@ jobs:
             echo 'CHANGED_FILES_EOF'
           } >> "$GITHUB_OUTPUT"
 
-          # Squash-merge subjects end in "(#123)", which is the only link back
-          # to the PR that carries the version label.
-          PR_NUMBERS=$(git log --pretty=%s "$RANGE" | sed -n 's/.*(#\([0-9][0-9]*\))$/\1/p' | sort -u)
+          # Ask GitHub which PR each commit came from. Reading the "(#123)"
+          # suffix off the subject would be cheaper but only works for squash
+          # merges, and this repo rebase-merges, which leaves the original
+          # subject untouched. Errors are deliberately NOT swallowed: a
+          # transient API failure would silently drop a version:minor label and
+          # ship the wrong number, which is worse than a re-runnable red build.
+          LABELS=""
+          for sha in $(git rev-list "$RANGE"); do
+            FOUND=$(gh api "repos/$GITHUB_REPOSITORY/commits/$sha/pulls" --jq '.[].labels[].name')
+            LABELS="$LABELS$FOUND"$'\n'
+          done
 
           {
             echo 'pr_labels<<PR_LABELS_EOF'
-            for pr in $PR_NUMBERS; do
-              gh pr view "$pr" --json labels --jq '.labels[].name' 2>/dev/null || true
-            done
+            printf '%s' "$LABELS" | sort -u
             echo 'PR_LABELS_EOF'
           } >> "$GITHUB_OUTPUT"
 

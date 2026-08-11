@@ -55,8 +55,10 @@ PR labels roll forward into the next release rather than being lost. Two docs
 pushes followed by a feature merge produce one `patch` (or whatever the labels
 ask for) covering all three.
 
-PRs are found by parsing the `(#123)` suffix that squash merges leave on the
-commit subject, which is why merges to `master` should stay squash merges.
+Each commit in the range is mapped back to its PR through GitHub's
+`commits/{sha}/pulls` API, so the lookup works whatever merge method was used.
+Reading the `(#123)` suffix off the subject would be cheaper, but that suffix
+only exists on squash merges and this repo rebase-merges.
 
 ## What the deploy actually does
 
