@@ -155,6 +155,48 @@ cleared regenerates the exact same token and restores the exact same public
 URL. Clearing tokens now does not require any change to how the data repo
 computes them later.
 
+## Permission request sent to the rights holder
+
+*Added 2026-08-12.*
+
+The clean fix for all of this is a licence, so one was asked for. The request
+went through the 88onsen.com contact form
+(<https://www.88onsen.com/inquiry>, category サイトについて) rather than email:
+the site publishes no address, and the form is the only public route. The site
+is operated by 一般社団法人 九州観光機構; its 事務局 sits with JR九州's sales
+department.
+
+The request asks to display the catalog photos in-app and offers per-photo
+credit plus a link back, no ads or paid features, and takedown on request. It
+discloses that the photos were already rehosted during development and are
+currently disabled, commits to deleting them on a refusal, and asks explicitly
+whether the photo rights sit with 九州観光機構 or with each individual facility.
+
+**No reply changes anything until it arrives. Until then the flag stays off.**
+
+### What each answer means
+
+| Reply | What to do |
+|---|---|
+| Yes, unconditional | Flip `SHOW_CATALOG_PHOTOS` to `true`. This is the one-constant path described above, and the only reply for which that claim is actually true. |
+| Yes, with attribution conditions | Not a one-constant flip. Nothing on the current hero path renders credit: `OnsenHeroMark` replaced the photo slot outright, and `OnsenHeroImage`'s photo branch has no attribution affordance. Build that first, then flip. |
+| Rights belong to each facility | 148 separate approaches is not proportionate to this app. Treat as a refusal unless there is a deliberate decision to pursue it. |
+| No, or no reply by 2026-09-12 | Run the token clearing described above. |
+
+### The refusal path has a second half
+
+Clearing the tokens is necessary but does not hold on its own. The token is
+`uuid5(_TOKEN_NAMESPACE, kyuhachiId)`, so the next `backfill_images.py --commit`
+in the data repo regenerates the identical token and restores the identical
+public URL. A refusal therefore means two changes, not one:
+
+1. Clear `firebaseStorageDownloadTokens` on the live `onsen-images/` objects.
+2. Stop the data repo publishing `imageUrl`/`blurhash` and stop the rehost
+   pipeline writing new objects, so step 1 is not silently undone.
+
+Deleting the Storage objects themselves is the third step, and the one to do
+last and deliberately.
+
 ## What's explicitly not done here
 
 - No object was deleted, and no bucket-wide ACL or IAM change was made or
