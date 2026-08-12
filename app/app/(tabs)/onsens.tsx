@@ -11,12 +11,13 @@ import { colors, spacing, typography } from '@/theme';
 
 export default function OnsenBrowse() {
   const { t } = useTranslation();
-  // Visited state for the active challenge comes from the shared hook so this
-  // tab, the home dashboard, and the record-a-visit list stay in sync.
-  const { visitedIds } = useActiveChallengeProgress();
+  // Visited state for the active challenge comes from the shared provider so
+  // this tab, the home dashboard, and the record-a-visit list stay in sync (and
+  // so it is already resolved before this tab first mounts).
+  const { visitedIds, loading: visitsLoading } = useActiveChallengeProgress();
   // The catalog comes from the offline-first local store (display order is
   // handled by OnsenList), so this tab works with no network at all.
-  const { activeOnsens, loading } = useOnsenCatalog();
+  const { activeOnsens, loading: catalogLoading } = useOnsenCatalog();
   const { favoriteIds } = useFavorites();
   // Session-only filter — deliberately not persisted, so the tab always opens
   // showing the full list.
@@ -64,7 +65,11 @@ export default function OnsenBrowse() {
       />
       <OnsenList
         data={items}
-        loading={loading}
+        // Visited state is part of the list's ordering (visited onsens sink to
+        // their own block), so painting before the visits load would show one
+        // order and then re-shuffle. Normally both are already resolved when
+        // this tab mounts and no spinner is ever seen.
+        loading={catalogLoading || visitsLoading}
         unvisitedVariant="chevron"
         emptyMessage={favoritesOnly ? t('onsenList.emptyFavorites') : undefined}
       />
