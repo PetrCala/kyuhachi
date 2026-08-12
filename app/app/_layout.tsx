@@ -5,6 +5,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, KleeOne_600SemiBold } from '@expo-google-fonts/klee-one';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { ActiveChallengeProvider } from '@/context/ActiveChallengeContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { FavoritesProvider } from '@/context/FavoritesContext';
 import { OnsenCatalogProvider } from '@/context/OnsenCatalogContext';
@@ -13,6 +14,7 @@ import { PreferencesProvider } from '@/context/PreferencesContext';
 import { StampCelebrationProvider } from '@/context/StampCelebrationContext';
 import { RowActionsSheetProvider } from '@/components/RowActionsSheet';
 import { useBootReady } from '@/hooks/useBootReady';
+import { warmUserLocation } from '@/hooks/useUserLocation';
 
 // Keep the native splash visible until the brand font has loaded, so the
 // 九八 mark never flashes in a fallback face.
@@ -100,6 +102,14 @@ export default function RootLayout() {
     loadStoredLanguage().finally(() => setLanguageLoaded(true));
   }, []);
 
+  // Start resolving the device location under the splash (silently: only when
+  // permission was already granted), so the onsen list's "Near you" section is
+  // part of its first paint instead of appearing a second later and pushing the
+  // rest of the list down.
+  useEffect(() => {
+    warmUserLocation();
+  }, []);
+
   const localReady = fontsLoaded && languageLoaded;
   const handleSplashHidden = useCallback(() => setSplashHidden(true), []);
 
@@ -115,26 +125,28 @@ export default function RootLayout() {
     <GestureHandlerRootView style={styles.root}>
       <AuthProvider>
         <OnsenCatalogProvider>
-          <AreaGuideProvider>
-            <FavoritesProvider>
-              <PreferencesProvider>
-                <StampCelebrationProvider>
-                  <RowActionsSheetProvider>
-                    {!splashHidden && (
-                      <SplashGate localReady={localReady} onHidden={handleSplashHidden} />
-                    )}
-                    <NavigationController />
-                    <Stack screenOptions={{ headerShown: false, headerBackButtonDisplayMode: 'minimal' }}>
-                      <Stack.Screen
-                        name="onsens/edit-visit"
-                        options={{ presentation: 'modal', headerShown: true }}
-                      />
-                    </Stack>
-                  </RowActionsSheetProvider>
-                </StampCelebrationProvider>
-              </PreferencesProvider>
-            </FavoritesProvider>
-          </AreaGuideProvider>
+          <ActiveChallengeProvider>
+            <AreaGuideProvider>
+              <FavoritesProvider>
+                <PreferencesProvider>
+                  <StampCelebrationProvider>
+                    <RowActionsSheetProvider>
+                      {!splashHidden && (
+                        <SplashGate localReady={localReady} onHidden={handleSplashHidden} />
+                      )}
+                      <NavigationController />
+                      <Stack screenOptions={{ headerShown: false, headerBackButtonDisplayMode: 'minimal' }}>
+                        <Stack.Screen
+                          name="onsens/edit-visit"
+                          options={{ presentation: 'modal', headerShown: true }}
+                        />
+                      </Stack>
+                    </RowActionsSheetProvider>
+                  </StampCelebrationProvider>
+                </PreferencesProvider>
+              </FavoritesProvider>
+            </AreaGuideProvider>
+          </ActiveChallengeProvider>
         </OnsenCatalogProvider>
       </AuthProvider>
     </GestureHandlerRootView>

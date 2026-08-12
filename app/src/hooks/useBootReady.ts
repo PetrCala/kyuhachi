@@ -10,10 +10,9 @@ import { useActiveChallengeProgress } from '@/hooks/useActiveChallengeProgress';
  *  - when signed in, the active challenge's data (challenge → visits) must load.
  *
  * A signed-out launch is "ready" the moment auth settles: it redirects straight
- * to sign-in, which has nothing to fetch. Reads its own
- * `useActiveChallengeProgress` instance (the app already mounts one per screen);
- * a productionized version would lift that hook into a shared provider so the
- * splash gate and the home screen share a single set of listeners.
+ * to sign-in, which has nothing to fetch. The challenge data comes from the
+ * root ActiveChallengeProvider, so holding the splash here also means every
+ * screen below it opens with that data already resolved.
  */
 export function useBootReady(): boolean {
   const { user, isLoading: authLoading } = useAuth();
