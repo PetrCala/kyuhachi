@@ -20,6 +20,7 @@ export const COLLECTIONS = {
 	AREA_GUIDES_META: "area_guides_meta",
 	CHALLENGE_TYPES: "challenge_types",
 	USERS: "users",
+	JOURNEY_DAYS: "journey_days",
 } as const
 
 export const SUBCOLLECTIONS = {

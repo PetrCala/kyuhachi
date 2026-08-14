@@ -5,7 +5,17 @@ import {
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
 import { readFileSync } from 'fs';
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs } from 'firebase/firestore';
+import {
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  collection,
+  getDocs,
+  query,
+  where,
+} from 'firebase/firestore';
 
 let testEnv: RulesTestEnvironment;
 
@@ -45,8 +55,23 @@ function authDb(uid: string) {
 // ---------------------------------------------------------------------------
 
 describe('onsens', () => {
-  test('unauthenticated: read denied', async () => {
-    await assertFails(getDoc(doc(unauthDb(), 'onsens/onsen-1')));
+  // Public since the journey website: the catalog renders without signing in.
+  test('unauthenticated: read allowed', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'onsens/onsen-1'), { name: 'Test Onsen' });
+    });
+    await assertSucceeds(getDoc(doc(unauthDb(), 'onsens/onsen-1')));
+  });
+
+  test('unauthenticated: list allowed', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'onsens/onsen-1'), { name: 'Test Onsen' });
+    });
+    await assertSucceeds(getDocs(collection(unauthDb(), 'onsens')));
+  });
+
+  test('unauthenticated: write denied', async () => {
+    await assertFails(setDoc(doc(unauthDb(), 'onsens/onsen-1'), { name: 'Anon' }));
   });
 
   test('authenticated: read allowed', async () => {
@@ -91,8 +116,16 @@ describe('catalog_meta', () => {
 // ---------------------------------------------------------------------------
 
 describe('challenge_types', () => {
-  test('unauthenticated: read denied', async () => {
-    await assertFails(getDoc(doc(unauthDb(), 'challenge_types/kyushu-88')));
+  // Public since the journey website: it derives the eligible pool from these.
+  test('unauthenticated: read allowed', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'challenge_types/kyushu-88'), { name: 'Kyushu 88' });
+    });
+    await assertSucceeds(getDoc(doc(unauthDb(), 'challenge_types/kyushu-88')));
+  });
+
+  test('unauthenticated: write denied', async () => {
+    await assertFails(setDoc(doc(unauthDb(), 'challenge_types/kyushu-88'), { name: 'Anon' }));
   });
 
   test('authenticated: read allowed', async () => {
@@ -649,5 +682,180 @@ describe('users/routes', () => {
 
   test('other user: cannot list routes they do not own', async () => {
     await assertFails(getDocs(collection(authDb('user-2'), 'users/user-1/routes')));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Public journey exposure (the journey website reads Petr's data signed out)
+//
+// One uid, hardcoded in the rules as isJourneyUser(), has publicly readable
+// challenges, visits and routes. Everything here is deliberate and agreed:
+// the site renders his journey to anyone with the link. The user DOCUMENT
+// stays private (it carries the email), writes stay owner-only, and no other
+// uid inherits any of it.
+// ---------------------------------------------------------------------------
+
+describe('public journey uid', () => {
+  /** Must match isJourneyUser() in firestore.rules. */
+  const JOURNEY_UID = 'juEfBPJSspS9E2dqMzRac07C1Gs1';
+
+  const challengePath = `users/${JOURNEY_UID}/challenges/challenge-1`;
+  const visitPath = `${challengePath}/visits/onsen-abc`;
+  const routePath = `users/${JOURNEY_UID}/routes/route-1`;
+
+  async function seedJourneyUser() {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, `users/${JOURNEY_UID}`), {
+        displayName: 'Petr',
+        email: 'private@example.com',
+      });
+      await setDoc(doc(db, challengePath), {
+        name: 'Kyushu 88 walk',
+        isDefault: true,
+        activeRouteId: 'route-1',
+      });
+      await setDoc(doc(db, visitPath), {
+        visitedAt: new Date(),
+        notes: 'Great water',
+        photoUrls: [],
+      });
+      await setDoc(doc(db, routePath), { name: 'Planned route', points: [] });
+    });
+  }
+
+  test('unauthenticated: read journey challenge allowed', async () => {
+    await seedJourneyUser();
+    await assertSucceeds(getDoc(doc(unauthDb(), challengePath)));
+  });
+
+  // The exact query the website runs to find the default challenge.
+  test('unauthenticated: query journey challenges by isDefault allowed', async () => {
+    await seedJourneyUser();
+    await assertSucceeds(
+      getDocs(
+        query(
+          collection(unauthDb(), `users/${JOURNEY_UID}/challenges`),
+          where('isDefault', '==', true)
+        )
+      )
+    );
+  });
+
+  test('unauthenticated: read and list journey visits allowed', async () => {
+    await seedJourneyUser();
+    await assertSucceeds(getDoc(doc(unauthDb(), visitPath)));
+    await assertSucceeds(getDocs(collection(unauthDb(), `${challengePath}/visits`)));
+  });
+
+  test('unauthenticated: read journey route allowed', async () => {
+    await seedJourneyUser();
+    await assertSucceeds(getDoc(doc(unauthDb(), routePath)));
+  });
+
+  // Public means everyone, signed in or not.
+  test('other authenticated user: read journey challenge and visits allowed', async () => {
+    await seedJourneyUser();
+    await assertSucceeds(getDoc(doc(authDb('user-2'), challengePath)));
+    await assertSucceeds(getDoc(doc(authDb('user-2'), visitPath)));
+  });
+
+  // The email lives here; the site never reads it and no one else may either.
+  test('unauthenticated: read journey USER DOCUMENT still denied', async () => {
+    await seedJourneyUser();
+    await assertFails(getDoc(doc(unauthDb(), `users/${JOURNEY_UID}`)));
+  });
+
+  test('other authenticated user: read journey user document still denied', async () => {
+    await seedJourneyUser();
+    await assertFails(getDoc(doc(authDb('user-2'), `users/${JOURNEY_UID}`)));
+  });
+
+  test('unauthenticated: writes to journey paths denied', async () => {
+    await seedJourneyUser();
+    await assertFails(setDoc(doc(unauthDb(), challengePath), { name: 'Anon' }));
+    await assertFails(setDoc(doc(unauthDb(), visitPath), { notes: 'anon' }));
+    await assertFails(setDoc(doc(unauthDb(), routePath), { name: 'Anon' }));
+    await assertFails(deleteDoc(doc(unauthDb(), visitPath)));
+  });
+
+  test('other authenticated user: writes to journey paths denied', async () => {
+    await seedJourneyUser();
+    await assertFails(setDoc(doc(authDb('user-2'), challengePath), { name: 'Hacked' }));
+    await assertFails(setDoc(doc(authDb('user-2'), visitPath), { notes: 'hacked' }));
+    await assertFails(setDoc(doc(authDb('user-2'), routePath), { name: 'Hacked' }));
+  });
+
+  // The exposure is one uid wide, not one rule wide: a non-journey uid's data
+  // is exactly as private as before.
+  test('unauthenticated: other uids stay private', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users/user-1/challenges/challenge-1'), {
+        isDefault: true,
+      });
+      await setDoc(doc(ctx.firestore(), 'users/user-1/routes/route-1'), { name: 'Mine' });
+    });
+    await assertFails(getDoc(doc(unauthDb(), 'users/user-1/challenges/challenge-1')));
+    await assertFails(
+      getDocs(collection(unauthDb(), 'users/user-1/challenges/challenge-1/visits'))
+    );
+    await assertFails(getDoc(doc(unauthDb(), 'users/user-1/routes/route-1')));
+  });
+
+  // Owner access is untouched: Petr still writes his own data from the app.
+  test('journey user as owner: write own challenge and visit still allowed', async () => {
+    await seedJourneyUser();
+    await assertSucceeds(
+      updateDoc(doc(authDb(JOURNEY_UID), challengePath), { name: 'Renamed' })
+    );
+    await assertSucceeds(
+      setDoc(doc(authDb(JOURNEY_UID), visitPath), { notes: 'updated' })
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// /journey_days
+// ---------------------------------------------------------------------------
+
+describe('journey_days', () => {
+  const dayPath = 'journey_days/2026-08-14';
+
+  async function seedDay() {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), dayPath), {
+        date: '2026-08-14',
+        points: [{ lat: 33.2, lng: 131.4 }],
+        source: 'strava',
+      });
+    });
+  }
+
+  test('unauthenticated: read allowed', async () => {
+    await seedDay();
+    await assertSucceeds(getDoc(doc(unauthDb(), dayPath)));
+  });
+
+  test('unauthenticated: list allowed', async () => {
+    await seedDay();
+    await assertSucceeds(getDocs(collection(unauthDb(), 'journey_days')));
+  });
+
+  test('unauthenticated: write denied', async () => {
+    await assertFails(setDoc(doc(unauthDb(), dayPath), { date: '2026-08-14' }));
+  });
+
+  // Only admin credentials (the sync Function) may write; even the journey
+  // user's own client cannot.
+  test('authenticated (any uid, including the journey uid): write denied', async () => {
+    await assertFails(setDoc(doc(authDb('user-1'), dayPath), { date: '2026-08-14' }));
+    await assertFails(
+      setDoc(doc(authDb('juEfBPJSspS9E2dqMzRac07C1Gs1'), dayPath), { date: '2026-08-14' })
+    );
+  });
+
+  test('authenticated: delete denied', async () => {
+    await seedDay();
+    await assertFails(deleteDoc(doc(authDb('user-1'), dayPath)));
   });
 });
