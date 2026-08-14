@@ -51,6 +51,8 @@ export { AREA_GUIDE_SECTION_KINDS } from './types/areaGuide';
 
 export type { UserDocument, FavoriteDocument } from './types/user';
 
+export type { JourneyDayDocument } from './types/journey';
+
 export type { Timestamp } from './types/firestore';
 
 export {

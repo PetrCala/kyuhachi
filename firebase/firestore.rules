@@ -11,10 +11,21 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Onsen catalog: read-only for any authenticated user
+    // The public journey website (website/) reads Petr's own journey as an
+    // UNAUTHENTICATED client: his challenges, visits and routes, plus the
+    // catalog collections it renders them against. He has agreed to make his
+    // journey fully public; only this one uid is exposed, and his user
+    // document (it carries his email) stays private. If this uid ever has to
+    // change, change it here and in firebase/test/firestore.rules.test.ts.
+    function isJourneyUser(userId) {
+      return userId == 'juEfBPJSspS9E2dqMzRac07C1Gs1';
+    }
+
+    // Onsen catalog: public read (the journey website renders it without
+    // signing in; the catalog holds nothing private).
     // Writes go through the data repo service account, never the app
     match /onsens/{kyuhachiId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow write: if false;
     }
 
@@ -24,9 +35,19 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Challenge type definitions: read-only for any authenticated user
+    // Challenge type definitions: public read (the journey website derives
+    // the eligible pool from them without signing in)
     match /challenge_types/{typeId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Walked-day GPS tracks for the public journey website, one doc per day
+    // (id = YYYY-MM-DD). Written exclusively with admin credentials (the
+    // scheduled Strava sync Function or the manual GPX import), which bypass
+    // these rules, so every client write is denied, including Petr's own.
+    match /journey_days/{date} {
+      allow read: if true;
       allow write: if false;
     }
 
@@ -43,7 +64,10 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // User documents and all subcollections: owner only.
+    // User documents and all subcollections: owner only, with one deliberate
+    // exception: the journey uid's challenges, visits and routes are publicly
+    // readable (see isJourneyUser above). The user DOCUMENT itself is public
+    // for no one; it carries the email address.
     //
     // The blanket write on the user document itself is deliberate and was
     // re-audited for the public release. The document carries displayName,
@@ -96,7 +120,11 @@ service cloud.firestore {
           ];
         }
 
-        allow read, delete: if isOwner(userId);
+        // Public read for the journey uid: the website finds the default
+        // challenge (isDefault == true) and its activeRouteId. Deletes and
+        // writes stay owner-only.
+        allow read: if isOwner(userId) || isJourneyUser(userId);
+        allow delete: if isOwner(userId);
         allow create: if isOwner(userId)
           && (!('earnedTier' in request.resource.data) || request.resource.data.earnedTier == null)
           && (!('earnedTierAt' in request.resource.data) || request.resource.data.earnedTierAt == null);
@@ -104,12 +132,18 @@ service cloud.firestore {
           && !request.resource.data.diff(resource.data).affectedKeys().hasAny(immutableOnUpdate());
 
         match /visits/{onsenId} {
-          allow read, write: if isOwner(userId);
+          // Public read for the journey uid: photos, ratings and notes are
+          // the heart of the journey website. Petr publishes them knowingly.
+          allow read: if isOwner(userId) || isJourneyUser(userId);
+          allow write: if isOwner(userId);
         }
       }
 
       match /routes/{routeId} {
-        allow read, write: if isOwner(userId);
+        // Public read for the journey uid: the website draws the planned
+        // route (the challenge's activeRouteId) from here.
+        allow read: if isOwner(userId) || isJourneyUser(userId);
+        allow write: if isOwner(userId);
       }
 
       match /favorites/{onsenId} {
