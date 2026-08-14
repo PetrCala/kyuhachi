@@ -1,0 +1,69 @@
+name: Deploy journey website
+
+# Builds website/ and releases it to the kyuhachi-path Firebase Hosting site
+# (https://kyuhachi-path.web.app) whenever the site's source or its hosting
+# config changes on master.
+#
+# Required setup (one-time, in the kyuhachi-fddcc project):
+#   - The Hosting site itself:
+#       firebase hosting:sites:create kyuhachi-path --project kyuhachi-fddcc
+#   - The FIREBASE_SERVICE_ACCOUNT service account (the same Actions secret
+#     deploy-firestore-rules.yml uses) additionally needs:
+#       * roles/firebasehosting.admin
+#     The roles it already has for rules deploys do not cover Hosting releases.
+on:
+  push:
+    branches: [master]
+    paths:
+      - website/**
+      - firebase.json
+      - .firebaserc
+      - .github/workflows/deploy-website.yml
+  workflow_dispatch:
+
+# Serialize deploys; never kill an in-flight release.
+concurrency:
+  group: deploy-website
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: website
+
+      - name: Typecheck and build
+        run: npm run build
+        working-directory: website
+
+      # Same credential handling as deploy-firestore-rules.yml: the secret goes
+      # through env into a file, never through shell interpolation.
+      - name: Write service account credentials
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT secret is not set." >&2
+            exit 1
+          fi
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/firebase-service-account.json"
+
+      # Only the journey target: the legal site keeps its own deploy flow.
+      - name: Deploy to Firebase Hosting
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
+        run: firebase deploy --only hosting:journey --project kyuhachi-fddcc --non-interactive
