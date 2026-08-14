@@ -52,10 +52,11 @@ jobs:
         run: npm ci
         working-directory: firebase
 
-      # Both emulators: firebase/test covers firestore.rules and storage.rules,
-      # and the storage suite errors out if only firestore is running.
+      # All three emulators: firebase/test covers firestore.rules,
+      # storage.rules and database.rules.json, and each suite errors out if
+      # its emulator is not running.
       - name: Run rules tests
-        run: firebase emulators:exec --only firestore,storage --project kyuhachi-test "npm test"
+        run: firebase emulators:exec --only firestore,storage,database --project kyuhachi-test "npm test"
         working-directory: firebase
 
   website:
