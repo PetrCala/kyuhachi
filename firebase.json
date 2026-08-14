@@ -9,13 +9,22 @@
   "storage": {
     "rules": "firebase/storage.rules"
   },
-  "hosting": {
-    "public": "firebase/public",
-    "predeploy": ["npm --prefix \"$PROJECT_DIR\" run build:legal"],
-    "cleanUrls": true,
-    "trailingSlash": false,
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
-  },
+  "hosting": [
+    {
+      "target": "legal",
+      "public": "firebase/public",
+      "predeploy": ["npm --prefix \"$PROJECT_DIR\" run build:legal"],
+      "cleanUrls": true,
+      "trailingSlash": false,
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
+    },
+    {
+      "target": "journey",
+      "public": "website/dist",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "rewrites": [{ "source": "**", "destination": "/index.html" }]
+    }
+  ],
   "emulators": {
     "auth": {
       "port": 9099

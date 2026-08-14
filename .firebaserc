@@ -1,5 +1,13 @@
 {
   "projects": {
     "default": "kyuhachi-fddcc"
+  },
+  "targets": {
+    "kyuhachi-fddcc": {
+      "hosting": {
+        "legal": ["kyuhachi-fddcc"],
+        "journey": ["kyuhachi-path"]
+      }
+    }
   }
 }
