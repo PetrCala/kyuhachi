@@ -14,3 +14,13 @@ export interface JourneyChallenge extends ChallengeDocument {
 export interface VisitWithOnsenId extends VisitDocument {
   onsenId: string;
 }
+
+/** Which map layers are shown; the LayerPanel toggles these. */
+export interface LayerVisibility {
+  walked: boolean;
+  planned: boolean;
+  visited: boolean;
+  plannedOnsens: boolean;
+  allOnsens: boolean;
+  terrain: boolean;
+}

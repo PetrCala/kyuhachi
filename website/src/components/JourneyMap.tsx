@@ -1,36 +1,158 @@
+import type { JourneyDayDocument, RouteDocument } from '@kyuhachi/shared';
 import maplibregl from 'maplibre-gl';
 import type { GeoJSONSource } from 'maplibre-gl';
 import { useEffect, useRef, useState } from 'react';
-import { KYUSHU_BOUNDS, MAP_STYLE_URL } from '../config';
-import type { OnsenWithId } from '../types';
+import {
+  GSI_ATTRIBUTION,
+  GSI_HILLSHADE_TILES,
+  KYUSHU_BOUNDS,
+  MAP_STYLE_URL,
+} from '../config';
+import type { LayerVisibility, OnsenWithId } from '../types';
 
 interface Props {
   /** Onsens Petr has visited (already joined against the catalog). */
   visited: OnsenWithId[];
+  /** The challenge's whole eligible pool. */
+  allOnsens: OnsenWithId[];
+  /** Eligible, unvisited onsens near the planned route. */
+  plannedOnsens: OnsenWithId[];
+  /** One privacy-trimmed track per walked day, oldest first. */
+  walkedDays: JourneyDayDocument[];
+  plannedRoute: RouteDocument | null;
+  layers: LayerVisibility;
   selectedOnsenId: string | null;
   onSelect: (onsenId: string | null) => void;
 }
 
-const VISITED_SOURCE = 'visited-onsens';
-const VISITED_LAYER = 'visited-onsens-circles';
+const SOURCES = {
+  visited: 'visited-onsens',
+  allOnsens: 'all-onsens',
+  plannedOnsens: 'planned-onsens',
+  walked: 'walked-days',
+  gaps: 'walked-gaps',
+  planned: 'planned-route',
+  terrain: 'gsi-hillshade',
+} as const;
+
+const LAYERS = {
+  visited: 'visited-onsens-circles',
+  allOnsens: 'all-onsens-circles',
+  plannedOnsens: 'planned-onsens-circles',
+  walked: 'walked-days-line',
+  gaps: 'walked-gaps-line',
+  planned: 'planned-route-line',
+  terrain: 'gsi-hillshade-raster',
+} as const;
+
+/** Maps each toggle to the map layers it controls. */
+const TOGGLE_LAYERS: Record<keyof LayerVisibility, string[]> = {
+  visited: [LAYERS.visited],
+  allOnsens: [LAYERS.allOnsens],
+  plannedOnsens: [LAYERS.plannedOnsens],
+  walked: [LAYERS.walked, LAYERS.gaps],
+  planned: [LAYERS.planned],
+  terrain: [LAYERS.terrain],
+};
 
 const EMPTY_COLLECTION: GeoJSON.FeatureCollection = {
   type: 'FeatureCollection',
   features: [],
 };
 
-function toFeatureCollection(visited: OnsenWithId[]): GeoJSON.FeatureCollection {
+function onsenFeatures(onsens: OnsenWithId[]): GeoJSON.FeatureCollection {
   return {
     type: 'FeatureCollection',
-    features: visited.map((onsen) => ({
+    features: onsens.map((onsen) => ({
       type: 'Feature',
       geometry: { type: 'Point', coordinates: [onsen.lng, onsen.lat] },
-      properties: { id: onsen.id, name: onsen.name },
+      properties: { id: onsen.id, name: onsen.name, area: onsen.areaName },
     })),
   };
 }
 
-export function JourneyMap({ visited, selectedOnsenId, onSelect }: Props) {
+function formatDayLabel(day: JourneyDayDocument): string {
+  const date = new Date(`${day.date}T00:00:00+09:00`).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+  const km = (day.distanceMeters / 1000).toFixed(1);
+  const hours = Math.floor(day.durationSeconds / 3600);
+  const minutes = Math.round((day.durationSeconds % 3600) / 60);
+  const duration = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+  return `${date} · ${km} km · ${duration}`;
+}
+
+function walkedFeatures(days: JourneyDayDocument[]): GeoJSON.FeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: days
+      .filter((day) => day.points.length >= 2)
+      .map((day) => ({
+        type: 'Feature',
+        geometry: {
+          type: 'LineString',
+          coordinates: day.points.map((p) => [p.lng, p.lat]),
+        },
+        properties: { date: day.date, label: formatDayLabel(day) },
+      })),
+  };
+}
+
+/**
+ * Dashed connectors between one day's end and the next day's start: the
+ * stretches nothing recorded (rest stops, trimmed zones, lost GPS). Styled
+ * unmistakably differently from the walked line.
+ */
+function gapFeatures(days: JourneyDayDocument[]): GeoJSON.FeatureCollection {
+  const features: GeoJSON.Feature[] = [];
+  const walked = days.filter((day) => day.points.length >= 2);
+  for (let i = 1; i < walked.length; i++) {
+    const prevEnd = walked[i - 1].points[walked[i - 1].points.length - 1];
+    const nextStart = walked[i].points[0];
+    features.push({
+      type: 'Feature',
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [prevEnd.lng, prevEnd.lat],
+          [nextStart.lng, nextStart.lat],
+        ],
+      },
+      properties: {},
+    });
+  }
+  return { type: 'FeatureCollection', features };
+}
+
+function plannedRouteFeatures(route: RouteDocument | null): GeoJSON.FeatureCollection {
+  if (!route || route.points.length < 2) return EMPTY_COLLECTION;
+  return {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        geometry: {
+          type: 'LineString',
+          coordinates: route.points.map((p) => [p.lng, p.lat]),
+        },
+        properties: {},
+      },
+    ],
+  };
+}
+
+export function JourneyMap({
+  visited,
+  allOnsens,
+  plannedOnsens,
+  walkedDays,
+  plannedRoute,
+  layers,
+  selectedOnsenId,
+  onSelect,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const [mapReady, setMapReady] = useState(false);
@@ -57,13 +179,97 @@ export function JourneyMap({ visited, selectedOnsenId, onSelect }: Props) {
       offset: 14,
       className: 'onsen-hover-popup',
     });
+    const clickPopup = new maplibregl.Popup({
+      closeButton: false,
+      closeOnClick: true,
+      offset: 14,
+      className: 'onsen-hover-popup',
+    });
 
     map.on('load', () => {
-      map.addSource(VISITED_SOURCE, { type: 'geojson', data: EMPTY_COLLECTION });
+      // Bottom to top: terrain shading, then routes, then onsen points.
+      map.addSource(SOURCES.terrain, {
+        type: 'raster',
+        tiles: [GSI_HILLSHADE_TILES],
+        tileSize: 256,
+        maxzoom: 16,
+        attribution: GSI_ATTRIBUTION,
+      });
       map.addLayer({
-        id: VISITED_LAYER,
+        id: LAYERS.terrain,
+        type: 'raster',
+        source: SOURCES.terrain,
+        layout: { visibility: 'none' },
+        paint: { 'raster-opacity': 0.45 },
+      });
+
+      map.addSource(SOURCES.planned, { type: 'geojson', data: EMPTY_COLLECTION });
+      map.addLayer({
+        id: LAYERS.planned,
+        type: 'line',
+        source: SOURCES.planned,
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': '#2a7f8a',
+          'line-width': 2.5,
+          'line-dasharray': [2.2, 1.6],
+        },
+      });
+
+      map.addSource(SOURCES.gaps, { type: 'geojson', data: EMPTY_COLLECTION });
+      map.addLayer({
+        id: LAYERS.gaps,
+        type: 'line',
+        source: SOURCES.gaps,
+        layout: { 'line-cap': 'round' },
+        paint: {
+          'line-color': '#9aa2ad',
+          'line-width': 1.4,
+          'line-dasharray': [0.4, 2],
+        },
+      });
+
+      map.addSource(SOURCES.walked, { type: 'geojson', data: EMPTY_COLLECTION });
+      map.addLayer({
+        id: LAYERS.walked,
+        type: 'line',
+        source: SOURCES.walked,
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': '#c2413b', 'line-width': 3.2 },
+      });
+
+      map.addSource(SOURCES.allOnsens, { type: 'geojson', data: EMPTY_COLLECTION });
+      map.addLayer({
+        id: LAYERS.allOnsens,
         type: 'circle',
-        source: VISITED_SOURCE,
+        source: SOURCES.allOnsens,
+        layout: { visibility: 'none' },
+        paint: {
+          'circle-radius': 4,
+          'circle-color': '#a8a29a',
+          'circle-stroke-width': 1,
+          'circle-stroke-color': '#ffffff',
+        },
+      });
+
+      map.addSource(SOURCES.plannedOnsens, { type: 'geojson', data: EMPTY_COLLECTION });
+      map.addLayer({
+        id: LAYERS.plannedOnsens,
+        type: 'circle',
+        source: SOURCES.plannedOnsens,
+        paint: {
+          'circle-radius': 5.5,
+          'circle-color': '#ffffff',
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#2a7f8a',
+        },
+      });
+
+      map.addSource(SOURCES.visited, { type: 'geojson', data: EMPTY_COLLECTION });
+      map.addLayer({
+        id: LAYERS.visited,
+        type: 'circle',
+        source: SOURCES.visited,
         paint: {
           'circle-radius': 8,
           'circle-color': '#c2413b',
@@ -72,24 +278,48 @@ export function JourneyMap({ visited, selectedOnsenId, onSelect }: Props) {
         },
       });
 
+      const pointLayers = [LAYERS.visited, LAYERS.plannedOnsens, LAYERS.allOnsens];
+
       map.on('click', (e) => {
-        const features = map.queryRenderedFeatures(e.point, { layers: [VISITED_LAYER] });
-        const id = features[0]?.properties?.id;
-        onSelectRef.current(typeof id === 'string' ? id : null);
+        const points = map.queryRenderedFeatures(e.point, { layers: pointLayers });
+        const point = points[0];
+        if (point?.properties?.id) {
+          if (point.layer.id === LAYERS.visited) {
+            onSelectRef.current(String(point.properties.id));
+          } else {
+            // Not visited yet: no detail panel, just say which onsen this is.
+            onSelectRef.current(null);
+            clickPopup
+              .setLngLat(e.lngLat)
+              .setText(`${point.properties.name} (${point.properties.area})`)
+              .addTo(map);
+          }
+          return;
+        }
+        const lines = map.queryRenderedFeatures(e.point, { layers: [LAYERS.walked] });
+        if (lines[0]?.properties?.label) {
+          onSelectRef.current(null);
+          clickPopup.setLngLat(e.lngLat).setText(String(lines[0].properties.label)).addTo(map);
+          return;
+        }
+        onSelectRef.current(null);
       });
-      map.on('mousemove', VISITED_LAYER, (e) => {
-        map.getCanvas().style.cursor = 'pointer';
-        const feature = e.features?.[0];
-        if (!feature || feature.geometry.type !== 'Point') return;
-        hoverPopup
-          .setLngLat(feature.geometry.coordinates as [number, number])
-          .setText(String(feature.properties?.name ?? ''))
-          .addTo(map);
-      });
-      map.on('mouseleave', VISITED_LAYER, () => {
-        map.getCanvas().style.cursor = '';
-        hoverPopup.remove();
-      });
+
+      for (const layerId of pointLayers) {
+        map.on('mousemove', layerId, (e) => {
+          map.getCanvas().style.cursor = 'pointer';
+          const feature = e.features?.[0];
+          if (!feature || feature.geometry.type !== 'Point') return;
+          hoverPopup
+            .setLngLat(feature.geometry.coordinates as [number, number])
+            .setText(String(feature.properties?.name ?? ''))
+            .addTo(map);
+        });
+        map.on('mouseleave', layerId, () => {
+          map.getCanvas().style.cursor = '';
+          hoverPopup.remove();
+        });
+      }
 
       setMapReady(true);
     });
@@ -101,23 +331,61 @@ export function JourneyMap({ visited, selectedOnsenId, onSelect }: Props) {
     };
   }, []);
 
+  // Data updates, each source on its own dependency.
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapReady) return;
-    const source = map.getSource<GeoJSONSource>(VISITED_SOURCE);
-    source?.setData(toFeatureCollection(visited));
+    if (!mapReady) return;
+    mapRef.current?.getSource<GeoJSONSource>(SOURCES.visited)?.setData(onsenFeatures(visited));
   }, [visited, mapReady]);
 
   useEffect(() => {
+    if (!mapReady) return;
+    mapRef.current?.getSource<GeoJSONSource>(SOURCES.allOnsens)?.setData(onsenFeatures(allOnsens));
+  }, [allOnsens, mapReady]);
+
+  useEffect(() => {
+    if (!mapReady) return;
+    mapRef.current
+      ?.getSource<GeoJSONSource>(SOURCES.plannedOnsens)
+      ?.setData(onsenFeatures(plannedOnsens));
+  }, [plannedOnsens, mapReady]);
+
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = mapRef.current;
+    map?.getSource<GeoJSONSource>(SOURCES.walked)?.setData(walkedFeatures(walkedDays));
+    map?.getSource<GeoJSONSource>(SOURCES.gaps)?.setData(gapFeatures(walkedDays));
+  }, [walkedDays, mapReady]);
+
+  useEffect(() => {
+    if (!mapReady) return;
+    mapRef.current
+      ?.getSource<GeoJSONSource>(SOURCES.planned)
+      ?.setData(plannedRouteFeatures(plannedRoute));
+  }, [plannedRoute, mapReady]);
+
+  // Toggle visibility.
+  useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
-    map.setPaintProperty(VISITED_LAYER, 'circle-radius', [
+    for (const [toggle, layerIds] of Object.entries(TOGGLE_LAYERS)) {
+      const visible = layers[toggle as keyof LayerVisibility];
+      for (const layerId of layerIds) {
+        map.setLayoutProperty(layerId, 'visibility', visible ? 'visible' : 'none');
+      }
+    }
+  }, [layers, mapReady]);
+
+  // Selection highlight.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    map.setPaintProperty(LAYERS.visited, 'circle-radius', [
       'case',
       ['==', ['get', 'id'], selectedOnsenId ?? ''],
       11,
       8,
     ]);
-    map.setPaintProperty(VISITED_LAYER, 'circle-stroke-color', [
+    map.setPaintProperty(LAYERS.visited, 'circle-stroke-color', [
       'case',
       ['==', ['get', 'id'], selectedOnsenId ?? ''],
       '#8f2b26',
