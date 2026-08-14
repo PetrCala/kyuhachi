@@ -92,6 +92,10 @@ export function useVisit(onsenId: string | undefined): UseVisitResult {
               setVisit(null);
             }
             setLoading(false);
+          },
+          () => {
+            setVisit(null);
+            setLoading(false);
           }
         );
       },

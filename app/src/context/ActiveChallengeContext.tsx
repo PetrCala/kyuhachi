@@ -262,8 +262,23 @@ export function ActiveChallengeProvider({ children }: { children: ReactNode }) {
                 }
                 setVisits(visitMap);
                 setLoading(false);
+              },
+              // Sign-out cancels auth-gated listeners with permission-denied
+              // before the effect cleanup runs; without an error callback
+              // RNFirebase invokes the success callback with a null snapshot,
+              // which is fatal in release builds.
+              () => {
+                setVisitedIds(new Set());
+                setVisits(new Map());
+                setLoading(false);
               }
             );
+          },
+          () => {
+            unsubVisits?.();
+            unsubVisits = null;
+            setChallenge(null);
+            setLoading(false);
           }
         );
       },
@@ -307,6 +322,12 @@ export function ActiveChallengeProvider({ children }: { children: ReactNode }) {
         setRanks(data.ranks ?? []);
         setCompletionCount(data.completionCount);
         setBaseMode(data.baseMode ?? null);
+      },
+      () => {
+        setTiers([]);
+        setRanks([]);
+        setCompletionCount(null);
+        setBaseMode(null);
       }
     );
     return unsub;
