@@ -13,6 +13,7 @@
 		"check:metadata": "node scripts/check-metadata-lengths.mjs",
 		"deploy:functions": "firebase deploy --only functions",
 		"deploy:hosting": "firebase deploy --only hosting",
+		"journey:import-gpx": "NODE_PATH=functions/node_modules npx ts-node --transpile-only --project functions/tsconfig.json scripts/import-journey-gpx.ts",
 		"seed:demo": "NODE_PATH=functions/node_modules npx ts-node --transpile-only --project functions/tsconfig.json scripts/seed-demo-account.ts",
 		"version:bump": "node scripts/version.mjs"
 	},
