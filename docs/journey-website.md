@@ -27,9 +27,13 @@ decision and data-exposure rationale: [ADR-009](adr/009-public-journey-website.m
 | Default challenge | `users/{uid}/challenges` where `isDefault == true` | live (`onSnapshot`) |
 | Visited onsens | `.../challenges/{id}/visits` | live (`onSnapshot`) |
 | Onsen catalog | `onsens` | per page load |
-| Completion target | `challenge_types/{typeId}` | per page load |
-| Walked route | `journey_days` (slice: walked-days layer) | per page load |
+| Completion target + eligible pool | `challenge_types/{typeId}` | per page load |
+| Walked route | `journey_days`, one line per day; dotted connectors mark unrecorded stretches | per page load |
 | Planned route | `users/{uid}/routes/{activeRouteId}` | per page load |
+| Planned onsens | computed client-side: eligible, unvisited, within 3 km of the planned route | derived |
+| Terrain | GSI (国土地理院) hillshade raster tiles, off by default | tile CDN |
+
+The side panel toggles each layer and doubles as the legend.
 
 The only hardcoded datum is Petr's uid (`website/src/config.ts`, mirrored by
 `isJourneyUser()` in the rules). Everything else is derived.
