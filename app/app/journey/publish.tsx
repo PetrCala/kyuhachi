@@ -8,10 +8,20 @@
  *
  * Reachable only by the journey uid: the row in the menu is gated and so is this
  * screen (Expo Router bundles every file under app/, so hiding the row is not
- * enough on its own; the redirect is what makes it unreachable).
+ * enough on its own; the redirect is what makes it unreachable). Both are UX
+ * only. The real boundary is the callable's own uid check, since the uid is
+ * readable in the app bundle and any account could call the function directly.
  */
 import { useState } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
 import { Stack, Redirect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as DocumentPicker from 'expo-document-picker';
@@ -39,13 +49,25 @@ type DayResult =
 
 export default function PublishJourneyDay() {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const [publishing, setPublishing] = useState(false);
   const [results, setResults] = useState<DayResult[]>([]);
 
-  // Not Petr's account: this screen does nothing for anyone else, and the
-  // callable would refuse the write anyway.
-  if (user && user.uid !== JOURNEY_UID) return <Redirect href="/" />;
+  // Deny by default. Waiting on `isLoading` first matters: `user` is null while
+  // auth resolves, so a "redirect only when the uid mismatches" check would let
+  // the form render for a moment on any account that deep-linked here, which
+  // reads as a bug even though the callable would refuse the write.
+  if (isLoading) {
+    return (
+      <>
+        <Stack.Screen options={{ title: t('journeyPublish.title'), headerShown: true }} />
+        <View style={styles.centered}>
+          <ActivityIndicator />
+        </View>
+      </>
+    );
+  }
+  if (user?.uid !== JOURNEY_UID) return <Redirect href="/" />;
 
   /**
    * Read and parse one picked file. Returns null (and counts as unreadable) for
@@ -201,6 +223,12 @@ export default function PublishJourneyDay() {
 }
 
 const styles = StyleSheet.create({
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: colors.background,
