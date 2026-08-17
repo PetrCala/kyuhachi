@@ -36,6 +36,26 @@ export interface JourneyDayData {
 }
 
 /**
+ * One continuous recording contributing to a day. Canonical type:
+ * shared/src/types/journey.ts (JourneyDayRecording, which carries the same
+ * fields over the wire); keep the two in sync.
+ */
+export interface JourneyDayRecordingInput {
+  /** Points in recording order. Trimmed independently of the other recordings. */
+  points: LatLng[];
+  /** Untrimmed, full-resolution distance of this recording, meters. */
+  distanceMeters: number;
+  /** Duration of this recording, seconds (moving time where the source has it). */
+  durationSeconds: number;
+}
+
+export interface BuiltJourneyDay {
+  data: JourneyDayData;
+  /** Recordings dropped because trimming left fewer than two points. */
+  skippedRecordings: number;
+}
+
+/**
  * PRIVACY: how close to a track's first/last point counts as "home for the
  * night". Strava's hidden start/end zones only redact what other Strava users
  * see; the owner-token API returns the full track, so this trimming is the
@@ -117,6 +137,59 @@ export function boundsOf(points: LatLng[]): Bounds {
     if (lng > maxLng) maxLng = lng;
   }
   return { minLat, minLng, maxLat, maxLng };
+}
+
+/**
+ * Assemble one /journey_days document from a day's recordings.
+ *
+ * The single place the publishing invariant lives, shared by all three writers
+ * (the scheduled Strava sync, the publishJourneyDay callable and the manual
+ * import script), so none of them can drift from it: every recording is trimmed
+ * independently (each start/stop is a potential overnight or lodging location),
+ * the survivors are concatenated in the order given and simplified once, and
+ * distance/duration are summed from the untrimmed originals.
+ *
+ * Returns null when nothing survives trimming. Callers must treat that as
+ * "nothing publishable" and write no document; there is no untrimmed fallback.
+ */
+export function buildJourneyDay(
+  date: string,
+  recordings: JourneyDayRecordingInput[],
+  source: JourneyDayData['source'],
+  stravaActivityId: number | null = null
+): BuiltJourneyDay | null {
+  const points: LatLng[] = [];
+  let distanceMeters = 0;
+  let durationSeconds = 0;
+  let skippedRecordings = 0;
+
+  for (const recording of recordings) {
+    const trimmed = trimEnds(recording.points, TRIM_RADIUS_METERS);
+    if (trimmed.length < 2) {
+      skippedRecordings++;
+      continue;
+    }
+    points.push(...trimmed);
+    distanceMeters += recording.distanceMeters;
+    durationSeconds += recording.durationSeconds;
+  }
+
+  if (points.length < 2) return null;
+
+  const simplified = simplifyTrack(points);
+  return {
+    data: {
+      date,
+      points: simplified,
+      pointCount: simplified.length,
+      bounds: boundsOf(simplified),
+      distanceMeters: Math.round(distanceMeters),
+      durationSeconds: Math.round(durationSeconds),
+      source,
+      stravaActivityId,
+    },
+    skippedRecordings,
+  };
 }
 
 /** Iterative Douglas-Peucker (avoids recursion depth on long tracks). Distances in degrees. */

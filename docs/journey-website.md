@@ -28,7 +28,7 @@ decision and data-exposure rationale: [ADR-009](adr/009-public-journey-website.m
 | Visited onsens | `.../challenges/{id}/visits` | live (`onSnapshot`) |
 | Onsen catalog | `onsens` | per page load |
 | Completion target + eligible pool | `challenge_types/{typeId}` | per page load |
-| Walked route | `journey_days`, one line per day; dotted connectors mark unrecorded stretches | per page load |
+| Walked route | `journey_days`, one line per day; dotted connectors mark unrecorded stretches | per page load ([how days get published](journey-days.md)) |
 | Planned route | `users/{uid}/routes/{activeRouteId}` | per page load |
 | Planned onsens | computed client-side: eligible, unvisited, within 3 km of the planned route | derived |
 | Terrain | GSI (国土地理院) hillshade raster tiles, off by default | tile CDN |

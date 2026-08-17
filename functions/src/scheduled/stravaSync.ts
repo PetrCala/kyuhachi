@@ -2,14 +2,7 @@ import { getFirestore, FieldValue, type Firestore } from 'firebase-admin/firesto
 import * as logger from 'firebase-functions/logger';
 import { defineSecret } from 'firebase-functions/params';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
-import {
-  boundsOf,
-  simplifyTrack,
-  trimEnds,
-  TRIM_RADIUS_METERS,
-  type JourneyDayData,
-  type LatLng,
-} from '../util/track';
+import { buildJourneyDay, type JourneyDayRecordingInput, type LatLng } from '../util/track';
 
 /**
  * Daily Strava -> /journey_days sync for the public journey website.
@@ -29,7 +22,7 @@ import {
  * are left alone: the manual path exists to correct corrupt or missing Strava
  * recordings, so the sync must not undo it the next morning.
  *
- * Secrets (Secret Manager, see docs/strava-sync.md for the one-time setup):
+ * Secrets (Secret Manager, see docs/journey-days.md for the one-time setup):
  * STRAVA_CLIENT_ID, STRAVA_CLIENT_SECRET, STRAVA_REFRESH_TOKEN. Strava may
  * rotate the refresh token on use; the latest one is persisted in the private
  * /journey_sync/strava document (no Firestore rule matches it, so no client
@@ -178,46 +171,34 @@ async function syncDay(
   // Oldest first, so a multi-recording day concatenates in walk order.
   activities.sort((a, b) => a.start_date.localeCompare(b.start_date));
 
-  const points: LatLng[] = [];
-  let distanceMeters = 0;
-  let durationSeconds = 0;
+  const recordings: JourneyDayRecordingInput[] = [];
   for (const activity of activities) {
-    const raw = await fetchActivityPoints(accessToken, activity.id);
-    // Each recording is trimmed independently: every start/stop point is a
-    // potential overnight or lodging location.
-    const trimmed = trimEnds(raw, TRIM_RADIUS_METERS);
-    if (trimmed.length < 2) {
-      logger.warn(`activity ${activity.id} on ${day}: no publishable points after trimming`);
-      continue;
-    }
-    points.push(...trimmed);
-    distanceMeters += activity.distance;
-    durationSeconds += activity.moving_time;
+    recordings.push({
+      points: await fetchActivityPoints(accessToken, activity.id),
+      // Strava's own measurements for the full activity, not remeasured from
+      // the stored track.
+      distanceMeters: activity.distance,
+      durationSeconds: activity.moving_time,
+    });
   }
 
-  if (points.length < 2) {
-    logger.warn(`skipping ${day}: nothing publishable (GPX fallback: docs/strava-sync.md)`);
+  // Trimming, concatenation and simplification all live in buildJourneyDay, so
+  // this path cannot drift from the callable's or the import script's.
+  const built = buildJourneyDay(day, recordings, 'strava', activities[0]?.id ?? null);
+  if (!built) {
+    logger.warn(`skipping ${day}: nothing publishable (GPX fallback: docs/journey-days.md)`);
     return;
   }
-
-  const simplified = simplifyTrack(points);
-  const dayDoc: JourneyDayData = {
-    date: day,
-    points: simplified,
-    pointCount: simplified.length,
-    bounds: boundsOf(simplified),
-    distanceMeters: Math.round(distanceMeters),
-    durationSeconds,
-    source: 'strava',
-    stravaActivityId: activities[0]?.id ?? null,
-  };
+  if (built.skippedRecordings > 0) {
+    logger.warn(`${day}: ${built.skippedRecordings} activity(ies) had no points left after trimming`);
+  }
 
   await ref.set({
-    ...dayDoc,
+    ...built.data,
     createdAt: existing.exists ? existing.get('createdAt') : FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
   });
   logger.info(
-    `synced ${day}: ${simplified.length} points from ${activities.length} activity(ies)`
+    `synced ${day}: ${built.data.pointCount} points from ${activities.length} activity(ies)`
   );
 }
