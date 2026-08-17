@@ -26,7 +26,7 @@ See [docs/legal/terms.md](docs/legal/terms.md) and
 
 iOS only. Expo managed workflow (SDK 55, New Architecture) with Expo Router,
 `@react-native-firebase` against Firestore, Auth and Storage, `react-native-maps`
-on the Apple Maps provider, and Firebase Functions v2 on Node 20 for triggers
+on the Apple Maps provider, and Firebase Functions v2 on Node 22 for triggers
 and admin work. Styling is vanilla `StyleSheet.create()` over design tokens, no
 component library. Testing is Jest with React Native Testing Library, plus the
 Firebase Emulator Suite for the security rules. CI builds through GitHub Actions
@@ -39,7 +39,7 @@ The decisions behind those choices are recorded as ADRs in
 
 ```
 app/        the Expo app: routes under app/app/, everything else under app/src/
-functions/  Firebase Functions (Node 20, TypeScript)
+functions/  Firebase Functions (Node 22, TypeScript)
 shared/     TypeScript types shared by the app and the functions
 firebase/   Firestore rules, indexes, storage rules, emulator config
 docs/       ADRs, specs, the implementation plan, guides
