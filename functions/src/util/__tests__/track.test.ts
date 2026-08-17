@@ -9,6 +9,9 @@
  * recording's own start or end, and a track that trims to nothing must publish
  * nothing rather than fall back to the untrimmed points.
  */
+// Imported explicitly rather than relying on ambient @types/jest: Functions is
+// installed standalone in CI, with no parent node_modules to pick those up from.
+import { describe, expect, it } from '@jest/globals';
 import {
   boundsOf,
   buildJourneyDay,
