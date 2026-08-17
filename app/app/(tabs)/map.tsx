@@ -76,12 +76,13 @@ const KYUSHU_OVERVIEW_ALTITUDE = estimateAltitude(KYUSHU_REGION.latitudeDelta);
  *  Maps animates the camera on its own ease-in-out curve), not a snap. */
 const FOCUS_FLY_IN_MS = 1200;
 
-/** Pause after the map reports ready before the fly-in starts. When "Show on map"
- *  reaches this screen via a tab that hadn't mounted the map yet, the map is still
- *  laying out its initial region when it first reports ready; animating into that
- *  makes MapKit swallow the descent and snap straight to the pin. A short settle
- *  lets the overview paint first so the fly-in actually plays. */
-const FOCUS_FLY_IN_SETTLE_MS = 400;
+/** Pause after the map reports ready before any camera command runs. A map that
+ *  has just reported ready is still laying out its initial region, and driving the
+ *  camera into that misbehaves: the "Show on map" fly-in gets swallowed and snaps
+ *  straight to the pin, and a region set against a not-yet-sized map can leave
+ *  MapKit with a camera it never recovers from (tiles draw, gestures do nothing).
+ *  A short settle lets the initial region land first. */
+const CAMERA_SETTLE_MS = 400;
 
 /** A map region that frames the route's bounding box with a little padding. */
 function regionForBounds(bounds: RouteDocument['bounds']): Region {
@@ -371,6 +372,18 @@ export default function MapScreen() {
 
   const loading =
     onsensLoading || (paramRouteId ? !paramRouteLoaded : !!user && progressLoading);
+  // The <MapView> mounts once the first read resolves and then stays mounted for
+  // the rest of this screen's life, however `loading` moves afterwards. It must
+  // never unmount on a later flip: arriving with a new `routeId` param (from "View
+  // route on map", which lands on this already-mounted tab screen) sets
+  // paramRouteLoaded false for a beat, and tearing the native map down and
+  // rebuilding it mid-session leaves iOS with a map that draws tiles but ignores
+  // every gesture: the frozen map that only an app reload clears. Tab screens
+  // never unmount, so nothing else would ever rebuild it.
+  const [mapMounted, setMapMounted] = useState(!loading);
+  useEffect(() => {
+    if (!loading) setMapMounted(true);
+  }, [loading]);
   // Route names are user/Firestore data, shown as-is; fall back to the generic title.
   const title = route?.name ?? t('map.title');
   // A "Show on map" navigation flies the camera in from the Kyushu overview, so
@@ -417,6 +430,12 @@ export default function MapScreen() {
   // static `initialRegion` can't. Keyed on the bounds so it animates once per
   // distinct route, not on every snapshot.
   //
+  // Waits on `mapReady` and then a settle, for the same reason the focus effect
+  // below does: a newly selected route resolves in the very commit that mounts
+  // the map, so without the wait this fires the screen's first camera command at
+  // a native map that has no size yet, which is how MapKit ends up with a camera
+  // it never recovers from.
+  //
   // Exception: a "Show on map" navigation (focus params present) is an explicit
   // request to view one onsen, so it owns the camera. The active route loads
   // asynchronously and would otherwise fire this effect *after* the focus zoom,
@@ -424,13 +443,17 @@ export default function MapScreen() {
   // let the focus effect below win.
   const framedBoundsRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!route || (focusOnsenId && focusTs)) return;
+    if (!mapReady || !route || (focusOnsenId && focusTs)) return;
     const { minLat, minLng, maxLat, maxLng } = route.bounds;
     const key = `${minLat},${minLng},${maxLat},${maxLng}`;
     if (key === framedBoundsRef.current) return;
     framedBoundsRef.current = key;
-    mapRef.current?.animateToRegion(regionForBounds(route.bounds));
-  }, [route, focusOnsenId, focusTs]);
+    const timer = setTimeout(
+      () => mapRef.current?.animateToRegion(regionForBounds(route.bounds)),
+      CAMERA_SETTLE_MS
+    );
+    return () => clearTimeout(timer);
+  }, [mapReady, route, focusOnsenId, focusTs]);
 
   // Arriving from an onsen's "Show on map": fly in to that pin. We snap to the
   // whole-Kyushu overview first, then ease the camera down to the onsen so the
@@ -469,150 +492,158 @@ export default function MapScreen() {
         },
         { duration: FOCUS_FLY_IN_MS }
       );
-    }, FOCUS_FLY_IN_SETTLE_MS);
+    }, CAMERA_SETTLE_MS);
     return () => clearTimeout(timer);
   }, [mapReady, focusOnsenId, focusTs, onsens]);
 
-  if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator />
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
-      <MapView
-        ref={mapRef}
-        style={styles.map}
-        provider={PROVIDER_DEFAULT}
-        initialRegion={initialRegion}
-        showsUserLocation={!simulated && locationGranted}
-        onMapReady={handleCameraSettle}
-        onRegionChange={handleRegionChange}
-        // No `onPanDrag`: on iOS that prop makes react-native-maps install its
-        // own pan gesture recognizer, which fights the map's built-in scroll and
-        // can leave the map un-pannable (frozen) while overlay buttons still tap.
-        // `onRegionChange` already fires throughout a drag, so the auto-hide
-        // controls still wake without it.
-        onPress={bumpControls}
-        onRegionChangeComplete={handleRegionSettle}
-      >
-        {visibleOnsens.map((onsen) => (
-          <OnsenMarker
-            key={onsen.id}
-            id={onsen.id}
-            lat={onsen.lat}
-            lng={onsen.lng}
-            name={onsen.name}
-            areaName={onsen.areaName}
-            // Visited onsens in the active challenge get a bath-water blue pin;
-            // unvisited keep the default red pin.
-            visited={visitedIds.has(onsen.id)}
-            registerRef={registerMarkerRef}
-            onPress={handleOnsenPress}
-          />
-        ))}
-        {route && (
-          <Polyline
-            coordinates={routeCoordinates}
-            strokeColor={colors.actionPrimary}
-            strokeWidth={spacing[1]}
-          />
-        )}
-        {simulated && (
-          <Marker
-            key="dev-simulated"
-            coordinate={simulated}
-            anchor={{ x: 0.5, y: 0.5 }}
-            title={t('map.simulatedLocation')}
-            tracksViewChanges={false}
+      {mapMounted && (
+        <>
+          <MapView
+            ref={mapRef}
+            style={styles.map}
+            provider={PROVIDER_DEFAULT}
+            initialRegion={initialRegion}
+            showsUserLocation={!simulated && locationGranted}
+            onMapReady={handleCameraSettle}
+            onRegionChange={handleRegionChange}
+            // No `onPanDrag`: on iOS that prop makes react-native-maps install its
+            // own pan gesture recognizer, which fights the map's built-in scroll and
+            // can leave the map un-pannable (frozen) while overlay buttons still tap.
+            // `onRegionChange` already fires throughout a drag, so the auto-hide
+            // controls still wake without it.
+            onPress={bumpControls}
+            onRegionChangeComplete={handleRegionSettle}
           >
-            <View style={styles.simDot} />
-          </Marker>
-        )}
-      </MapView>
-      {/* The on-map controls each sit in their own corner and share one fade:
-          they hide together after inactivity and reappear on any map touch or
-          control use. Crucially they are NOT wrapped in a single full-screen
-          overlay: even a box-none absoluteFill sibling over the native map can
-          swallow the map's pan gesture on iOS (it froze the map while leaving
-          these buttons tappable). Keeping each control in a small, corner-pinned
-          slot means the map's pannable area is never covered. Per slot, box-none
-          (visible) lets the empty padding pass touches through; none (hidden)
-          hands the whole slot to the map so the first tap both re-reveals it and
-          pans underneath. */}
-      {route && (
-        <Animated.View
-          style={[styles.filterSlot, { opacity: controlsOpacity }]}
-          pointerEvents={controlsVisible ? 'box-none' : 'none'}
-        >
-          <Pressable
-            style={[
-              styles.routeFilterButton,
-              nearRouteOnly && styles.routeFilterButtonActive,
-              shadows.md,
-            ]}
-            onPress={() => {
-              bumpControls();
-              setNearRouteOnly((on) => !on);
-            }}
-            accessibilityRole="switch"
-            accessibilityState={{ checked: nearRouteOnly }}
-            accessibilityLabel={t('map.nearRouteToggle')}
-          >
-            <Ionicons
-              name={nearRouteOnly ? 'funnel' : 'funnel-outline'}
-              size={spacing[4]}
-              color={nearRouteOnly ? colors.actionPrimaryText : colors.actionPrimary}
-            />
-            <Text
-              style={[
-                styles.routeFilterLabel,
-                nearRouteOnly && styles.routeFilterLabelActive,
-              ]}
+            {visibleOnsens.map((onsen) => (
+              <OnsenMarker
+                key={onsen.id}
+                id={onsen.id}
+                lat={onsen.lat}
+                lng={onsen.lng}
+                name={onsen.name}
+                areaName={onsen.areaName}
+                // Visited onsens in the active challenge get a bath-water blue pin;
+                // unvisited keep the default red pin.
+                visited={visitedIds.has(onsen.id)}
+                registerRef={registerMarkerRef}
+                onPress={handleOnsenPress}
+              />
+            ))}
+            {route && (
+              <Polyline
+                coordinates={routeCoordinates}
+                strokeColor={colors.actionPrimary}
+                strokeWidth={spacing[1]}
+              />
+            )}
+            {simulated && (
+              <Marker
+                key="dev-simulated"
+                coordinate={simulated}
+                anchor={{ x: 0.5, y: 0.5 }}
+                title={t('map.simulatedLocation')}
+                tracksViewChanges={false}
+              >
+                <View style={styles.simDot} />
+              </Marker>
+            )}
+          </MapView>
+          {/* The on-map controls each sit in their own corner and share one fade:
+              they hide together after inactivity and reappear on any map touch or
+              control use. Crucially they are NOT wrapped in a single full-screen
+              overlay: even a box-none absoluteFill sibling over the native map can
+              swallow the map's pan gesture on iOS (it froze the map while leaving
+              these buttons tappable). Keeping each control in a small, corner-pinned
+              slot means the map's pannable area is never covered. Per slot, box-none
+              (visible) lets the empty padding pass touches through; none (hidden)
+              hands the whole slot to the map so the first tap both re-reveals it and
+              pans underneath. */}
+          {route && (
+            <Animated.View
+              style={[styles.filterSlot, { opacity: controlsOpacity }]}
+              pointerEvents={controlsVisible ? 'box-none' : 'none'}
             >
-              {t('map.nearRouteToggle')}
-            </Text>
-          </Pressable>
-        </Animated.View>
+              <Pressable
+                style={[
+                  styles.routeFilterButton,
+                  nearRouteOnly && styles.routeFilterButtonActive,
+                  shadows.md,
+                ]}
+                onPress={() => {
+                  bumpControls();
+                  setNearRouteOnly((on) => !on);
+                }}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: nearRouteOnly }}
+                accessibilityLabel={t('map.nearRouteToggle')}
+              >
+                <Ionicons
+                  name={nearRouteOnly ? 'funnel' : 'funnel-outline'}
+                  size={spacing[4]}
+                  color={nearRouteOnly ? colors.actionPrimaryText : colors.actionPrimary}
+                />
+                <Text
+                  style={[
+                    styles.routeFilterLabel,
+                    nearRouteOnly && styles.routeFilterLabelActive,
+                  ]}
+                >
+                  {t('map.nearRouteToggle')}
+                </Text>
+              </Pressable>
+            </Animated.View>
+          )}
+          <Animated.View
+            style={[styles.zoomControlWrap, { opacity: controlsOpacity }]}
+            pointerEvents={controlsVisible ? 'box-none' : 'none'}
+          >
+            <MapZoomControl
+              mapRef={mapRef}
+              initialAltitude={estimateAltitude(initialRegion.latitudeDelta)}
+              altitude={altitude}
+              zoomInLabel={t('map.zoomIn')}
+              zoomOutLabel={t('map.zoomOut')}
+              onActivity={bumpControls}
+            />
+          </Animated.View>
+          <Animated.View
+            style={[styles.recenterSlot, { opacity: controlsOpacity }]}
+            pointerEvents={controlsVisible ? 'box-none' : 'none'}
+          >
+            <Pressable
+              style={[styles.recenterButton, shadows.md]}
+              onPress={() => {
+                bumpControls();
+                handleRecenter();
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={t('map.recenter')}
+            >
+              <Ionicons name="locate" size={spacing[6]} color={colors.actionPrimary} />
+            </Pressable>
+          </Animated.View>
+          <OnsenPreviewSheet
+            onsen={selectedOnsen}
+            visited={selectedOnsen ? visitedIds.has(selectedOnsen.id) : false}
+            onClose={handleCloseSheet}
+            onViewDetails={handleViewDetails}
+          />
+        </>
       )}
-      <Animated.View
-        style={[styles.zoomControlWrap, { opacity: controlsOpacity }]}
-        pointerEvents={controlsVisible ? 'box-none' : 'none'}
-      >
-        <MapZoomControl
-          mapRef={mapRef}
-          initialAltitude={estimateAltitude(initialRegion.latitudeDelta)}
-          altitude={altitude}
-          zoomInLabel={t('map.zoomIn')}
-          zoomOutLabel={t('map.zoomOut')}
-          onActivity={bumpControls}
-        />
-      </Animated.View>
-      <Animated.View
-        style={[styles.recenterSlot, { opacity: controlsOpacity }]}
-        pointerEvents={controlsVisible ? 'box-none' : 'none'}
-      >
-        <Pressable
-          style={[styles.recenterButton, shadows.md]}
-          onPress={() => {
-            bumpControls();
-            handleRecenter();
-          }}
-          accessibilityRole="button"
-          accessibilityLabel={t('map.recenter')}
+      {/* Loading feedback. Before the map exists this fills the screen; once the
+          map is up (a `routeId` param resolving on an already-mounted tab) it
+          shrinks to a spinner pinned at the top, so nothing ever covers the
+          map's pannable area, and it takes no touches either way. */}
+      {loading && (
+        <View
+          style={mapMounted ? styles.loadingBadge : styles.centered}
+          pointerEvents="none"
         >
-          <Ionicons name="locate" size={spacing[6]} color={colors.actionPrimary} />
-        </Pressable>
-      </Animated.View>
-      <OnsenPreviewSheet
-        onsen={selectedOnsen}
-        visited={selectedOnsen ? visitedIds.has(selectedOnsen.id) : false}
-        onClose={handleCloseSheet}
-        onViewDetails={handleViewDetails}
-      />
+          <ActivityIndicator />
+        </View>
+      )}
     </View>
   );
 }
@@ -629,6 +660,16 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+  },
+  // Loading spinner once the map is already up: a top-pinned strip rather than a
+  // cover, so the map stays visible and pannable while a newly selected route
+  // resolves. Deliberately not a full-screen overlay (see the controls comment).
+  loadingBadge: {
+    position: 'absolute',
+    top: spacing[4],
+    left: 0,
+    right: 0,
+    alignItems: 'center',
   },
   // Full-height column pinned to the right edge so the zoom slider centers
   // vertically without hardcoding its height; box-none lets map gestures through

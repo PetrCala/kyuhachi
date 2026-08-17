@@ -148,9 +148,13 @@ export default function RoutesList() {
       dwellTimer.current = null;
     }
     setDrawing(null);
-    // `push` (not `replace`): this is the routes list, not a transient picker;
-    // Back should return here. The routeId param renders the route immediately.
-    router.push({ pathname: '/map', params: { routeId } });
+    // `dismissTo`, never `push`: /map lives inside the tab layout and this screen
+    // is a root-stack sibling of it, so a push mounts a *second* copy of the whole
+    // tab layout (a second live MapView included) on top of this screen rather
+    // than returning to the existing one; the abandoned map is what ends up
+    // frozen. Popping back to the tab layout dismisses this screen, so Back no
+    // longer returns here. The routeId param renders the route immediately.
+    router.dismissTo({ pathname: '/map', params: { routeId } });
   }
 
   // Play a route's SVG preview, then land on the map showing it. Shared by

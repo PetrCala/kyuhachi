@@ -54,8 +54,14 @@ export default function OnsenDetail() {
 
   // Jump to the Map tab and center on this onsen's pin. `focusTs` makes each tap
   // a fresh request so the map re-focuses even on a repeat visit to the same id.
+  //
+  // `dismissTo`, never `push`: /map lives inside the tab layout and this screen is
+  // a root-stack sibling of it, so a push mounts a *second* copy of the whole tab
+  // layout (a second live MapView included) instead of returning to the existing
+  // one; the abandoned map is what ends up frozen. Popping back to the tab layout
+  // dismisses this screen, so Back lands on the tab, not this onsen.
   function showOnMap() {
-    router.push({
+    router.dismissTo({
       pathname: '/map',
       params: { focusOnsenId: id, focusTs: String(Date.now()) },
     });
