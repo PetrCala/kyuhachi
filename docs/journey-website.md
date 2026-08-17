@@ -80,15 +80,32 @@ laptop deploys both.
 3. Trigger the `Deploy journey website` workflow manually (workflow_dispatch)
    or land any `website/` change on `master`.
 
-4. For the viewer counter: create the default Realtime Database instance
-   ([Realtime Database](https://console.firebase.google.com/project/kyuhachi-fddcc/database)
-   in the console, **Create Database**, United States region, locked mode; the
-   deployed rules take over from there), and add
-   `roles/firebasedatabase.admin` (Firebase Realtime Database Admin) to the
-   same CI service account so the rules workflow can deploy
-   `database.rules.json`. Until then, deploy them by hand:
-   `firebase deploy --only database --project kyuhachi-fddcc`. The site works
-   without any of this; the counter just stays hidden.
+4. **Done on 2026-08-17, kept for the record.** The viewer counter needed the
+   default Realtime Database instance to exist and the CI service account to be
+   able to deploy its rules. Both are in place: the instance is
+   `kyuhachi-fddcc-default-rtdb` (us-central1), and
+   `firestore-rules-deployer@kyuhachi-fddcc.iam.gserviceaccount.com` holds
+   `roles/firebasedatabase.admin`, so the rules workflow deploys
+   `database.rules.json` on its own.
+
+   Two notes if this ever has to be redone. The Firebase CLI cannot create a
+   project's *first* RTDB instance non-interactively, and `firebase init
+   database` rewrites `firebase.json`; creating it through the management API
+   avoids both problems:
+
+   ```bash
+   TOKEN=$(gcloud auth print-access-token)
+   curl -X POST \
+     "https://firebasedatabase.googleapis.com/v1beta/projects/kyuhachi-fddcc/locations/us-central1/instances?databaseId=kyuhachi-fddcc-default-rtdb" \
+     -H "Authorization: Bearer $TOKEN" \
+     -H "x-goog-user-project: kyuhachi-fddcc" \
+     -H "Content-Type: application/json" \
+     -d '{"type":"DEFAULT_DATABASE"}'
+   ```
+
+   The `x-goog-user-project` header is required: without it the call fails with a
+   403 about a missing quota project. To deploy the rules by hand instead of
+   through CI: `firebase deploy --only database --project kyuhachi-fddcc`.
 
 A custom domain can be attached to the `kyuhachi-path` site later in the
 Hosting console without touching any of this.
