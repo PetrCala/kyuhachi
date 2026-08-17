@@ -11,6 +11,15 @@ the detail pages and the map pins work in a valley with no signal, and visits
 recorded offline sync later. English and Japanese, following the device
 language.
 
+## Journey website
+
+The walk itself is followable in a browser, no app and no account needed:
+<https://kyuhachi-path.web.app>. It is unlisted (`noindex`, disallowed in
+`robots.txt`) but not behind a login, so anyone with the link can watch the
+route, the visited onsens and the day-by-day track fill in. The source lives in
+`website/`; see [docs/journey-website.md](docs/journey-website.md) for what it
+reads and how it deploys.
+
 ## Not affiliated with 九州八十八湯
 
 This is an independent, fan-made app. It is **not** affiliated with or endorsed
@@ -41,6 +50,7 @@ The decisions behind those choices are recorded as ADRs in
 app/        the Expo app: routes under app/app/, everything else under app/src/
 functions/  Firebase Functions (Node 22, TypeScript)
 shared/     TypeScript types shared by the app and the functions
+website/    the public journey site (Vite + React, its own lockfile)
 firebase/   Firestore rules, indexes, storage rules, emulator config
 docs/       ADRs, specs, the implementation plan, guides
 scripts/    repo tooling (version bump, legal page build, metadata checks)
@@ -90,6 +100,9 @@ Rules tests run against the Firebase Emulator Suite from `firebase/`.
 - [docs/ios-deploy.md](docs/ios-deploy.md) for the build and TestFlight pipeline,
   [docs/versioning.md](docs/versioning.md) for how the version number is chosen,
   [docs/hosting.md](docs/hosting.md) for the legal pages.
+- [docs/journey-website.md](docs/journey-website.md) for the public journey site
+  and [docs/journey-days.md](docs/journey-days.md) for how a walked day gets
+  published to it.
 - [docs/app-store-listing.md](docs/app-store-listing.md) and
   [docs/app-store-screenshots.md](docs/app-store-screenshots.md) for the store
   listing copy and the screenshot plan.
