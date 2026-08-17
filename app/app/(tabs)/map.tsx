@@ -116,9 +116,20 @@ export default function MapScreen() {
   // Pins come from the offline-first catalog store, so the map (Apple Maps
   // tiles aside) works with no network. Active onsens only, as before.
   const { activeOnsens: onsens, loading: onsensLoading } = useOnsenCatalog();
-  // The onsen whose image-forward preview half-sheet is open, or null. Tapping a
-  // pin selects it; the sheet is rendered once at the bottom of this screen.
-  const [selectedOnsen, setSelectedOnsen] = useState<OnsenRow | null>(null);
+  // The onsen whose image-forward preview half-sheet is mounted, and whether that
+  // sheet is open. Tapping a pin sets both; the sheet is rendered at the bottom of
+  // this screen, but *only* while `sheetOnsen` is set.
+  //
+  // Two pieces of state rather than one because the sheet has to outlive its own
+  // dismissal (it keeps showing its onsen through the slide-out, so the content
+  // doesn't blank mid-exit) yet must not exist at all once closed: @gorhom/bottom-
+  // sheet always mounts a full-screen `pointerEvents="box-none"` container, and
+  // such a sibling over the native map can swallow the map's pan gesture on iOS,
+  // which is the freeze fixed in #109 (see the note above the control slots
+  // below). So `sheetOpen` drives the animation and `sheetOnsen` is cleared only
+  // once the sheet reports that its close animation has finished.
+  const [sheetOnsen, setSheetOnsen] = useState<OnsenRow | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
   // An explicit `routeId` param (a just-imported route, or "View route on map")
   // draws that specific route; otherwise the map draws the active challenge's
   // route. Both are live subscriptions, and `route` is derived rather than
@@ -321,26 +332,32 @@ export default function MapScreen() {
   // syncs, rare enough that the memoized markers re-binding then is fine.
   const handleOnsenPress = useCallback(
     (id: string) => {
-      setSelectedOnsen(onsens.find((o) => o.id === id) ?? null);
+      const onsen = onsens.find((o) => o.id === id);
+      if (!onsen) return;
+      setSheetOnsen(onsen);
+      setSheetOpen(true);
     },
     [onsens]
   );
-  // Dismiss the preview. The tapped pin is the iOS map's *selected* annotation,
-  // its native callout hidden behind the sheet's backdrop; once the sheet slides
-  // away that callout would be revealed, and, because MapKit only fires onPress
-  // when the selection changes, a re-tap on the still-selected pin would do
-  // nothing until the user tapped elsewhere to deselect it first. Deselecting the
-  // pin as the sheet closes returns it to rest, so re-tapping reopens the preview.
-  const handleCloseSheet = useCallback(() => {
-    if (selectedOnsen) markerRefs.current[selectedOnsen.id]?.hideCallout();
-    setSelectedOnsen(null);
-  }, [selectedOnsen]);
-  // The preview's "View full details" CTA: dismiss the sheet, deselecting the pin
-  // as above, so it isn't left active when we return to this tab, then open the
-  // detail screen: the "enlarge" action.
+  // The sheet has finished sliding away, so drop it. The tapped pin is the iOS
+  // map's *selected* annotation, its native callout hidden behind the sheet's
+  // backdrop; with the sheet gone that callout would be revealed, and, because
+  // MapKit only fires onPress when the selection changes, a re-tap on the
+  // still-selected pin would do nothing until the user tapped elsewhere to
+  // deselect it first. Deselecting the pin here returns it to rest, so re-tapping
+  // reopens the preview.
+  const handleSheetClosed = useCallback(() => {
+    if (sheetOnsen) markerRefs.current[sheetOnsen.id]?.hideCallout();
+    setSheetOnsen(null);
+    setSheetOpen(false);
+  }, [sheetOnsen]);
+  // The preview's "View full details" CTA: start the dismissal, deselecting the
+  // pin as above so it isn't left active when we return to this tab, then open the
+  // detail screen: the "enlarge" action. The sheet unmounts itself via
+  // `handleSheetClosed` once its slide-out finishes behind the pushed screen.
   const handleViewDetails = useCallback((id: string) => {
     markerRefs.current[id]?.hideCallout();
-    setSelectedOnsen(null);
+    setSheetOpen(false);
     router.push(`/onsens/${id}`);
   }, []);
 
@@ -624,12 +641,18 @@ export default function MapScreen() {
               <Ionicons name="locate" size={spacing[6]} color={colors.actionPrimary} />
             </Pressable>
           </Animated.View>
-          <OnsenPreviewSheet
-            onsen={selectedOnsen}
-            visited={selectedOnsen ? visitedIds.has(selectedOnsen.id) : false}
-            onClose={handleCloseSheet}
-            onViewDetails={handleViewDetails}
-          />
+          {/* Mounted only while there is an onsen to preview: a closed sheet left
+              mounted would keep a full-screen box-none container over the map, the
+              very pattern the slot comment above warns about. */}
+          {sheetOnsen && (
+            <OnsenPreviewSheet
+              onsen={sheetOnsen}
+              open={sheetOpen}
+              visited={visitedIds.has(sheetOnsen.id)}
+              onClosed={handleSheetClosed}
+              onViewDetails={handleViewDetails}
+            />
+          )}
         </>
       )}
       {/* Loading feedback. Before the map exists this fills the screen; once the

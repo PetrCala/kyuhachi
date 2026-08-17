@@ -27,12 +27,17 @@ const SNAP_POINTS = ['78%'];
 const HERO_HEIGHT = 200;
 
 interface OnsenPreviewSheetProps {
-  /** The selected onsen, or null when the sheet is dismissed. */
-  onsen: OnsenRow | null;
-  /** Whether the selected onsen is visited in the active challenge. */
+  /** The onsen to preview. Always set: the parent mounts this component only
+   *  while there is something to show (see the note on the component). */
+  onsen: OnsenRow;
+  /** Whether the sheet should be open. Flipping this to false plays the
+   *  slide-out; `onClosed` reports when that has finished. */
+  open: boolean;
+  /** Whether the previewed onsen is visited in the active challenge. */
   visited: boolean;
-  /** Dismiss the sheet (backdrop tap, close affordance, swipe-down). */
-  onClose: () => void;
+  /** The sheet has finished animating closed (by swipe, backdrop tap, the close
+   *  affordance, or `open` going false) and can now be unmounted. */
+  onClosed: () => void;
   /** Open the full onsen detail screen for the given id (the "enlarge" action). */
   onViewDetails: (id: string) => void;
 }
@@ -54,14 +59,25 @@ interface OnsenPreviewSheetProps {
  * fixed frame: a `BottomSheetScrollView` is the scrollable body (the hero is its
  * sticky first row, so it stays pinned while the info scrolls under it), and the
  * CTA lives in a pinned `footerComponent`: long onsen text scrolls instead of
- * pushing the CTA off-screen. Driven by the `onsen` prop: snapped open via the ref
- * when an onsen is selected, closed when cleared; the last onsen is retained while
- * it animates out so the content doesn't blank mid-exit.
+ * pushing the CTA off-screen.
+ *
+ * IMPORTANT: this component must be mounted only while it has an onsen to show,
+ * and it never renders a closed, idle sheet. Even closed, gorhom always mounts a
+ * full-screen `pointerEvents="box-none"` container (`BottomSheetHostingContainer`),
+ * and such a sibling over the native map can swallow the map's pan gesture on iOS
+ * (worse on the New Architecture), freezing the map while overlay buttons still
+ * tap: exactly the regression fixed in #109. So the parent owns the mount, this
+ * component animates itself in on mount (`index={0}` plus gorhom's default
+ * `animateOnMount`, the only reliable way in: `snapToIndex` from a mount effect is
+ * a no-op because the sheet's layout has not been measured yet), and it reports
+ * `onClosed` once the slide-out has finished so the parent can unmount it. Between
+ * those two points the sheet owns the screen, backdrop included, exactly as before.
  */
 export default function OnsenPreviewSheet({
   onsen,
+  open,
   visited,
-  onClose,
+  onClosed,
   onViewDetails,
 }: OnsenPreviewSheetProps) {
   const { t, i18n } = useTranslation();
@@ -72,27 +88,24 @@ export default function OnsenPreviewSheet({
   // footer overlays the content rather than reserving space).
   const [footerHeight, setFooterHeight] = useState(0);
 
-  // Keep showing the last onsen while the sheet animates out, so content doesn't
-  // blank before the slide-down finishes.
-  const [shown, setShown] = useState<OnsenRow | null>(onsen);
-
-  // Open when an onsen is selected, close when cleared. The sheet stays mounted
-  // (closed at index -1) so it can animate; we drive it imperatively via the ref.
+  // Play the slide-out when the parent lowers `open` (its "View full details" CTA
+  // dismisses the sheet as it pushes the detail screen). Driven through the ref
+  // rather than by handing gorhom a new `index`: the index prop is ignored while
+  // the entrance animation is still in flight, so a quick dismissal would be
+  // dropped and leave the sheet sitting open over the map, whereas the imperative
+  // close animates from wherever the sheet has got to.
   useEffect(() => {
-    if (onsen) {
-      setShown(onsen);
-      sheetRef.current?.snapToIndex(0);
-    } else {
-      sheetRef.current?.close();
-    }
-  }, [onsen]);
+    if (!open) sheetRef.current?.close();
+  }, [open]);
 
-  // Latest onClose, read from the (stable) close handler without rebuilding it.
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-  // Any close (swipe, backdrop, close button, or programmatic) clears the map's
-  // selection so its state matches the closed sheet.
-  const handleClose = useCallback(() => onCloseRef.current(), []);
+  // Latest onClosed, read from the (stable) handler without rebuilding it.
+  const onClosedRef = useRef(onClosed);
+  onClosedRef.current = onClosed;
+  // gorhom fires `onClose` from its animation-completed worklet, i.e. once the
+  // slide-out has actually finished, which is precisely when the parent may drop
+  // the mount. Any close routes through here: swipe-down, backdrop tap, the close
+  // affordance, or `open` going false.
+  const handleClosed = useCallback(() => onClosedRef.current(), []);
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
@@ -101,6 +114,13 @@ export default function OnsenPreviewSheet({
         appearsOnIndex={0}
         disappearsOnIndex={-1}
         pressBehavior="close"
+        // Belt and braces against the same "invisible sheet over the map" trap:
+        // the backdrop starts with pointerEvents 'auto' unless this is set, and
+        // only drops to 'none' through a runOnJS hop that its own isMounted guard
+        // can swallow. With touch-through it starts at 'none' instead and the same
+        // reaction raises it to 'auto' as the sheet opens, so the backdrop is
+        // tappable exactly while it is visible and never a moment before.
+        enableTouchThrough
       />
     ),
     []
@@ -109,47 +129,44 @@ export default function OnsenPreviewSheet({
   // Pinned CTA. Lives in the footer so it stays visible no matter how long the
   // onsen's info is; its measured height feeds the scroll body's bottom padding.
   const renderFooter = useCallback(
-    (props: BottomSheetFooterProps) =>
-      shown ? (
-        // No bottomInset: the sheet sits inside the map tab, above the tab bar,
-        // which already owns the home-indicator safe area, so the CTA hugs the
-        // tab bar instead of floating a safe-area gap above it.
-        <BottomSheetFooter {...props}>
-          <View
-            style={styles.footer}
-            onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)}
+    (props: BottomSheetFooterProps) => (
+      // No bottomInset: the sheet sits inside the map tab, above the tab bar,
+      // which already owns the home-indicator safe area, so the CTA hugs the
+      // tab bar instead of floating a safe-area gap above it.
+      <BottomSheetFooter {...props}>
+        <View
+          style={styles.footer}
+          onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)}
+        >
+          <Pressable
+            style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
+            onPress={() => onViewDetails(onsen.id)}
+            accessibilityRole="button"
+            accessibilityLabel={t('onsenPreview.viewFullDetails')}
           >
-            <Pressable
-              style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
-              onPress={() => onViewDetails(shown.id)}
-              accessibilityRole="button"
-              accessibilityLabel={t('onsenPreview.viewFullDetails')}
-            >
-              <Text style={styles.ctaText}>{t('onsenPreview.viewFullDetails')}</Text>
-              <Ionicons
-                name="chevron-forward"
-                size={typography.sizes.md}
-                color={colors.actionPrimaryText}
-              />
-            </Pressable>
-          </View>
-        </BottomSheetFooter>
-      ) : null,
-    [shown, onViewDetails, t]
+            <Text style={styles.ctaText}>{t('onsenPreview.viewFullDetails')}</Text>
+            <Ionicons
+              name="chevron-forward"
+              size={typography.sizes.md}
+              color={colors.actionPrimaryText}
+            />
+          </Pressable>
+        </View>
+      </BottomSheetFooter>
+    ),
+    [onsen.id, onViewDetails, t]
   );
 
-  const directionsAction = shown
-    ? {
-        icon: 'navigate' as const,
-        onPress: () => Linking.openURL(`https://maps.apple.com/?daddr=${shown.lat},${shown.lng}`),
-        accessibilityLabel: t('onsenDetail.getDirections'),
-      }
-    : undefined;
+  const directionsAction = {
+    icon: 'navigate' as const,
+    onPress: () => Linking.openURL(`https://maps.apple.com/?daddr=${onsen.lat},${onsen.lng}`),
+    accessibilityLabel: t('onsenDetail.getDirections'),
+  };
 
   // Reading shown under the hero name: romaji in a non-JP UI, kana in Japanese.
   const reading = onsenReading({
-    nameRomaji: shown?.nameRomaji,
-    nameKana: shown?.nameKana,
+    nameRomaji: onsen.nameRomaji,
+    nameKana: onsen.nameKana,
     language: i18n.language,
     showReadings,
   });
@@ -157,99 +174,98 @@ export default function OnsenPreviewSheet({
   return (
     <BottomSheet
       ref={sheetRef}
-      index={-1}
+      // The mount position: the sheet opens itself as it appears, animating in
+      // because gorhom's `animateOnMount` defaults to true. Closing goes through
+      // the ref (see the effect above), not through this prop.
+      index={0}
       snapPoints={snapPoints}
       enableDynamicSizing={false}
       enablePanDownToClose
-      onClose={handleClose}
+      onClose={handleClosed}
       backdropComponent={renderBackdrop}
       footerComponent={renderFooter}
       backgroundStyle={styles.sheetBackground}
       handleIndicatorStyle={styles.handleIndicator}
     >
-      {shown && directionsAction ? (
-        <>
-          <BottomSheetScrollView
-            contentContainerStyle={{ paddingBottom: footerHeight + spacing[2] }}
-            stickyHeaderIndices={[0]}
-            showsVerticalScrollIndicator={false}
-            // No rubber-band overscroll at the top: when the body reaches its
-            // top the sticky hero (and the sheet itself) stay put instead of
-            // bouncing. Swipe-down-to-close still fires from the handle/backdrop.
-            bounces={false}
-          >
-            <View style={styles.hero}>
-              <OnsenHeroImage onsen={shown} style={styles.heroImage} />
-              <View style={styles.heroScrim} pointerEvents="none" />
-              <View style={styles.heroText} pointerEvents="none">
-                <Text style={styles.heroName} numberOfLines={2}>
-                  {shown.name}
-                </Text>
-                {reading && (
-                  <Text style={styles.heroReading} numberOfLines={1}>
-                    {reading}
-                  </Text>
-                )}
-              </View>
-            </View>
+      <BottomSheetScrollView
+        contentContainerStyle={{ paddingBottom: footerHeight + spacing[2] }}
+        stickyHeaderIndices={[0]}
+        showsVerticalScrollIndicator={false}
+        // No rubber-band overscroll at the top: when the body reaches its top
+        // the sticky hero (and the sheet itself) stay put instead of bouncing.
+        // Swipe-down-to-close still fires from the handle/backdrop.
+        bounces={false}
+      >
+        <View style={styles.hero}>
+          <OnsenHeroImage onsen={onsen} style={styles.heroImage} />
+          <View style={styles.heroScrim} pointerEvents="none" />
+          <View style={styles.heroText} pointerEvents="none">
+            <Text style={styles.heroName} numberOfLines={2}>
+              {onsen.name}
+            </Text>
+            {reading && (
+              <Text style={styles.heroReading} numberOfLines={1}>
+                {reading}
+              </Text>
+            )}
+          </View>
+        </View>
 
-            <View style={styles.info}>
-              <View style={styles.subheader}>
-                <Text style={styles.area} selectable>
-                  {t('onsenPreview.areaPrefecture', {
-                    area: shown.areaName,
-                    prefecture: shown.prefecture,
-                  })}
-                </Text>
-                {visited && (
-                  <View style={styles.visitedBadge}>
-                    <Text style={styles.visitedText}>{t('onsenPreview.visited')}</Text>
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={typography.sizes.md}
-                      color={colors.stampInk}
-                    />
-                  </View>
-                )}
-              </View>
-
-              <View style={styles.section}>
-                <OnsenInfoRow
-                  label={t('onsenDetail.labelAddress')}
-                  value={shown.address}
-                  action={directionsAction}
+        <View style={styles.info}>
+          <View style={styles.subheader}>
+            <Text style={styles.area} selectable>
+              {t('onsenPreview.areaPrefecture', {
+                area: onsen.areaName,
+                prefecture: onsen.prefecture,
+              })}
+            </Text>
+            {visited && (
+              <View style={styles.visitedBadge}>
+                <Text style={styles.visitedText}>{t('onsenPreview.visited')}</Text>
+                <Ionicons
+                  name="checkmark-circle"
+                  size={typography.sizes.md}
+                  color={colors.stampInk}
                 />
-                <OnsenFee admissionFee={shown.admissionFee} adultFee={shown.adultFee} />
-                {shown.springQuality && (
-                  <OnsenInfoRow
-                    label={t('onsenDetail.labelSpringQuality')}
-                    value={shown.springQuality}
-                  />
-                )}
-                {shown.businessHours && <OnsenHours hours={shown.businessHours} />}
               </View>
-            </View>
-          </BottomSheetScrollView>
+            )}
+          </View>
 
-          {/*
-           * Close affordance, rendered as a sibling overlay of the scroll body
-           * rather than inside the (sticky) hero. Inside the scroll view a tap
-           * during deceleration is swallowed to stop the scroll instead of firing
-           * the press; lifted out, it always takes priority so dismissal never
-           * misses. It still sits over the hero's top-right because the hero rests
-           * at scroll offset 0.
-           */}
-          <Pressable
-            style={[styles.closeButton, shadows.sm]}
-            onPress={() => sheetRef.current?.close()}
-            accessibilityRole="button"
-            accessibilityLabel={t('onsenPreview.close')}
-            hitSlop={spacing[2]}
-          >
-            <Ionicons name="close" size={typography.sizes.xl} color={colors.textPrimary} />
-          </Pressable>
-        </>
-      ) : null}
+          <View style={styles.section}>
+            <OnsenInfoRow
+              label={t('onsenDetail.labelAddress')}
+              value={onsen.address}
+              action={directionsAction}
+            />
+            <OnsenFee admissionFee={onsen.admissionFee} adultFee={onsen.adultFee} />
+            {onsen.springQuality && (
+              <OnsenInfoRow
+                label={t('onsenDetail.labelSpringQuality')}
+                value={onsen.springQuality}
+              />
+            )}
+            {onsen.businessHours && <OnsenHours hours={onsen.businessHours} />}
+          </View>
+        </View>
+      </BottomSheetScrollView>
+
+      {/*
+       * Close affordance, rendered as a sibling overlay of the scroll body
+       * rather than inside the (sticky) hero. Inside the scroll view a tap
+       * during deceleration is swallowed to stop the scroll instead of firing
+       * the press; lifted out, it always takes priority so dismissal never
+       * misses. It still sits over the hero's top-right because the hero rests
+       * at scroll offset 0.
+       */}
+      <Pressable
+        style={[styles.closeButton, shadows.sm]}
+        onPress={() => sheetRef.current?.close()}
+        accessibilityRole="button"
+        accessibilityLabel={t('onsenPreview.close')}
+        hitSlop={spacing[2]}
+      >
+        <Ionicons name="close" size={typography.sizes.xl} color={colors.textPrimary} />
+      </Pressable>
     </BottomSheet>
   );
 }
