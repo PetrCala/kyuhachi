@@ -3,11 +3,12 @@ import type { Timestamp } from './firestore';
 /**
  * The one uid whose journey is published.
  *
- * Mirrored in three places that cannot import this module, so keep all four in
+ * Mirrored in four places that cannot import this module, so keep all five in
  * sync: `isJourneyUser()` in firebase/firestore.rules, `JOURNEY_UID` in
  * website/src/config.ts (the website is outside the npm workspace), and
- * `JOURNEY_UID` in functions/src/callables/publishJourneyDay.ts (Functions is a
- * separate package from `@kyuhachi/shared`).
+ * `JOURNEY_UID` in both functions/src/callables/publishJourneyDay.ts and
+ * functions/src/callables/deleteJourneyDay.ts (Functions is a separate package
+ * from `@kyuhachi/shared`).
  */
 export const JOURNEY_UID = 'juEfBPJSspS9E2dqMzRac07C1Gs1';
 
@@ -100,4 +101,28 @@ export interface PublishJourneyDayResponse {
   replaced: boolean;
   /** Recordings dropped because privacy trimming left nothing publishable. */
   skippedRecordings: number;
+}
+
+/**
+ * Request for the `deleteJourneyDay` callable: one call removes one day.
+ *
+ * The undo for a publish that should not have happened. Republishing already
+ * covers a day whose track was wrong, but a day that should not exist at all,
+ * or one whose mid-walk stop sits outside the trimmed start/end zones and so
+ * went out at full fidelity, needs the document gone. Without this the only fix
+ * is the console or gcloud, which means a laptop.
+ */
+export interface DeleteJourneyDayRequest {
+  /** JST calendar day, "YYYY-MM-DD". The document id to delete. */
+  date: string;
+}
+
+export interface DeleteJourneyDayResponse {
+  date: string;
+  /**
+   * False when there was no document for that day. Not an error: the delete is
+   * idempotent, and a client acting on a stale list should still see the day
+   * gone rather than a failure it cannot act on.
+   */
+  existed: boolean;
 }
