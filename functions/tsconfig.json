@@ -12,5 +12,7 @@
     "sourceMap": true
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "lib"]
+  // Tests are typechecked by `npm test` (ts-jest), not compiled into lib/: they
+  // must never end up in a deployed bundle.
+  "exclude": ["node_modules", "lib", "src/**/__tests__/**"]
 }

@@ -607,6 +607,26 @@ const en = {
   'routes.importSkippedCount': '{{count}} skipped: unsupported file type.',
   'routes.importFailedCount': '{{count}} couldn’t be read.',
 
+  // journey publish (walked days for the public journey site; journey uid only)
+  'journeyPublish.menuSection': 'Journey site',
+  'journeyPublish.title': 'Publish a walked day',
+  'journeyPublish.intro':
+    'Pick the day’s exported track and it goes live on the journey site. One file per recording; several days at once is fine.',
+  'journeyPublish.hint':
+    'Export from your watch app as GPX, TCX or KML. Roughly 500 m is trimmed from each end before anything is published.',
+  'journeyPublish.pick': 'Choose track files',
+  'journeyPublish.publishing': 'Publishing…',
+  'journeyPublish.resultsHeader': 'Published',
+  'journeyPublish.resultPublished': 'Published, {{km}} km',
+  'journeyPublish.resultReplaced': 'Replaced, {{km}} km',
+  'journeyPublish.errorTitle': 'Nothing published',
+  'journeyPublish.errorNoTrack': 'No usable track was found in those files.',
+  'journeyPublish.errorNothingUsable':
+    'None of those files could be used. They need to be GPX, TCX or KML with timestamps.',
+  'journeyPublish.skippedTitle': 'Some files were skipped',
+  'journeyPublish.skippedMessage':
+    '{{count}} file(s) were unreadable or had no timestamps, so their day is unknown.',
+
   // onsen detail (visit)
   'onsenDetail.notFound': 'Onsen not found',
   'onsenDetail.archived': 'Archived',

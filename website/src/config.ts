@@ -1,6 +1,9 @@
 /**
  * The one uid whose journey is public. Must match isJourneyUser() in
- * firebase/firestore.rules; nothing else about the site is user-specific.
+ * firebase/firestore.rules, JOURNEY_UID in shared/src/types/journey.ts (the app)
+ * and the copy in functions/src/callables/publishJourneyDay.ts; nothing else
+ * about the site is user-specific. The website is outside the npm workspace, so
+ * it cannot import the shared constant.
  */
 export const JOURNEY_UID = 'juEfBPJSspS9E2dqMzRac07C1Gs1';
 

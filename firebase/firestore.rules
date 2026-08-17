@@ -43,9 +43,12 @@ service cloud.firestore {
     }
 
     // Walked-day GPS tracks for the public journey website, one doc per day
-    // (id = YYYY-MM-DD). Written exclusively with admin credentials (the
-    // scheduled Strava sync Function or the manual GPX import), which bypass
-    // these rules, so every client write is denied, including Petr's own.
+    // (id = YYYY-MM-DD). Written exclusively with admin credentials, which
+    // bypass these rules, so every client write is denied, including Petr's own:
+    // the publishJourneyDay callable (the in-app publish screen), the manual
+    // import script, and the scheduled Strava sync. Publishing has to go through
+    // a Function because that is where the ~500 m privacy trimming happens, and
+    // a direct client write could skip it. See docs/journey-days.md.
     match /journey_days/{date} {
       allow read: if true;
       allow write: if false;

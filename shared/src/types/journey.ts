@@ -1,6 +1,17 @@
 import type { Timestamp } from './firestore';
 
 /**
+ * The one uid whose journey is published.
+ *
+ * Mirrored in three places that cannot import this module, so keep all four in
+ * sync: `isJourneyUser()` in firebase/firestore.rules, `JOURNEY_UID` in
+ * website/src/config.ts (the website is outside the npm workspace), and
+ * `JOURNEY_UID` in functions/src/callables/publishJourneyDay.ts (Functions is a
+ * separate package from `@kyuhachi/shared`).
+ */
+export const JOURNEY_UID = 'juEfBPJSspS9E2dqMzRac07C1Gs1';
+
+/**
  * /journey_days/{date}
  *
  * One document per day Petr actually walked, keyed by the day itself
@@ -43,4 +54,50 @@ export interface JourneyDayDocument {
   stravaActivityId: number | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+}
+
+/**
+ * One continuous recording (one exported track file) contributing to a day.
+ * A day walked in two sittings is two recordings, concatenated in start order.
+ *
+ * `points` are already simplified on the device, purely to keep the upload
+ * small enough to send over cellular from the road: a raw 1 Hz day is well over
+ * a megabyte, the simplified track is tens of kilobytes, and Douglas-Peucker at
+ * ~1 m tolerance moves no point far enough to matter to the 500 m privacy trim.
+ * The trimming itself stays server-side, where the client cannot skip it.
+ */
+export interface JourneyDayRecording {
+  /** Simplified track points in recording order. */
+  points: { lat: number; lng: number }[];
+  /**
+   * Distance of this recording measured on the device at full resolution,
+   * before simplifying or trimming, meters. Matches how the Strava sync uses
+   * Strava's own activity distance rather than remeasuring the stored track.
+   */
+  distanceMeters: number;
+  /** Duration of this recording, seconds. */
+  durationSeconds: number;
+}
+
+/**
+ * Request for the `publishJourneyDay` callable: one call publishes one day.
+ * The client derives the JST day from the file's timestamps and groups its
+ * picked files accordingly, mirroring how the Strava sync groups activities.
+ */
+export interface PublishJourneyDayRequest {
+  /** JST calendar day, "YYYY-MM-DD". Becomes the document id. */
+  date: string;
+  /** That day's recordings, oldest first. */
+  recordings: JourneyDayRecording[];
+}
+
+export interface PublishJourneyDayResponse {
+  date: string;
+  /** Points actually stored, after trimming and simplifying. */
+  pointCount: number;
+  distanceMeters: number;
+  /** True when the write replaced an existing document for that day. */
+  replaced: boolean;
+  /** Recordings dropped because privacy trimming left nothing publishable. */
+  skippedRecordings: number;
 }

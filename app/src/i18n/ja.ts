@@ -590,6 +590,26 @@ const ja: Record<keyof typeof en, string> = {
   'routes.importSkippedCount': '{{count}}件をスキップしました（対応していない形式）。',
   'routes.importFailedCount': '{{count}}件を読み込めませんでした。',
 
+  // journey publish (walked days for the public journey site; journey uid only)
+  'journeyPublish.menuSection': '旅の記録サイト',
+  'journeyPublish.title': '歩いた日を公開',
+  'journeyPublish.intro':
+    'その日の書き出したトラックを選ぶと、旅の記録サイトに公開されます。記録1件につきファイル1つ、複数日をまとめて選んでも構いません。',
+  'journeyPublish.hint':
+    '時計のアプリからGPX、TCX、KMLのいずれかで書き出してください。公開前に前後それぞれ約500mが除去されます。',
+  'journeyPublish.pick': 'トラックファイルを選ぶ',
+  'journeyPublish.publishing': '公開中…',
+  'journeyPublish.resultsHeader': '公開済み',
+  'journeyPublish.resultPublished': '公開しました（{{km}}km）',
+  'journeyPublish.resultReplaced': '更新しました（{{km}}km）',
+  'journeyPublish.errorTitle': '公開できませんでした',
+  'journeyPublish.errorNoTrack': '選んだファイルに使用できるトラックが見つかりませんでした。',
+  'journeyPublish.errorNothingUsable':
+    '選んだファイルはどれも使用できませんでした。時刻情報を含むGPX、TCX、KMLが必要です。',
+  'journeyPublish.skippedTitle': '一部のファイルを除外しました',
+  'journeyPublish.skippedMessage':
+    '{{count}}件は読み込めなかった、または時刻情報がないため、日付を特定できませんでした。',
+
   // onsen detail (visit)
   'onsenDetail.notFound': '温泉が見つかりませんでした',
   'onsenDetail.archived': '廃止',

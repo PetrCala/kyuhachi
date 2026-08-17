@@ -38,6 +38,22 @@ export type ParsedRoute = Pick<
   'name' | 'sourceFormat' | 'points' | 'pointCount' | 'bounds' | 'distanceMeters'
 >;
 
+/**
+ * A parsed track without the route-document trappings, for publishing a walked
+ * day (see src/lib/journey-publish.ts). Same simplified geometry and
+ * full-resolution distance as {@link ParsedRoute}, plus the timestamps that say
+ * which day the recording belongs to.
+ */
+export interface ParsedTrack {
+  points: LatLng[];
+  /** Measured on the full-resolution track, before simplifying. */
+  distanceMeters: number;
+  durationSeconds: number;
+  /** Epoch millis of the first/last timestamped point; null if the file has no times. */
+  startMs: number | null;
+  endMs: number | null;
+}
+
 type LatLng = { lat: number; lng: number };
 
 /** Cap on stored points: keeps the doc well under Firestore's 1 MB limit and the map smooth. */
@@ -72,12 +88,7 @@ export function parseRoute(
   format: RouteSourceFormat,
   fallbackName: string
 ): ParsedRoute {
-  const collection = toGeoJson(text, format);
-  const track = firstTrackFeature(collection);
-  if (!track) throw new RouteImportError('noTrack');
-
-  const rawPoints = trackPoints(track.geometry);
-  if (rawPoints.length < 2) throw new RouteImportError('noTrack');
+  const { track, rawPoints } = parseTrackFeature(text, format);
 
   // Distance is computed from the full-resolution track for accuracy.
   const distanceMeters = totalDistanceMeters(rawPoints);
@@ -90,6 +101,66 @@ export function parseRoute(
     pointCount: points.length,
     bounds: boundsOf(points),
     distanceMeters,
+  };
+}
+
+/**
+ * Parse raw file `text` into a {@link ParsedTrack}: the same geometry
+ * {@link parseRoute} produces, plus recording times, and without the naming and
+ * document fields a stored route needs.
+ *
+ * @throws {RouteImportError} same codes as {@link parseRoute}.
+ */
+export function parseTrack(text: string, format: RouteSourceFormat): ParsedTrack {
+  const { track, rawPoints } = parseTrackFeature(text, format);
+  const { startMs, endMs } = trackTimes(track);
+
+  return {
+    points: simplify(rawPoints).map(roundPoint),
+    distanceMeters: totalDistanceMeters(rawPoints),
+    durationSeconds:
+      startMs != null && endMs != null ? Math.max(0, Math.round((endMs - startMs) / 1000)) : 0,
+    startMs,
+    endMs,
+  };
+}
+
+/** The shared front half of {@link parseRoute} and {@link parseTrack}. */
+function parseTrackFeature(
+  text: string,
+  format: RouteSourceFormat
+): { track: Feature<LineString | MultiLineString>; rawPoints: LatLng[] } {
+  const collection = toGeoJson(text, format);
+  const track = firstTrackFeature(collection);
+  if (!track) throw new RouteImportError('noTrack');
+
+  const rawPoints = trackPoints(track.geometry);
+  if (rawPoints.length < 2) throw new RouteImportError('noTrack');
+
+  return { track, rawPoints };
+}
+
+/**
+ * First and last point timestamps, in epoch millis. togeojson lifts per-point
+ * `<time>` elements into `coordinateProperties.times` (nested per segment for a
+ * MultiLineString). Files exported without time data yield nulls, and the
+ * caller then has no way to tell which day the track belongs to.
+ */
+function trackTimes(feature: Feature<LineString | MultiLineString>): {
+  startMs: number | null;
+  endMs: number | null;
+} {
+  const raw: unknown = feature.properties?.coordinateProperties?.times;
+  const times: string[] = Array.isArray(raw)
+    ? (raw.flat() as unknown[]).filter((time): time is string => typeof time === 'string')
+    : [];
+  if (times.length === 0) return { startMs: null, endMs: null };
+
+  const startMs = Date.parse(times[0]);
+  const endMs = Date.parse(times[times.length - 1]);
+  return {
+    startMs: Number.isFinite(startMs) ? startMs : null,
+    endMs: Number.isFinite(endMs) ? endMs : null,
   };
 }
 
