@@ -122,8 +122,15 @@ by JST day, pulls each activity's GPS stream and upserts one document per day.
 Re-running is idempotent and the rolling window picks up late edits. It skips any
 day already marked `source: "gpx"`.
 
-It does nothing useful without Strava API access. Keep it: it costs nothing
-dormant, and it works the moment API access exists again.
+**It is not deployed, and not even exported from `functions/src/index.ts`.** The
+file stays in the tree because it works the moment Strava API access exists
+again, but exporting it breaks things: `defineSecret()` makes firebase-tools
+prompt for `STRAVA_CLIENT_ID` / `_SECRET` / `_REFRESH_TOKEN`, those secrets have
+never existed, and that prompt blocks **every** functions deploy, including
+targeted `--only functions:name` ones and `--non-interactive`. That is what
+silently froze the deployed function set between June and August 2026.
+
+To bring it back: create the three secrets (below), then uncomment the export.
 
 <details>
 <summary>One-time setup, if Strava access is ever restored</summary>
@@ -207,6 +214,18 @@ collection and the function's logs.
 
 ```bash
 npm run deploy:functions
+```
+
+`firebase.json` runs the TypeScript build as a `predeploy` step, so the deployed
+code always matches the checkout. Without that hook, `firebase deploy` shipped
+whatever happened to be in `functions/lib/`, which is how a June build stayed
+live for two months; if a deploy ever looks like it did nothing, check that the
+hook is still there.
+
+Afterwards, confirm what is actually live rather than trusting the summary:
+
+```bash
+firebase functions:list --project kyuhachi-fddcc
 ```
 
 The app screen needs no new native module (document picker and file system were
