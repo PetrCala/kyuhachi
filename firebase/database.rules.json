@@ -1,0 +1,13 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "presence": {
+      ".read": true,
+      "$sessionId": {
+        ".write": "newData.val() === true || !newData.exists()",
+        ".validate": "newData.val() === true"
+      }
+    }
+  }
+}

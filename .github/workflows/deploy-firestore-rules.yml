@@ -53,6 +53,7 @@ on:
       - firebase/firestore.rules
       - firebase/firestore.indexes.json
       - firebase/storage.rules
+      - firebase/database.rules.json
   # Manual trigger: lets a maintainer re-deploy the current rules/indexes on
   # demand (e.g. to verify the service-account auth, or to push state that has
   # drifted) without having to touch a rules file.
@@ -89,9 +90,10 @@ jobs:
         run: npm ci
         working-directory: firebase
 
-      # Both emulators: firebase/test covers firestore.rules and storage.rules.
+      # All three emulators: firebase/test covers firestore.rules,
+      # storage.rules and database.rules.json.
       - name: Run rules tests
-        run: firebase emulators:exec --only firestore,storage --project kyuhachi-test "npm test"
+        run: firebase emulators:exec --only firestore,storage,database --project kyuhachi-test "npm test"
         working-directory: firebase
 
   deploy:
@@ -144,3 +146,17 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
         run: firebase deploy --only storage --project kyuhachi-fddcc --non-interactive
+
+      # Realtime Database rules (the journey website's presence counter,
+      # firebase/database.rules.json). Separate step for the same reason as
+      # Storage: a Database-side failure must never block the Firestore rules.
+      # One-time setup this step depends on:
+      #   - The default RTDB instance must exist (Realtime Database -> Create
+      #     Database in the Firebase console, us-central1).
+      #   - The service account needs roles/firebasedatabase.admin.
+      # Until both are done this step fails loudly; deploy by hand with
+      #   firebase deploy --only database --project kyuhachi-fddcc
+      - name: Deploy Realtime Database rules
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
+        run: firebase deploy --only database --project kyuhachi-fddcc --non-interactive

@@ -8,6 +8,7 @@ import { useJourneyChallenge } from './hooks/useJourneyChallenge';
 import { useJourneyDays } from './hooks/useJourneyDays';
 import { useOnsens } from './hooks/useOnsens';
 import { usePlannedRoute } from './hooks/usePlannedRoute';
+import { usePresence } from './hooks/usePresence';
 import { useVisits } from './hooks/useVisits';
 import { distanceToPolylineKm } from './lib/geo';
 import type { LayerVisibility, OnsenWithId } from './types';
@@ -30,6 +31,7 @@ export default function App() {
   const plannedRoute = usePlannedRoute(challenge?.activeRouteId ?? null);
   const [selectedOnsenId, setSelectedOnsenId] = useState<string | null>(null);
   const [layers, setLayers] = useState<LayerVisibility>(DEFAULT_LAYERS);
+  const viewerCount = usePresence();
 
   const visitedOnsens = useMemo(() => {
     if (!onsens) return [];
@@ -112,6 +114,13 @@ export default function App() {
         />
 
         <LayerPanel layers={layers} onChange={setLayers} />
+
+        {viewerCount > 0 && (
+          <div className="presence-pill" title="People with this page open right now">
+            <span className="presence-dot" aria-hidden="true" />
+            {viewerCount === 1 ? 'only you here' : `${viewerCount} viewing now`}
+          </div>
+        )}
 
         {loading && <div className="status-overlay">Loading the journey...</div>}
         {!loading && error && (

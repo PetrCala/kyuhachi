@@ -19,6 +19,12 @@ decision and data-exposure rationale: [ADR-009](adr/009-public-journey-website.m
   (licence pending, see [storage-image-exposure.md](storage-image-exposure.md)).
 - Unlisted: `noindex` meta + `robots.txt` disallow. There is no auth wall;
   anyone with the link can view.
+- A small "viewing now" counter runs on Firebase Realtime Database presence
+  (`/presence`, one node per open tab, removed server-side via `onDisconnect`).
+  That is RTDB's only job in this project: rules
+  (`firebase/database.rules.json`) allow exactly the presence pattern and deny
+  everything else, covered by `firebase/test/database.rules.test.ts`. There is
+  deliberately no total-views counter and no guestbook.
 
 ## Data flow
 
@@ -73,6 +79,16 @@ laptop deploys both.
 
 3. Trigger the `Deploy journey website` workflow manually (workflow_dispatch)
    or land any `website/` change on `master`.
+
+4. For the viewer counter: create the default Realtime Database instance
+   ([Realtime Database](https://console.firebase.google.com/project/kyuhachi-fddcc/database)
+   in the console, **Create Database**, United States region, locked mode; the
+   deployed rules take over from there), and add
+   `roles/firebasedatabase.admin` (Firebase Realtime Database Admin) to the
+   same CI service account so the rules workflow can deploy
+   `database.rules.json`. Until then, deploy them by hand:
+   `firebase deploy --only database --project kyuhachi-fddcc`. The site works
+   without any of this; the counter just stays hidden.
 
 A custom domain can be attached to the `kyuhachi-path` site later in the
 Hosting console without touching any of this.
