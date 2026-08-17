@@ -24,7 +24,7 @@ current phase/status live in [docs/implementation-plan.md](docs/implementation-p
 | Navigation | Expo Router |
 | Firebase SDK | `@react-native-firebase` (not the JS SDK) |
 | Map | `react-native-maps`, Apple Maps provider |
-| Backend | Firebase Functions v2, Node 20, TypeScript |
+| Backend | Firebase Functions v2, Node 22, TypeScript |
 | Auth | Sign in with Apple + email/password. No anonymous mode. |
 | CI/CD | GitHub Actions → EAS Build + EAS Submit → TestFlight |
 | Testing | Jest + React Native Testing Library + Firebase Emulator Suite |
@@ -67,7 +67,7 @@ Each is backed by an ADR in [docs/adr/](docs/adr/).
 
 ```
 app/        Expo app (screens, components, theme, i18n)
-functions/  Firebase Functions (Node 20, TypeScript)
+functions/  Firebase Functions (Node 22, TypeScript)
 shared/     Shared TypeScript types (app + functions)
 firebase/   Firestore rules, indexes, emulator config
 docs/       ADRs, specs, implementation plan, guides

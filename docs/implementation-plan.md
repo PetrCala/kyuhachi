@@ -55,7 +55,7 @@ The app uses `@react-native-firebase` directly against Firestore, Auth, and Stor
 │   ├── onsen/[id]/         # Onsen detail
 │   ├── challenge/          # Challenge screens
 │   └── _layout.tsx
-├── functions/              # Firebase Functions (Node 20, TypeScript)
+├── functions/              # Firebase Functions (Node 22, TypeScript)
 │   ├── src/
 │   └── package.json
 ├── shared/                 # Shared TypeScript types (app + functions)
@@ -108,7 +108,7 @@ The `data/mappings/onsen_id_map.json` file is the most critical piece of the dat
 | Navigation | Expo Router v3+ | File-system routing, typed routes, deep linking, wraps React Navigation |
 | Firebase SDK | `@react-native-firebase` | Better native offline persistence than JS SDK; native Auth for Sign in with Apple |
 | Map | `react-native-maps` (Apple Maps) | Free, no API key on iOS, supports markers + polylines, Expo config plugin |
-| Backend | Firebase Functions v2, Node 20, TypeScript | Minimal Functions, not the primary data path |
+| Backend | Firebase Functions v2, Node 22, TypeScript | Minimal Functions, not the primary data path |
 | CI/CD | GitHub Actions + EAS Build + EAS Submit | TestFlight without macOS runner maintenance |
 | Testing | Jest + RNTL + Firebase Emulator Suite | Emulator for rules tests; Detox deferred to Phase 2+ |
 

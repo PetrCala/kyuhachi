@@ -2,7 +2,7 @@
   "name": "kyuhachi-functions",
   "private": true,
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "main": "lib/index.js",
   "scripts": {
@@ -13,13 +13,13 @@
   },
   "dependencies": {
     "firebase-admin": "^13.4.0",
-    "firebase-functions": "^6.3.2"
+    "firebase-functions": "^7.3.2"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
     "@tmcw/togeojson": "^7.1.2",
     "@types/geojson": "^7946.0.16",
-    "@types/node": "^20.0.0",
+    "@types/node": "^22.0.0",
     "@xmldom/xmldom": "^0.9.10",
     "jest": "^29.7.0",
     "ts-jest": "^29.2.5",

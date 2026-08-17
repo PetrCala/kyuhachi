@@ -229,7 +229,11 @@ firebase functions:list --project kyuhachi-fddcc
 ```
 
 The app screen needs no new native module (document picker and file system were
-already linked), so an existing build picks it up with a JS update.
+already linked), so it needs no dev-client rebuild to link anything. It does
+still need a **new app build** to reach the phone: `expo-updates` is not
+installed, so there is no over-the-air JS delivery, and the screen only ships
+inside a new binary. The `Deploy` workflow builds one on every push to `master`,
+so in practice this means waiting for the next TestFlight build.
 
 ## Open questions
 
