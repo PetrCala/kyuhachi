@@ -13,31 +13,34 @@ name: Deploy Firestore and Storage rules
 # Required setup (in the kyuhachi-fddcc Google Cloud project):
 #   - Secret FIREBASE_SERVICE_ACCOUNT: the full JSON key of a service account,
 #     stored under Settings -> Secrets and variables -> Actions.
-#   - That service account needs all THREE of these roles:
+#   - That service account needs all SIX of these roles:
 #       * roles/firebaserules.admin            (deploy firestore:rules + storage)
 #       * roles/datastore.indexAdmin           (deploy firestore:indexes)
 #       * roles/serviceusage.serviceUsageConsumer
 #           The Firebase CLI calls the Service Usage API to verify
 #           firestore.googleapis.com is enabled before deploying; without this
 #           role the deploy fails with a 403 on serviceusage.googleapis.com.
-#   - roles/firebasestorage.admin was added for the Storage step (it holds
-#     `firebasestorage.defaultBucket.get`, which firebaserules.admin lacks). That
-#     cleared the original 403, but the step still fails, so KNOW THIS BEFORE
-#     EDITING firebase/storage.rules:
+#       * roles/firebasestorage.admin          (the Storage step; it holds
+#           `firebasestorage.defaultBucket.get`, which firebaserules.admin lacks)
+#       * roles/firebase.viewer                (also the Storage step, see below)
+#       * roles/firebasedatabase.admin         (deploy database rules)
+#     (The account also holds roles/firebasehosting.admin, for the separate
+#     website-deploy workflow, not for anything here.)
 #
-#     THE STORAGE STEP IS CURRENTLY EXPECTED TO FAIL. Deploy storage rules by
-#     hand until it is fixed:
-#         firebase deploy --only storage --project kyuhachi-fddcc
+#   The Storage step used to fail even with firebasestorage.admin, and the fix
+#   was roles/firebase.viewer, granted 2026-08-17. Worth knowing, because the
+#   error message sends you the wrong way: `firebase deploy --only storage` calls
+#   GET v1alpha/projects/{project}/defaultBucket to resolve the bucket, and
+#   firebase-tools turns a 404 from it into "Firebase Storage has not been set up
+#   on project". Storage was always set up. The service account simply could not
+#   read the project's Firebase metadata, so that lookup 404'd for it while
+#   returning 200 with kyuhachi-fddcc.firebasestorage.app under a user account.
+#   Confirmed by granting the role and re-running this workflow: all three deploy
+#   steps passed, having previously failed at Storage.
 #
-#     What happens: `firebase deploy --only storage` calls
-#     GET v1alpha/projects/{project}/defaultBucket to resolve the bucket, and
-#     firebase-tools turns a 404 from it into the (misleading) message "Firebase
-#     Storage has not been set up on project". Storage IS set up; that same call
-#     returns 200 with kyuhachi-fddcc.firebasestorage.app under a user account,
-#     and only 404s under this service account. The missing grant has not been
-#     identified. Diagnosing it needs to impersonate the service account, i.e.
-#     roles/iam.serviceAccountTokenCreator on it, and then read what the v1alpha
-#     endpoint returns for that principal.
+#   Note that the deploy steps run in one job with no continue-on-error, so a
+#   failure partway through skips every later step (a failing Storage step used
+#   to skip the Database one). Firestore is deployed first for that reason.
 #
 #     Do NOT "fix" this by switching firebase.json's `storage` to the array form
 #     with an explicit bucket. It does skip the failing lookup (see
@@ -149,12 +152,11 @@ jobs:
 
       # Realtime Database rules (the journey website's presence counter,
       # firebase/database.rules.json). Separate step for the same reason as
-      # Storage: a Database-side failure must never block the Firestore rules.
-      # One-time setup this step depends on:
-      #   - The default RTDB instance must exist (Realtime Database -> Create
-      #     Database in the Firebase console, us-central1).
-      #   - The service account needs roles/firebasedatabase.admin.
-      # Until both are done this step fails loudly; deploy by hand with
+      # Storage: it keeps a Database-side failure off the Firestore rules, which
+      # deploy first. Its two preconditions are both done as of 2026-08-17: the
+      # default instance (kyuhachi-fddcc-default-rtdb, us-central1) exists, and
+      # the service account has roles/firebasedatabase.admin. If either is ever
+      # lost this step fails loudly; deploy by hand with
       #   firebase deploy --only database --project kyuhachi-fddcc
       - name: Deploy Realtime Database rules
         env:
