@@ -436,6 +436,12 @@ export default function Home() {
                   style={styles.routeButton}
                   onPress={() => {
                     if (challenge.activeRouteId) {
+                      // Safe as a push only because this screen is itself inside
+                      // the tab layout, so the push resolves against the *tab*
+                      // navigator and just jumps to the map tab with new params.
+                      // The same call from a root-level screen would mount a
+                      // second copy of the tab layout instead: see the
+                      // `dismissTo` in app/routes and onsens/[id].
                       router.push({
                         pathname: '/map',
                         params: { routeId: challenge.activeRouteId },
