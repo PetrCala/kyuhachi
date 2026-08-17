@@ -95,6 +95,24 @@ the whole gate.
 A file exported without timestamps is reported and skipped, because there is no
 way to tell which day it belongs to. Use the script's `--date` for those.
 
+### Undoing a publish
+
+The same screen lists what is on the site right now (a plain read, since reads of
+`journey_days` are public) and each row can be deleted through the
+`deleteJourneyDay` callable, which is gated on the journey uid exactly as the
+publish one is.
+
+Republishing already repairs a day whose track was wrong, because the write is an
+upsert. Deleting covers the two cases it cannot: a day that should not be on the
+site at all, and a day whose track goes somewhere private. The trim only protects
+each recording's start and end, so a stop made mid-walk without stopping the watch
+is published at full fidelity, and the only fix is for the document to be gone.
+Doing that from the console or gcloud needs a laptop, which is the one thing not
+to hand while walking.
+
+Deleting a day that is already absent succeeds and reports it. The call is
+idempotent, and the phone may be acting on a list read before the last write.
+
 ## Batch import from a laptop
 
 For catching up a backlog, or ingesting a COROS Training Hub bulk export:
@@ -207,10 +225,10 @@ collection and the function's logs.
 
 </details>
 
-## Deploying the callable
+## Deploying the callables
 
-`publishJourneyDay` ships with the rest of Functions, from the main checkout on
-`master`:
+`publishJourneyDay` and `deleteJourneyDay` ship with the rest of Functions, from
+the main checkout on `master`:
 
 ```bash
 npm run deploy:functions

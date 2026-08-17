@@ -56,6 +56,8 @@ export type {
   JourneyDayRecording,
   PublishJourneyDayRequest,
   PublishJourneyDayResponse,
+  DeleteJourneyDayRequest,
+  DeleteJourneyDayResponse,
 } from './types/journey';
 
 export { JOURNEY_UID } from './types/journey';

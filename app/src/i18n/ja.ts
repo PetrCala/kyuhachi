@@ -609,6 +609,20 @@ const ja: Record<keyof typeof en, string> = {
   'journeyPublish.skippedTitle': '一部のファイルを除外しました',
   'journeyPublish.skippedMessage':
     '{{count}}件は読み込めなかった、または時刻情報がないため、日付を特定できませんでした。',
+  'journeyPublish.daysHeader': 'サイトに掲載中',
+  'journeyPublish.daysEmpty': 'まだ公開された日はありません。',
+  'journeyPublish.daysFailed': '公開済みの日を読み込めませんでした。',
+  'journeyPublish.dayDistance': '{{km}}km',
+  'journeyPublish.delete': '削除',
+  'journeyPublish.a11yDelete': '{{date}}を旅の記録サイトから削除',
+  'journeyPublish.deleteTitle': '{{date}}を削除しますか？',
+  'journeyPublish.deleteMessage':
+    'その日は旅の記録サイトから消えます。戻すには改めて公開する必要があります。',
+  'journeyPublish.cancel': 'キャンセル',
+  'journeyPublish.deleteConfirm': '削除',
+  'journeyPublish.deleteFailedTitle': '削除できませんでした',
+  'journeyPublish.deleteGoneTitle': 'すでに削除済み',
+  'journeyPublish.deleteGoneMessage': '{{date}}はすでにサイトにありませんでした。',
 
   // onsen detail (visit)
   'onsenDetail.notFound': '温泉が見つかりませんでした',

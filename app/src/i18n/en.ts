@@ -626,6 +626,20 @@ const en = {
   'journeyPublish.skippedTitle': 'Some files were skipped',
   'journeyPublish.skippedMessage':
     '{{count}} file(s) were unreadable or had no timestamps, so their day is unknown.',
+  'journeyPublish.daysHeader': 'On the site',
+  'journeyPublish.daysEmpty': 'No days are published yet.',
+  'journeyPublish.daysFailed': 'The published days could not be loaded.',
+  'journeyPublish.dayDistance': '{{km}} km',
+  'journeyPublish.delete': 'Delete',
+  'journeyPublish.a11yDelete': 'Delete {{date}} from the journey site',
+  'journeyPublish.deleteTitle': 'Delete {{date}}?',
+  'journeyPublish.deleteMessage':
+    'That day disappears from the journey site. Publishing it again is the only way back.',
+  'journeyPublish.cancel': 'Cancel',
+  'journeyPublish.deleteConfirm': 'Delete',
+  'journeyPublish.deleteFailedTitle': 'Not deleted',
+  'journeyPublish.deleteGoneTitle': 'Already gone',
+  'journeyPublish.deleteGoneMessage': '{{date}} was no longer on the site.',
 
   // onsen detail (visit)
   'onsenDetail.notFound': 'Onsen not found',

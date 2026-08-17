@@ -8,6 +8,7 @@ export { onVisitCreated } from './triggers/onVisitCreated';
 export { onVisitDeleted } from './triggers/onVisitDeleted';
 export { claimTier } from './callables/claimTier';
 export { publishJourneyDay } from './callables/publishJourneyDay';
+export { deleteJourneyDay } from './callables/deleteJourneyDay';
 
 // stravaSync is deliberately NOT exported: it needs Strava API access, which now
 // costs a subscription we do not have (see docs/journey-days.md), so it has
