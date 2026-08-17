@@ -2,7 +2,6 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useRef,
   useState,
   type ReactNode,
@@ -71,12 +70,27 @@ export function useRowActionsSheet(): RowActionsSheetContextValue {
  * *after* the sheet finishes dismissing, so any surface the action drives (an
  * alert, a navigation) appears over a settled UI rather than fighting the
  * slide-down, mirroring the native iOS action sheet.
+ *
+ * IMPORTANT: the `BottomSheet` is mounted only while there is a config to show,
+ * and a closed, idle sheet is never left mounted. Even closed, gorhom always
+ * mounts a full-screen `pointerEvents="box-none"` container
+ * (`BottomSheetHostingContainer`), and because this provider sits at the app
+ * root that container would sit over *every* screen, the map tab included. Such
+ * a sibling over the native map can swallow the map's pan gesture on iOS (worse
+ * on the New Architecture), freezing the map while overlay buttons still tap:
+ * exactly the regression fixed in #109. So `config` is both the content and the
+ * mount gate: the sheet animates itself in on mount (`index={0}` plus gorhom's
+ * default `animateOnMount`, the only reliable way in, since `snapToIndex` from a
+ * mount effect is a no-op while the sheet's layout is still unmeasured), and
+ * `onClose` fires once the slide-out has finished, which is when the config is
+ * cleared and the sheet unmounted.
  */
 export function RowActionsSheetProvider({ children }: { children: ReactNode }) {
   const insets = useSafeAreaInsets();
   const sheetRef = useRef<BottomSheet>(null);
-  // The active row's actions, or null when the sheet is dismissed. Retained
-  // through the close animation so the content doesn't blank mid-exit.
+  // The active row's actions, or null when there is no sheet. Doubles as the
+  // mount gate (see the note on the component): set on open, and cleared only
+  // once the close animation has finished, so the content never blanks mid-exit.
   const [config, setConfig] = useState<RowActionsConfig | null>(null);
   // The item picked before the dismiss animation; run once the sheet settles.
   const pendingAction = useRef<(() => void) | null>(null);
@@ -85,15 +99,6 @@ export function RowActionsSheetProvider({ children }: { children: ReactNode }) {
     pendingAction.current = null;
     setConfig(next);
   }, []);
-
-  // Snap open once a config is set (after its content has mounted, so dynamic
-  // sizing measures the real height); the sheet stays mounted and is driven
-  // imperatively via the ref.
-  useEffect(() => {
-    if (config) {
-      sheetRef.current?.snapToIndex(0);
-    }
-  }, [config]);
 
   const selectAction = useCallback((onPress: () => void) => {
     pendingAction.current = onPress;
@@ -117,6 +122,13 @@ export function RowActionsSheetProvider({ children }: { children: ReactNode }) {
         appearsOnIndex={0}
         disappearsOnIndex={-1}
         pressBehavior="close"
+        // Belt and braces against the same "invisible sheet over the screen"
+        // trap: the backdrop starts with pointerEvents 'auto' unless this is
+        // set, and only drops to 'none' through a runOnJS hop that its own
+        // isMounted guard can swallow. With touch-through it starts at 'none'
+        // instead and the same reaction raises it to 'auto' as the sheet opens,
+        // so the backdrop is tappable exactly while it is visible.
+        enableTouchThrough
       />
     ),
     []
@@ -125,58 +137,62 @@ export function RowActionsSheetProvider({ children }: { children: ReactNode }) {
   return (
     <RowActionsSheetContext.Provider value={{ open }}>
       {children}
-      <BottomSheet
-        ref={sheetRef}
-        index={-1}
-        enableDynamicSizing
-        enablePanDownToClose
-        onClose={handleClose}
-        backdropComponent={renderBackdrop}
-        backgroundStyle={styles.sheetBackground}
-        handleIndicatorStyle={styles.handleIndicator}
-      >
-        <BottomSheetView style={{ paddingBottom: insets.bottom }}>
-          {config ? (
-            <>
-              {config.title ? (
-                <View style={styles.titleRow}>
-                  <Text style={styles.titleText} numberOfLines={1}>
-                    {config.title}
-                  </Text>
-                </View>
-              ) : null}
-              {config.actions.map((action, index) => (
-                <Pressable
-                  key={action.label}
-                  accessibilityRole="button"
-                  onPress={() => selectAction(action.onPress)}
-                  style={({ pressed }) => [
-                    styles.option,
-                    (config.title || index > 0) && styles.optionDivider,
-                    pressed && styles.optionPressed,
-                  ]}
-                >
-                  <Text
-                    style={[styles.optionText, action.destructive && styles.optionTextDestructive]}
-                  >
-                    {action.label}
-                  </Text>
-                </Pressable>
-              ))}
-
-              <View style={styles.groupGap} />
-
+      {config ? (
+        <BottomSheet
+          ref={sheetRef}
+          // The mount position: the sheet opens itself as it appears, animating
+          // in because gorhom's `animateOnMount` defaults to true. Dynamic
+          // sizing still measures the real content height first: with no
+          // content height yet there are no detents, so gorhom holds the mount
+          // animation until `BottomSheetView` has reported its layout and then
+          // animates to that measured height. Closing goes through the ref.
+          index={0}
+          enableDynamicSizing
+          enablePanDownToClose
+          onClose={handleClose}
+          backdropComponent={renderBackdrop}
+          backgroundStyle={styles.sheetBackground}
+          handleIndicatorStyle={styles.handleIndicator}
+        >
+          <BottomSheetView style={{ paddingBottom: insets.bottom }}>
+            {config.title ? (
+              <View style={styles.titleRow}>
+                <Text style={styles.titleText} numberOfLines={1}>
+                  {config.title}
+                </Text>
+              </View>
+            ) : null}
+            {config.actions.map((action, index) => (
               <Pressable
+                key={action.label}
                 accessibilityRole="button"
-                onPress={() => sheetRef.current?.close()}
-                style={({ pressed }) => [styles.cancel, pressed && styles.optionPressed]}
+                onPress={() => selectAction(action.onPress)}
+                style={({ pressed }) => [
+                  styles.option,
+                  (config.title || index > 0) && styles.optionDivider,
+                  pressed && styles.optionPressed,
+                ]}
               >
-                <Text style={styles.cancelText}>{config.cancelLabel}</Text>
+                <Text
+                  style={[styles.optionText, action.destructive && styles.optionTextDestructive]}
+                >
+                  {action.label}
+                </Text>
               </Pressable>
-            </>
-          ) : null}
-        </BottomSheetView>
-      </BottomSheet>
+            ))}
+
+            <View style={styles.groupGap} />
+
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => sheetRef.current?.close()}
+              style={({ pressed }) => [styles.cancel, pressed && styles.optionPressed]}
+            >
+              <Text style={styles.cancelText}>{config.cancelLabel}</Text>
+            </Pressable>
+          </BottomSheetView>
+        </BottomSheet>
+      ) : null}
     </RowActionsSheetContext.Provider>
   );
 }
