@@ -19,8 +19,25 @@ interface Props {
   allOnsens: OnsenWithId[];
   /** Eligible, unvisited onsens near the planned route. */
   plannedOnsens: OnsenWithId[];
-  /** One privacy-trimmed track per walked day, oldest first. */
+  /**
+   * The walked days to draw as the solid line: filtered to the timeline
+   * cutoff, or all of them when live. Oldest first, privacy-trimmed.
+   */
   walkedDays: JourneyDayDocument[];
+  /**
+   * ALWAYS the full unfiltered day list, drawn as the faint ghost of the
+   * whole route behind a scrubbed view.
+   */
+  ghostDays: JourneyDayDocument[];
+  /** The partial track of the day being animated during playback, else null. */
+  headTrack: { lat: number; lng: number }[] | null;
+  /** Whether the camera follows the animated head during playback. */
+  follow: boolean;
+  /**
+   * Bounds to fly the camera to. Compared by identity, so pass a fresh
+   * object per request; null moves nothing.
+   */
+  focusBounds: { minLat: number; minLng: number; maxLat: number; maxLng: number } | null;
   plannedRoute: RouteDocument | null;
   layers: LayerVisibility;
   selectedOnsenId: string | null;
@@ -35,6 +52,9 @@ const SOURCES = {
   plannedOnsens: 'planned-onsens',
   walked: 'walked-days',
   gaps: 'walked-gaps',
+  ghost: 'ghost-route',
+  head: 'head-track',
+  headMarker: 'head-marker',
   planned: 'planned-route',
   terrain: 'gsi-hillshade',
 } as const;
@@ -45,6 +65,9 @@ const LAYERS = {
   plannedOnsens: 'planned-onsens-circles',
   walked: 'walked-days-line',
   gaps: 'walked-gaps-line',
+  ghost: 'ghost-route-line',
+  head: 'head-track-line',
+  headMarker: 'head-marker-circle',
   planned: 'planned-route-line',
   terrain: 'gsi-hillshade-raster',
 } as const;
@@ -54,7 +77,10 @@ const TOGGLE_LAYERS: Record<keyof LayerVisibility, string[]> = {
   visited: [LAYERS.visited],
   allOnsens: [LAYERS.allOnsens],
   plannedOnsens: [LAYERS.plannedOnsens],
-  walked: [LAYERS.walked, LAYERS.gaps],
+  // The ghost, head track and head marker are all facets of the same walked
+  // route, so the one "walked" toggle governs the lot: hiding the solid line
+  // but leaving a faint ghost and a position dot would look like a bug.
+  walked: [LAYERS.walked, LAYERS.gaps, LAYERS.ghost, LAYERS.head, LAYERS.headMarker],
   planned: [LAYERS.planned],
   terrain: [LAYERS.terrain],
 };
@@ -129,6 +155,56 @@ function gapFeatures(days: JourneyDayDocument[]): GeoJSON.FeatureCollection {
   return { type: 'FeatureCollection', features };
 }
 
+function headTrackFeatures(track: { lat: number; lng: number }[] | null): GeoJSON.FeatureCollection {
+  if (!track || track.length < 2) return EMPTY_COLLECTION;
+  return {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        geometry: {
+          type: 'LineString',
+          coordinates: track.map((p) => [p.lng, p.lat]),
+        },
+        properties: {},
+      },
+    ],
+  };
+}
+
+/**
+ * Where "now" sits on the timeline: the tip of the animated head track during
+ * playback, otherwise the end of the last drawn day. Null when nothing is
+ * drawn at all, which hides the marker rather than parking it somewhere.
+ */
+function headLngLat(
+  days: JourneyDayDocument[],
+  headTrack: { lat: number; lng: number }[] | null
+): [number, number] | null {
+  if (headTrack && headTrack.length > 0) {
+    const tip = headTrack[headTrack.length - 1];
+    return [tip.lng, tip.lat];
+  }
+  // Scan from the end rather than trusting the last entry: a day document can
+  // in principle carry no points, and the marker should sit on real ground.
+  for (let i = days.length - 1; i >= 0; i--) {
+    const points = days[i].points;
+    if (points.length > 0) {
+      const last = points[points.length - 1];
+      return [last.lng, last.lat];
+    }
+  }
+  return null;
+}
+
+function headMarkerFeatures(position: [number, number] | null): GeoJSON.FeatureCollection {
+  if (!position) return EMPTY_COLLECTION;
+  return {
+    type: 'FeatureCollection',
+    features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: position }, properties: {} }],
+  };
+}
+
 function plannedRouteFeatures(route: RouteDocument | null): GeoJSON.FeatureCollection {
   if (!route || route.points.length < 2) return EMPTY_COLLECTION;
   return {
@@ -151,6 +227,10 @@ export function JourneyMap({
   allOnsens,
   plannedOnsens,
   walkedDays,
+  ghostDays,
+  headTrack,
+  follow,
+  focusBounds,
   plannedRoute,
   layers,
   selectedOnsenId,
@@ -160,6 +240,14 @@ export function JourneyMap({
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const [mapReady, setMapReady] = useState(false);
+  // Set when the visitor drags or zooms the map themselves during playback;
+  // the follow effect reads it and stands down until the follow prop is
+  // switched off and on again.
+  const userMovedRef = useRef(false);
+  // The focusBounds object last flown to, compared by identity: App promises
+  // a fresh object per request, so a re-render carrying the same one must not
+  // yank the camera back.
+  const lastFocusRef = useRef<Props['focusBounds']>(null);
   // Kept in a ref so map event handlers, bound once, always see the latest.
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
@@ -205,6 +293,17 @@ export function JourneyMap({
       if (!styleUp) onErrorRef.current?.();
     });
 
+    // A visitor who grabs the map mid-playback has opted out of the camera
+    // chase, so remember it. dragstart only ever comes from real input, but
+    // zoomstart also fires for our own fitBounds, hence the originalEvent
+    // check: only a wheel or pinch counts as the visitor taking over.
+    map.on('dragstart', () => {
+      userMovedRef.current = true;
+    });
+    map.on('zoomstart', (e) => {
+      if (e.originalEvent) userMovedRef.current = true;
+    });
+
     map.on('load', () => {
       styleUp = true;
       // Bottom to top: terrain shading, then routes, then onsen points.
@@ -236,6 +335,22 @@ export function JourneyMap({
         },
       });
 
+      map.addSource(SOURCES.ghost, { type: 'geojson', data: EMPTY_COLLECTION });
+      map.addLayer({
+        id: LAYERS.ghost,
+        type: 'line',
+        source: SOURCES.ghost,
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          // The whole journey, barely there: while scrubbed back in time the
+          // solid line stops at the cutoff, and this faint echo underneath
+          // keeps the full shape of the walk visible for orientation.
+          'line-color': MAP_COLORS.walked,
+          'line-width': 2.5,
+          'line-opacity': 0.18,
+        },
+      });
+
       map.addSource(SOURCES.gaps, { type: 'geojson', data: EMPTY_COLLECTION });
       map.addLayer({
         id: LAYERS.gaps,
@@ -258,6 +373,32 @@ export function JourneyMap({
         source: SOURCES.walked,
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: { 'line-color': MAP_COLORS.walked, 'line-width': 3.2 },
+      });
+
+      // The day under animation, painted exactly like the finished days so
+      // playback reads as the walked line growing, not as a second route.
+      map.addSource(SOURCES.head, { type: 'geojson', data: EMPTY_COLLECTION });
+      map.addLayer({
+        id: LAYERS.head,
+        type: 'line',
+        source: SOURCES.head,
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': MAP_COLORS.walked, 'line-width': 3.2 },
+      });
+
+      // The "current position" dot: the tip of the timeline, whether that is
+      // the animated head or simply the end of the last day shown.
+      map.addSource(SOURCES.headMarker, { type: 'geojson', data: EMPTY_COLLECTION });
+      map.addLayer({
+        id: LAYERS.headMarker,
+        type: 'circle',
+        source: SOURCES.headMarker,
+        paint: {
+          'circle-radius': 6,
+          'circle-color': MAP_COLORS.walked,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': MAP_COLORS.headRing,
+        },
       });
 
       map.addSource(SOURCES.allOnsens, { type: 'geojson', data: EMPTY_COLLECTION });
@@ -380,10 +521,67 @@ export function JourneyMap({
 
   useEffect(() => {
     if (!mapReady) return;
+    mapRef.current?.getSource<GeoJSONSource>(SOURCES.ghost)?.setData(walkedFeatures(ghostDays));
+  }, [ghostDays, mapReady]);
+
+  // The head sources alone: headTrack changes every animation frame during
+  // playback, and rebuilding the full walked/gaps geojson at that rate would
+  // burn the frame budget on days that have not changed.
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = mapRef.current;
+    map?.getSource<GeoJSONSource>(SOURCES.head)?.setData(headTrackFeatures(headTrack));
+    map
+      ?.getSource<GeoJSONSource>(SOURCES.headMarker)
+      ?.setData(headMarkerFeatures(headLngLat(walkedDays, headTrack)));
+  }, [headTrack, walkedDays, mapReady]);
+
+  useEffect(() => {
+    if (!mapReady) return;
     mapRef.current
       ?.getSource<GeoJSONSource>(SOURCES.planned)
       ?.setData(plannedRouteFeatures(plannedRoute));
   }, [plannedRoute, mapReady]);
+
+  // Turning follow off and on again is the reset gesture: whatever manual
+  // panning suspended the chase is forgiven for the next playback.
+  useEffect(() => {
+    userMovedRef.current = false;
+  }, [follow]);
+
+  // Camera follow. Chase lazily: pan only once the head leaves a centered
+  // rectangle covering 60% of the viewport, so the camera glides in
+  // occasional pushes instead of pinning the dot dead center every frame.
+  // Zoom is deliberately never touched, and while follow is false (or the
+  // visitor has taken over) the camera does not move at all.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !follow || userMovedRef.current) return;
+    const head = headLngLat(walkedDays, headTrack);
+    if (!head) return;
+    const container = map.getContainer();
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    const p = map.project(head);
+    const inside = p.x >= w * 0.2 && p.x <= w * 0.8 && p.y >= h * 0.2 && p.y <= h * 0.8;
+    if (!inside) map.panTo(head);
+  }, [headTrack, walkedDays, follow, mapReady]);
+
+  // Fly to a scrub target. Identity, not deep equality, decides whether this
+  // is a new request: App hands over a fresh object each time it wants the
+  // camera moved, so the same day requested twice still refits.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !focusBounds || focusBounds === lastFocusRef.current) return;
+    lastFocusRef.current = focusBounds;
+    map.fitBounds(
+      [
+        [focusBounds.minLng, focusBounds.minLat],
+        [focusBounds.maxLng, focusBounds.maxLat],
+      ],
+      { padding: 48, maxZoom: 13 }
+    );
+  }, [focusBounds, mapReady]);
 
   // Toggle visibility.
   useEffect(() => {

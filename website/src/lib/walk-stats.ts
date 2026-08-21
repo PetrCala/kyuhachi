@@ -30,8 +30,15 @@ export interface WalkStats {
   onsensTarget: number | null;
   prefectures: number | null;
   prefecturesTotal: number | null;
-  /** Latest walked day, "YYYY-MM-DD" in JST. */
+  /** Latest walked day, "YYYY-MM-DD" in JST. Always null while scrubbed. */
   lastRecordedDay: string | null;
+  /**
+   * Where the scrubbed-to day sits in the walk: n is the 1-based position of
+   * the latest recorded day at or before the cutoff among all recorded days,
+   * total is how many there are. Null when live, where lastRecordedDay carries
+   * the date instead.
+   */
+  dayOfWalk: { n: number; total: number } | null;
 }
 
 /**
@@ -45,8 +52,18 @@ export function computeWalkStats(input: {
   onsens: Map<string, OnsenWithId> | null;
   eligibleOnsenIds: string[] | null;
   completionCount: number | null;
+  /**
+   * The timeline cutoff ("YYYY-MM-DD" in JST) when the page is scrubbed to a
+   * past day, null or absent when live. The caller passes walkedDays and
+   * visits already filtered to the cutoff; this input only shapes the two
+   * date-flavoured rows.
+   */
+  cutoff?: string | null;
+  /** Every recorded date, UNfiltered, for the dayOfWalk denominator. */
+  allRecordedDates?: string[];
 }): WalkStats {
   const days = input.walkedDays != null && input.walkedDays.length > 0 ? input.walkedDays : null;
+  const cutoff = input.cutoff ?? null;
 
   /*
    * Σ of `distanceMeters`, which is the UNTRIMMED recorded day and so is longer
@@ -91,6 +108,14 @@ export function computeWalkStats(input: {
       : null;
   const visitedIds = [...input.visits.keys()].filter((id) => pool == null || pool.has(id));
 
+  /*
+   * While scrubbed, "day n of m" takes over from the last-recorded-day row.
+   * Keeping both would print a date that either restates the cutoff the scrub
+   * pill already names or, across rest days, quietly contradicts it.
+   */
+  const allDates = input.allRecordedDates ?? [];
+  const position = cutoff != null ? allDates.filter((date) => date <= cutoff).length : 0;
+
   return {
     km,
     days: dayCount,
@@ -104,9 +129,11 @@ export function computeWalkStats(input: {
     // Denominator derived from the pool, never a hardcoded 7: the pool defines
     // the challenge and a catalog publish can change which prefectures it spans.
     prefecturesTotal: countPrefectures(input.eligibleOnsenIds ?? [], input.onsens),
-    lastRecordedDay: days
-      ? days.reduce((latest, day) => maxDay(latest, day.date), days[0].date)
-      : null,
+    lastRecordedDay:
+      cutoff == null && days
+        ? days.reduce((latest, day) => maxDay(latest, day.date), days[0].date)
+        : null,
+    dayOfWalk: position > 0 ? { n: position, total: allDates.length } : null,
   };
 }
 

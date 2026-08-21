@@ -485,7 +485,8 @@ body {
 .presence-pill {
   position: absolute;
   left: 10px;
-  bottom: 26px;
+  /* Raised clear of the timeline rail docked along the map's bottom edge. */
+  bottom: 70px;
   display: flex;
   align-items: center;
   gap: 7px;
@@ -791,4 +792,251 @@ body {
     max-height: 240px;
     scroll-snap-align: start;
   }
+}
+
+/* ---- Timeline rail ---- */
+
+/* The time machine's control, docked to the bottom of the map: play button,
+   date label, the scrubbable rail, and the viewed day's delta. The rail is a
+   native range input for its keyboard and screen-reader behaviour, drawn
+   invisible over a hand-made track (bed, fill, ticks, dots, thumb), because a
+   native slider cannot mark recorded days or visits. */
+.timeline-rail {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 6px 14px;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+}
+
+.timeline-date {
+  display: flex;
+  flex-direction: column;
+  /* Wide enough for the longest date ("28 Aug 2026") so the track does not
+     jitter as the label changes underneath the drag. */
+  min-width: 84px;
+  font-size: 12.5px;
+  line-height: 1.25;
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The recorded-day counter rides under the date rather than beside it, so the
+   label stays one fixed width whether it says "Today" or a date plus day 40. */
+.timeline-date-n {
+  font-size: 11px;
+  color: var(--color-ink-soft);
+}
+
+/* While scrubbed the date label is a real button (clicking it zooms the map
+   to that day), stripped back to look like the plain label it stands in for,
+   so live and scrubbed states line up to the pixel. */
+.timeline-date-zoom {
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.timeline-date-zoom:hover .timeline-date-day {
+  text-decoration: underline;
+}
+
+.timeline-play {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-surface);
+  font-size: 11px;
+  line-height: 1;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.timeline-play:hover {
+  background: var(--color-chip-bg);
+}
+
+/* The track box: everything inside is positioned in percent of its width,
+   with the invisible slider stretched over the lot. Taller than the line it
+   draws, so a finger has something to land on. */
+.timeline-track {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+}
+
+.timeline-track-bed,
+.timeline-track-fill {
+  position: absolute;
+  top: 50%;
+  height: 3px;
+  transform: translateY(-50%);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.timeline-track-bed {
+  left: 0;
+  right: 0;
+  background: var(--color-border);
+}
+
+/* The filled span is the walked part of the timeline, in the same colour the
+   map draws the walked route. */
+.timeline-track-fill {
+  left: 0;
+  background: var(--map-walked);
+  transition: width 80ms ease;
+}
+
+/* One tick per recorded day. Calendar days without a document get nothing:
+   the codebase is explicit that a missing day is not a rest day (it may have
+   been trimmed away), so the rail refuses to label the gaps. */
+.timeline-tick {
+  position: absolute;
+  top: 50%;
+  width: 1px;
+  height: 9px;
+  transform: translate(-50%, -50%);
+  background: var(--color-ink-soft);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* A day that gained at least one visit, dotted just below the line in the
+   map's visited-onsen colour. */
+.timeline-visit-dot {
+  position: absolute;
+  top: calc(50% + 8px);
+  width: 5px;
+  height: 5px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: var(--map-visited);
+  pointer-events: none;
+}
+
+/* The real slider, invisible but on top: clicks, drags, arrow keys and the
+   accessibility tree all still belong to it. */
+.timeline-range {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.timeline-thumb {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: var(--color-surface);
+  border: 2px solid var(--map-walked);
+  box-shadow: 0 1px 4px rgba(34, 39, 46, 0.25);
+  pointer-events: none;
+  transition: left 80ms ease;
+}
+
+/* The native thumb is invisible, so the focus ring the site promises every
+   control has to land on the drawn one. */
+.timeline-range:focus-visible + .timeline-thumb {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+/* What the viewed day added; empty while live. Kept mounted at a fixed width
+   so the track does not resize the moment scrubbing starts. */
+.timeline-delta {
+  flex: none;
+  min-width: 122px;
+  font-size: 12.5px;
+  color: var(--color-ink-soft);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timeline-thumb,
+  .timeline-track-fill {
+    transition: none;
+  }
+}
+
+/* MapLibre pins its attribution to the map's bottom edge, which the rail now
+   occupies; lift it clear only when the rail is actually rendered. */
+.map-wrap:has(.timeline-rail) .maplibregl-ctrl-bottom-left,
+.map-wrap:has(.timeline-rail) .maplibregl-ctrl-bottom-right {
+  bottom: 48px;
+}
+
+@media (max-width: 700px) {
+  /* Taller for touch, and the delta text is the line that goes: play, date
+     and the rail itself all still fit, the commentary does not. */
+  .timeline-rail {
+    min-height: 56px;
+    gap: 10px;
+  }
+
+  .timeline-delta {
+    display: none;
+  }
+
+  .map-wrap:has(.timeline-rail) .maplibregl-ctrl-bottom-left,
+  .map-wrap:has(.timeline-rail) .maplibregl-ctrl-bottom-right {
+    bottom: 56px;
+  }
+
+  /* The bottom-sheet visit panel starts above the rail instead of under it. */
+  .map-wrap:has(.timeline-rail) .visit-panel {
+    bottom: 64px;
+  }
+}
+
+/* ---- Scrub pill ---- */
+
+/* Announces that the page is showing the past, in the map's top right where
+   nothing else lives, with the way back in the same breath. */
+.scrub-pill {
+  position: absolute;
+  top: 12px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 2px 10px rgba(34, 39, 46, 0.12);
+  font-size: 12.5px;
+  color: var(--color-ink-soft);
+}
+
+.scrub-pill button {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--color-ink);
+  text-decoration: underline;
+  cursor: pointer;
 }

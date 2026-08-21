@@ -24,6 +24,7 @@ export const MAP_COLORS: {
   visitedRingSelected: string;
   allOnsen: string;
   allOnsenRing: string;
+  headRing: string;
 } = {
   walked: token('--map-walked'),
   gap: token('--map-gap'),
@@ -35,4 +36,8 @@ export const MAP_COLORS: {
   visitedRingSelected: token('--map-visited-ring-selected'),
   allOnsen: token('--map-all-onsen'),
   allOnsenRing: token('--map-all-onsen-ring'),
+  // The one colour without a stylesheet twin: the timeline head marker has no
+  // legend swatch to drift from, and a "current position" dot wants a plain
+  // white ring on any palette, so a literal here is honest rather than lazy.
+  headRing: '#ffffff',
 };

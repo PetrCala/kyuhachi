@@ -78,6 +78,14 @@ export function StatsPanel({ stats }: { stats: WalkStats }) {
     // having to claim anything live.
     progressRows.push({ label: 'Last recorded day', value: formatJstDay(stats.lastRecordedDay) });
   }
+  if (stats.dayOfWalk != null) {
+    // The scrubbed stand-in for the row above (the two are mutually
+    // exclusive): where the viewed day sits within the walk so far.
+    progressRows.push({
+      label: 'Day of the walk',
+      value: `${stats.dayOfWalk.n} of ${stats.dayOfWalk.total}`,
+    });
+  }
 
   // Nothing computed yet, so the card would be an empty box on the map.
   if (walkRows.length === 0 && progressRows.length === 0) return null;
