@@ -1,3 +1,6 @@
+// Imported explicitly rather than relying on ambient @types/jest: Functions is
+// installed standalone in CI, with no parent node_modules to pick those up from.
+import { describe, expect, it } from '@jest/globals';
 import { effectiveEligibleSet } from '../tier';
 
 /**
