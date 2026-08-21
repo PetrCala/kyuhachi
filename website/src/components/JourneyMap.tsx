@@ -8,6 +8,8 @@ import {
   KYUSHU_BOUNDS,
   MAP_STYLE_URL,
 } from '../config';
+import { formatJstDay } from '../lib/format-date';
+import { MAP_COLORS } from '../lib/map-theme';
 import type { LayerVisibility, OnsenWithId } from '../types';
 
 interface Props {
@@ -23,6 +25,8 @@ interface Props {
   layers: LayerVisibility;
   selectedOnsenId: string | null;
   onSelect: (onsenId: string | null) => void;
+  /** The style or tiles failed to load, so the map is a blank rectangle. */
+  onError?: () => void;
 }
 
 const SOURCES = {
@@ -72,14 +76,13 @@ function onsenFeatures(onsens: OnsenWithId[]): GeoJSON.FeatureCollection {
 }
 
 function formatDayLabel(day: JourneyDayDocument): string {
-  const date = new Date(`${day.date}T00:00:00+09:00`).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
+  const date = formatJstDay(day.date);
   const km = (day.distanceMeters / 1000).toFixed(1);
-  const hours = Math.floor(day.durationSeconds / 3600);
-  const minutes = Math.round((day.durationSeconds % 3600) / 60);
+  // Round to whole minutes before splitting, or a day of 7199 seconds reads
+  // "1h 60m": rounding each part on its own lets the minutes reach 60.
+  const totalMinutes = Math.round(day.durationSeconds / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
   const duration = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
   return `${date} · ${km} km · ${duration}`;
 }
@@ -152,6 +155,7 @@ export function JourneyMap({
   layers,
   selectedOnsenId,
   onSelect,
+  onError,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -159,6 +163,8 @@ export function JourneyMap({
   // Kept in a ref so map event handlers, bound once, always see the latest.
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -186,7 +192,21 @@ export function JourneyMap({
       className: 'onsen-hover-popup',
     });
 
+    /*
+     * Everything below hangs off 'load'. If the style never arrives, none of it
+     * runs and the visitor is left with real numbers in the header above an
+     * empty rectangle, so say so instead. Only up to that point, though:
+     * MapLibre fires 'error' for any single tile that fails later on, and once
+     * the style is up the map is worth looking at, so reporting those would
+     * latch a reload banner over a map that is working.
+     */
+    let styleUp = false;
+    map.on('error', () => {
+      if (!styleUp) onErrorRef.current?.();
+    });
+
     map.on('load', () => {
+      styleUp = true;
       // Bottom to top: terrain shading, then routes, then onsen points.
       map.addSource(SOURCES.terrain, {
         type: 'raster',
@@ -210,7 +230,7 @@ export function JourneyMap({
         source: SOURCES.planned,
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: {
-          'line-color': '#2a7f8a',
+          'line-color': MAP_COLORS.planned,
           'line-width': 2.5,
           'line-dasharray': [2.2, 1.6],
         },
@@ -223,8 +243,10 @@ export function JourneyMap({
         source: SOURCES.gaps,
         layout: { 'line-cap': 'round' },
         paint: {
-          'line-color': '#9aa2ad',
-          'line-width': 1.4,
+          'line-color': MAP_COLORS.gap,
+          // 2px, not the 1.4px this used to be: thinner than that the dotted
+          // grey all but disappeared against the base map.
+          'line-width': 2,
           'line-dasharray': [0.4, 2],
         },
       });
@@ -235,7 +257,7 @@ export function JourneyMap({
         type: 'line',
         source: SOURCES.walked,
         layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': '#c2413b', 'line-width': 3.2 },
+        paint: { 'line-color': MAP_COLORS.walked, 'line-width': 3.2 },
       });
 
       map.addSource(SOURCES.allOnsens, { type: 'geojson', data: EMPTY_COLLECTION });
@@ -246,9 +268,9 @@ export function JourneyMap({
         layout: { visibility: 'none' },
         paint: {
           'circle-radius': 4,
-          'circle-color': '#a8a29a',
+          'circle-color': MAP_COLORS.allOnsen,
           'circle-stroke-width': 1,
-          'circle-stroke-color': '#ffffff',
+          'circle-stroke-color': MAP_COLORS.allOnsenRing,
         },
       });
 
@@ -259,9 +281,9 @@ export function JourneyMap({
         source: SOURCES.plannedOnsens,
         paint: {
           'circle-radius': 5.5,
-          'circle-color': '#ffffff',
+          'circle-color': MAP_COLORS.plannedOnsenFill,
           'circle-stroke-width': 2,
-          'circle-stroke-color': '#2a7f8a',
+          'circle-stroke-color': MAP_COLORS.plannedOnsenRing,
         },
       });
 
@@ -272,9 +294,9 @@ export function JourneyMap({
         source: SOURCES.visited,
         paint: {
           'circle-radius': 8,
-          'circle-color': '#c2413b',
+          'circle-color': MAP_COLORS.visited,
           'circle-stroke-width': 2,
-          'circle-stroke-color': '#ffffff',
+          'circle-stroke-color': MAP_COLORS.visitedRing,
         },
       });
 
@@ -388,10 +410,17 @@ export function JourneyMap({
     map.setPaintProperty(LAYERS.visited, 'circle-stroke-color', [
       'case',
       ['==', ['get', 'id'], selectedOnsenId ?? ''],
-      '#8f2b26',
-      '#ffffff',
+      MAP_COLORS.visitedRingSelected,
+      MAP_COLORS.visitedRing,
     ]);
   }, [selectedOnsenId, mapReady]);
 
-  return <div ref={containerRef} className="map-container" />;
+  return (
+    <div
+      ref={containerRef}
+      className="map-container"
+      role="region"
+      aria-label="Map of Kyushu showing the route walked so far, the planned route ahead, and the onsens visited"
+    />
+  );
 }
