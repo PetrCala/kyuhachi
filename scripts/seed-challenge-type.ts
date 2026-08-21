@@ -18,7 +18,12 @@
  *   GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service-account-key.json \
  *   npx ts-node --transpile-only --project functions/tsconfig.json scripts/seed-challenge-type.ts
  *
- * Idempotent: re-running overwrites the existing documents.
+ * Idempotent: re-running overwrites the existing documents. Guarded by
+ * ADR-010's additive contract: the write aborts if any type's new eligible
+ * pool would drop an onsen the live pool currently holds, printing the diff.
+ * Deliberate retirement is `isActive: false` on the onsen, which leaves every
+ * pool intact; a shrink here is always a bug (a truly-must-vanish onsen would
+ * need its own mechanism and ADR, not a quiet pool edit).
  *
  * Display text (name / description / rules, tier names + condition summaries) is
  * localized in the app, keyed by the challenge-type id — see
@@ -188,6 +193,27 @@ async function main(): Promise<void> {
     .get();
   const eligibleOnsenIds = snapshot.docs.map((doc) => doc.id);
   console.log(`Found ${eligibleOnsenIds.length} active onsens`);
+
+  // ADR-010 guard: pools may only grow. Running challenges judge eligibility
+  // against snapshot ∪ live pool, which makes additions safe by construction,
+  // but nothing downstream can defend against this script shrinking the live
+  // side. Check every type's current pool before writing anything.
+  const nextPool = new Set(eligibleOnsenIds);
+  let shrinks = 0;
+  for (const type of TYPES) {
+    const current = await db.collection('challenge_types').doc(type.id).get();
+    const currentPool: string[] = current.data()?.eligibleOnsenIds ?? [];
+    const dropped = currentPool.filter((id) => !nextPool.has(id));
+    if (dropped.length > 0) {
+      shrinks += 1;
+      console.error(`✗ challenge_types/${type.id}: ${dropped.length} onsen(s) would leave the pool:`);
+      for (const id of dropped) console.error(`    ${id}`);
+    }
+  }
+  if (shrinks > 0) {
+    console.error('\nAborting: pools never shrink (ADR-010). Retire an onsen with isActive: false instead.');
+    process.exit(1);
+  }
 
   const catalogMeta = await db.collection('catalog_meta').doc('current').get();
   const catalogVersion = catalogMeta.exists ? (catalogMeta.data()?.version ?? 1) : 1;
