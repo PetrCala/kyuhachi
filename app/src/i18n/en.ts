@@ -264,6 +264,9 @@ const en = {
   'visits.daysAgo': '{{count}}d ago',
   'visits.durationMinutes': '{{count}} min',
   'visits.wouldReturn': 'Would return',
+  'visits.photo': 'Photo',
+  'visits.photoOfCount': 'Photo {{index}} of {{count}}',
+  'visits.closePhotos': 'Close photos',
 
   // menu (settings tab)
   'menu.title': 'Menu',

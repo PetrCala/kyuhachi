@@ -263,6 +263,9 @@ const ja: Record<keyof typeof en, string> = {
   'visits.daysAgo': '{{count}}日前',
   'visits.durationMinutes': '{{count}}分',
   'visits.wouldReturn': 'また行きたい',
+  'visits.photo': '写真',
+  'visits.photoOfCount': '写真 {{count}}枚中 {{index}}枚目',
+  'visits.closePhotos': '写真を閉じる',
 
   // menu (settings tab)
   'menu.title': 'メニュー',
