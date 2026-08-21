@@ -1,14 +1,34 @@
 /* Design tokens. The website is not the Expo app: these are its own, kept
-   deliberately small. Vermilion for visited, ink on paper for chrome. */
+   deliberately small. Ink on paper for chrome, cream for warmth. The ink, the
+   brand tile and the accent glyphs are taken from app/src/theme/colors.ts, so
+   the two read as the same project. */
 :root {
-  --color-ink: #22272e;
-  --color-ink-soft: #5b6470;
+  --color-ink: #1a1a1a;
+  --color-ink-soft: #555555;
   --color-paper: #faf8f4;
   --color-surface: #ffffff;
   --color-border: #e3ded6;
-  --color-vermilion: #c2413b;
-  --color-vermilion-dark: #8f2b26;
   --color-chip-bg: #f3ece3;
+  --color-brand-ink: #262837;
+  --color-brand-amber: #ffb300;
+  --color-heart: #ff3b30;
+  --color-live: #4c9f70;
+  --color-scrim: rgba(0, 0, 0, 0.9);
+
+  /* Map colours. lib/map-theme.ts reads these once at load and hands them to
+     MapLibre, and the legend swatches further down use the same names, so the
+     line on the map and the swatch beside its toggle cannot drift apart. */
+  --map-walked: #c2413b;
+  --map-gap: #888888;
+  --map-planned: #1a1a1a;
+  --map-planned-onsen-ring: #1a1a1a;
+  --map-planned-onsen-fill: #ffffff;
+  --map-visited: #2e8bc0;
+  --map-visited-ring: #ffffff;
+  --map-visited-ring-selected: #1a1a1a;
+  --map-all-onsen: #888888;
+  --map-all-onsen-ring: #ffffff;
+
   --radius-md: 10px;
   --radius-lg: 16px;
   --shadow-panel: 0 8px 32px rgba(34, 39, 46, 0.18);
@@ -32,6 +52,13 @@ body {
   font-family: var(--font-sans);
   color: var(--color-ink);
   background: var(--color-paper);
+}
+
+/* Every control here is a bare button or a checkbox on a pale card, so without
+   this a keyboard has nothing to follow. */
+:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
 }
 
 .app {
@@ -59,25 +86,32 @@ body {
   min-width: 0;
 }
 
+/* The app icon, redrawn in CSS: an ink tile holding 九 over 八 in amber. Same
+   tile as the hosted legal pages (scripts/build-legal-html.mjs), scaled down.
+   The column keeps the two glyphs touching, which a grid's stretched rows would
+   pull apart in a box this short. */
 .title-mark {
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   width: 34px;
   height: 34px;
   flex: none;
-  border-radius: 50%;
-  background: var(--color-vermilion);
-  color: #fff;
-  font-size: 19px;
+  border-radius: 12px;
+  background: var(--color-brand-ink);
+  color: var(--color-brand-amber);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
 }
 
+/* Wraps rather than truncates: it is the only flexible item in a header of
+   fixed-width chips, so at phone widths an ellipsis eats the title itself. */
 .app-title h1 {
   margin: 0;
   font-size: 17px;
   line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .subtitle {
@@ -102,7 +136,7 @@ body {
   background: var(--color-chip-bg);
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-vermilion-dark);
+  color: var(--color-ink);
 }
 
 .chip-walked {
@@ -115,6 +149,10 @@ body {
   position: relative;
   flex: 1;
   min-height: 0;
+  /* The left-hand cards are in normal flow (see .layer-panel); a tall one on a
+     short viewport is clipped here rather than pushing the document past the
+     bottom of the screen. */
+  overflow: hidden;
 }
 
 .map-container {
@@ -134,15 +172,27 @@ body {
 
 /* ---- Layer panel ---- */
 
-.layer-panel {
-  position: absolute;
-  top: 90px;
-  left: 10px;
+/* The two left-hand cards are the only children of the map that stay in normal
+   flow, stacked by the block layout instead of by a hand-picked offset: the
+   layer card's height changes when it is collapsed, and an absolute stats card
+   below it would either overlap it or float away from it. Everything else over
+   the map is absolute, so nothing else joins this column. They are positioned
+   but keep z-index auto, so they paint over the map and under the visit panel
+   on document order alone, exactly as the absolute layer card used to.
+   The top margin clears MapLibre's zoom buttons in the same corner. */
+.layer-panel,
+.stats-panel {
+  position: relative;
   width: 210px;
+  margin: 10px 0 0 10px;
   background: var(--color-surface);
   border-radius: var(--radius-md);
   box-shadow: 0 2px 12px rgba(34, 39, 46, 0.16);
   overflow: hidden;
+}
+
+.layer-panel {
+  margin-top: 90px;
 }
 
 .layer-panel-header {
@@ -160,6 +210,12 @@ body {
   letter-spacing: 0.06em;
   color: var(--color-ink-soft);
   cursor: pointer;
+}
+
+/* Full-bleed inside a card that clips its corners, so an outset ring would be
+   cut off on all four sides. */
+.layer-panel-header:focus-visible {
+  outline-offset: -3px;
 }
 
 .layer-panel-chevron {
@@ -180,9 +236,23 @@ body {
   user-select: none;
 }
 
+/* Nothing to draw for this layer, so the toggle is inert. */
+.layer-row-empty {
+  color: var(--color-ink-soft);
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* The connector row has no checkbox of its own, so its swatch is indented by
+   one checkbox plus the row gap to line up with the toggled rows above. */
+.layer-row-sub {
+  padding-left: 23px;
+  cursor: default;
+}
+
 .layer-row input {
   margin: 2px 0 0;
-  accent-color: var(--color-vermilion);
+  accent-color: var(--map-walked);
 }
 
 .layer-swatch {
@@ -195,31 +265,49 @@ body {
 }
 
 .swatch-walked {
-  background-image: linear-gradient(#c2413b, #c2413b);
+  background-image: linear-gradient(var(--map-walked), var(--map-walked));
   background-size: 18px 3px;
+}
+
+/* The stretches between recorded days: thinner and dotted, the way the map
+   draws them, so the eye reads them as less than a route. */
+.swatch-gap {
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--map-gap) 0 2px,
+    transparent 2px 5px
+  );
+  background-size: 18px 2px;
 }
 
 .swatch-planned {
   background-image: repeating-linear-gradient(
     to right,
-    #2a7f8a 0 5px,
+    var(--map-planned) 0 5px,
     transparent 5px 9px
   );
   background-size: 18px 3px;
 }
 
 .swatch-visited {
-  background-image: radial-gradient(circle, #c2413b 0 5px, transparent 5px);
+  background-image: radial-gradient(circle, var(--map-visited) 0 5px, transparent 5px);
 }
 
 .swatch-planned-onsen {
-  background-image: radial-gradient(circle, #ffffff 0 3px, #2a7f8a 3px 5px, transparent 5px);
+  background-image: radial-gradient(
+    circle,
+    var(--map-planned-onsen-fill) 0 3px,
+    var(--map-planned-onsen-ring) 3px 5px,
+    transparent 5px
+  );
 }
 
 .swatch-all-onsen {
-  background-image: radial-gradient(circle, #a8a29a 0 4px, transparent 4px);
+  background-image: radial-gradient(circle, var(--map-all-onsen) 0 4px, transparent 4px);
 }
 
+/* The only swatch with no token behind it: hillshade is a raster tile layer,
+   so there is no paint value on our side for it to drift away from. */
 .swatch-terrain {
   background-image: linear-gradient(135deg, #b5a789 0 50%, #d8cfbc 50% 100%);
   background-size: 12px 10px;
@@ -235,22 +323,161 @@ body {
 .layer-caption {
   font-size: 11px;
   color: var(--color-ink-soft);
+  /* These captions are a few words wide in a 210px card, so the default
+     greedy break strands the last one on its own line. */
+  text-wrap: pretty;
 }
 
+/* ---- Stats panel ---- */
+
+/* The card under the layers, borrowing the visit panel's label/value rows. */
+.stats-panel {
+  padding: 2px 12px 12px;
+}
+
+.stats-panel .row {
+  font-size: 12.5px;
+  gap: 8px;
+}
+
+/* Figures line up column-wise as they change; and a long caveat under a label
+   must not squeeze the number it belongs to. */
+.stats-panel .row dd {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-note {
+  display: block;
+  margin-top: 2px;
+  font-size: 10.5px;
+  line-height: 1.35;
+}
+
+/* The last row of each list sits against the card's padding, where a border
+   would double up with the next list's top rule. */
+.stats-panel .row:last-child {
+  border-bottom: none;
+}
+
+/* Borderless on purpose: the line between the two groups is the second list's
+   own top border, and drawing one here would double it. */
+.stats-rule {
+  margin: 12px 0 0;
+  border: none;
+}
+
+/* ---- Map messages ---- */
+
+/* Centred on the map rather than pinned to the top: the longest of these lines
+   is 47 characters, and a top-centred pill wide enough to hold it runs over the
+   zoom buttons in the map's top-left corner on a phone. */
 .status-overlay {
   position: absolute;
-  top: 16px;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
+  max-width: calc(100vw - 32px);
   padding: 8px 16px;
-  border-radius: 999px;
+  border-radius: var(--radius-lg);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   box-shadow: 0 2px 12px rgba(34, 39, 46, 0.12);
   font-size: 13px;
+  text-align: center;
   color: var(--color-ink-soft);
   pointer-events: none;
-  white-space: nowrap;
+}
+
+/* One layer failed to load and the rest of the map is still worth looking at.
+   Quieter than the status overlay, and it starts to the right of the zoom
+   buttons and stops above the layer card, so the left column stays clear at
+   every width; the presence pill is at the other end of the map. */
+.load-banner {
+  position: absolute;
+  top: 12px;
+  left: 50px;
+  right: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 8px;
+  width: fit-content;
+  margin-inline: auto;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 1px 6px rgba(34, 39, 46, 0.12);
+  font-size: 12.5px;
+  color: var(--color-ink-soft);
+}
+
+.load-banner button,
+.load-banner a {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--color-ink);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* The map is a canvas, so its onsen dots cannot be tabbed to. This holds one
+   button per dot, out of sight until a keyboard reaches it. Clipped rather than
+   display:none, which would take the buttons out of the tab order and leave a
+   keyboard with nothing to find. */
+.sr-only-list {
+  position: absolute;
+  top: 90px;
+  left: 10px;
+  z-index: 3;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.sr-only-list:focus-within {
+  width: 240px;
+  height: auto;
+  max-height: calc(100% - 100px);
+  overflow-y: auto;
+  clip-path: none;
+  padding: 6px;
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-panel);
+}
+
+/* Only ever seen once a keyboard has opened the card, so it is a label rather
+   than a heading to look at: the browser default is 24px with big margins. */
+.sr-only-list h2 {
+  margin: 2px 0 6px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-ink-soft);
+}
+
+.sr-only-list button {
+  display: block;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.sr-only-list button:hover {
+  background: var(--color-chip-bg);
 }
 
 /* ---- Presence pill ---- */
@@ -276,7 +503,7 @@ body {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #3d9b57;
+  background: var(--color-live);
   animation: presence-pulse 2.4s ease-in-out infinite;
 }
 
@@ -290,22 +517,41 @@ body {
   }
 }
 
+/* The dot is the only thing on the site that moves, and it never stops. */
+@media (prefers-reduced-motion: reduce) {
+  .presence-dot {
+    animation: none;
+  }
+}
+
 /* ---- Visit panel ---- */
 
+/* The panel itself does not scroll: the close button is a child of it rather
+   than of the scrolling area, so it stays in the corner while the write-up
+   moves under it. */
 .visit-panel {
   position: absolute;
   top: 16px;
   right: 16px;
   bottom: 16px;
   width: min(400px, calc(100vw - 32px));
-  overflow-y: auto;
-  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
   background: var(--color-surface);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-panel);
 }
 
-.panel-close {
+.visit-panel-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.panel-close,
+.lightbox-close {
   position: absolute;
   top: 10px;
   right: 10px;
@@ -320,7 +566,8 @@ body {
   cursor: pointer;
 }
 
-.panel-close:hover {
+.panel-close:hover,
+.lightbox-close:hover {
   background: var(--color-border);
 }
 
@@ -362,14 +609,19 @@ body {
   color: var(--color-ink);
 }
 
-.meta-rating {
-  background: var(--color-vermilion);
-  color: #fff;
+/* As the app's VisitCard does it: neutral chips, with the star and the heart
+   carrying the only colour. Both glyphs live here because the chip text is the
+   figure alone, and a decorative character is not something to read out. */
+.meta-rating::before {
+  content: '★';
+  margin-right: 4px;
+  color: var(--color-brand-amber);
 }
 
-.meta-return {
-  background: #e7f0e4;
-  color: #3d6b34;
+.meta-return::before {
+  content: '♥';
+  margin-right: 4px;
+  color: var(--color-heart);
 }
 
 .photo-grid {
@@ -396,11 +648,26 @@ body {
   display: block;
 }
 
+.photo-count {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  text-align: center;
+  color: var(--color-ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
 .visit-notes {
   margin: 16px 0 0;
   font-size: 14px;
   line-height: 1.55;
   white-space: pre-wrap;
+}
+
+.visit-panel-empty {
+  margin: 18px 0 0;
+  font-size: 13.5px;
+  font-style: italic;
+  color: var(--color-ink-soft);
 }
 
 .panel-section {
@@ -447,8 +714,15 @@ body {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: rgba(15, 18, 22, 0.82);
+  background: var(--color-scrim);
   cursor: zoom-out;
+}
+
+/* The lightbox is fixed to the viewport, so this lands in the screen's corner
+   rather than the visit panel's, clear of the image inside the padding. */
+.lightbox-close {
+  top: 16px;
+  right: 16px;
 }
 
 .lightbox img {
@@ -459,9 +733,29 @@ body {
 
 /* ---- Small screens ---- */
 
-@media (max-width: 560px) {
+/* 700px, not 560: the layer card ends at x=220 and the visit panel starts at
+   viewportWidth-416, so between 561 and 635 the two overlap and the panel, last
+   in the document, covers the legend. Below this the panel is a bottom sheet
+   instead and the left column is left alone. */
+@media (max-width: 700px) {
+  .app-title h1 {
+    font-size: 15px;
+  }
+
+  /* The legend and the stats card stack down the left of a screen that is
+     mostly map, and the legend is the one that grows: it gains a row per
+     layer, each with a caption that wraps to two lines at this width. Cap it
+     and let it scroll inside itself, so the pair of cards can never grow to
+     cover the map they are a key to. */
+  .layer-rows {
+    max-height: 34vh;
+    overflow-y: auto;
+  }
+
+  /* Kept, at a size that survives a narrow header. Hiding it took the one line
+     that says what the site is off the devices most people arrive on. */
   .subtitle {
-    display: none;
+    font-size: 11px;
   }
 
   .visit-panel {
@@ -489,9 +783,12 @@ body {
     display: none;
   }
 
+  /* The height cap earns its keep at the top of this range: a 3:2 photo across
+     a 700px sheet is 450px tall, more than the sheet has to give. */
   .photo-thumb {
     flex: 0 0 100%;
     aspect-ratio: 3 / 2;
+    max-height: 240px;
     scroll-snap-align: start;
   }
 }
