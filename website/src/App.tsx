@@ -42,8 +42,12 @@ export default function App() {
   const { onsens, failed: onsensFailed } = useOnsens();
   const { visits, failed: visitsFailed, loaded: visitsLoaded } = useVisits(challenge?.id ?? null);
   const { days: walkedDays, failed: daysFailed } = useJourneyDays();
-  const challengeType = useChallengeType(challenge?.typeId ?? null);
-  const plannedRoute = usePlannedRoute(challenge?.activeRouteId ?? null);
+  const { challengeType, failed: challengeTypeFailed } = useChallengeType(
+    challenge?.typeId ?? null
+  );
+  const { route: plannedRoute, failed: routeFailed } = usePlannedRoute(
+    challenge?.activeRouteId ?? null
+  );
   const [selectedOnsenId, setSelectedOnsenId] = useState<string | null>(null);
   const [layers, setLayers] = useState<LayerVisibility>(DEFAULT_LAYERS);
   const [mapFailed, setMapFailed] = useState(false);
@@ -106,7 +110,8 @@ export default function App() {
   // A failed catalog never fills in, so it has to end the loading state too.
   // Otherwise the overlay sits there for good over a map nobody is fetching.
   const loading = challengeLoading || (onsens === null && !onsensFailed);
-  const partlyFailed = onsensFailed || daysFailed || visitsFailed || mapFailed;
+  const partlyFailed =
+    onsensFailed || daysFailed || visitsFailed || mapFailed || challengeTypeFailed || routeFailed;
 
   /*
    * The pre-walk state is not "no challenge": the challenge document is created
