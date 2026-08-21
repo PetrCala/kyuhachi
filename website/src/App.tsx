@@ -11,6 +11,7 @@ import { useOnsens } from './hooks/useOnsens';
 import { usePlannedRoute } from './hooks/usePlannedRoute';
 import { usePresence } from './hooks/usePresence';
 import { useVisits } from './hooks/useVisits';
+import { effectiveEligibleIds } from './lib/effective-pool';
 import { distanceToPolylineKm } from './lib/geo';
 import { computeWalkStats } from './lib/walk-stats';
 import type { LayerVisibility, OnsenWithId } from './types';
@@ -62,17 +63,26 @@ export default function App() {
   }, [visits, onsens]);
 
   /*
-   * The challenge's eligible pool, joined against the catalog. It comes from
-   * the challenge's own frozen snapshot rather than the live challenge type:
-   * completion is counted against the snapshot, so drawing the live pool would
-   * put onsens on the map that can be visited and will never move the counter.
+   * The pool this challenge is judged against: frozen snapshot ∪ live type
+   * pool (ADR-010 in the app repo). The map layer and the counters below all
+   * derive from this one list, so a publish that grows the pool moves the
+   * dots and the numbers together.
    */
+  const effectivePoolIds = useMemo(
+    () =>
+      challenge
+        ? [...effectiveEligibleIds(challenge.snapshotEligibleOnsenIds, challengeType?.eligibleOnsenIds)]
+        : [],
+    [challenge, challengeType]
+  );
+
+  /** The effective pool, joined against the catalog. */
   const allChallengeOnsens = useMemo(() => {
-    if (!onsens || !challenge) return [];
-    return challenge.snapshotEligibleOnsenIds
+    if (!onsens) return [];
+    return effectivePoolIds
       .map((id) => onsens.get(id))
       .filter((onsen): onsen is OnsenWithId => onsen != null);
-  }, [onsens, challenge]);
+  }, [onsens, effectivePoolIds]);
 
   /** The planned route, only once it holds enough points to be a line at all. */
   const plannedPoints = plannedRoute && plannedRoute.points.length >= 2 ? plannedRoute.points : null;
@@ -98,10 +108,10 @@ export default function App() {
         walkedDays,
         visits,
         onsens,
-        eligibleOnsenIds: challenge?.snapshotEligibleOnsenIds ?? null,
+        eligibleOnsenIds: effectivePoolIds.length > 0 ? effectivePoolIds : null,
         completionCount: challengeType?.completionCount ?? null,
       }),
-    [walkedDays, visits, onsens, challenge, challengeType]
+    [walkedDays, visits, onsens, effectivePoolIds, challengeType]
   );
 
   const selectedOnsen = selectedOnsenId ? (onsens?.get(selectedOnsenId) ?? null) : null;

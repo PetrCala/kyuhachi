@@ -70,6 +70,7 @@ function populated(): Partial<ActiveChallengeProgress> {
   return {
     ...BASE,
     challenge: { snapshotEligibleOnsenIds: eligible, startDate: ts(0), completedAt: null } as never,
+    eligibleOnsenIds: eligible,
     completionCount: 4,
     baseMode: 'foot',
     eligibleVisitCount: 3,
@@ -122,6 +123,7 @@ function empty(): Partial<ActiveChallengeProgress> {
     distinctPrefectures: 0,
     visitedIds: new Set<string>(),
     visits: new Map(),
+    eligibleOnsenIds: [],
     onsenMap: new Map(),
   };
 }

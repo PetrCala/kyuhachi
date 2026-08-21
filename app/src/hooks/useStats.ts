@@ -63,10 +63,10 @@ export function useStats(): StatsBundle {
         ? buildVisitEntries({
             visits,
             onsenMap,
-            eligibleOnsenIds: challenge.snapshotEligibleOnsenIds,
+            eligibleOnsenIds: base.eligibleOnsenIds,
           })
         : [],
-    [challenge, visits, onsenMap]
+    [challenge, visits, onsenMap, base.eligibleOnsenIds]
   );
 
   const progress = useMemo<ProgressResult | null>(() => {
@@ -86,9 +86,9 @@ export function useStats(): StatsBundle {
     return computeGeography({
       entries,
       onsenMap,
-      eligibleOnsenIds: challenge.snapshotEligibleOnsenIds,
+      eligibleOnsenIds: base.eligibleOnsenIds,
     });
-  }, [challenge, entries, onsenMap]);
+  }, [challenge, entries, onsenMap, base.eligibleOnsenIds]);
 
   const timeline = useMemo<TimelineResult | null>(
     () => (challenge ? computeTimeline(entries) : null),
@@ -107,22 +107,22 @@ export function useStats(): StatsBundle {
       transportByOnsen.set(entry.onsenId, entry.visit.structuredData.transportMode);
     }
     return computeBudget({
-      eligibleOnsenIds: challenge.snapshotEligibleOnsenIds,
+      eligibleOnsenIds: base.eligibleOnsenIds,
       visitedOnsenIds: visitedIds,
       onsenInfo: onsenMap,
       transportByOnsen,
       completionCount: completionCount ?? 0,
     });
-  }, [challenge, entries, visitedIds, onsenMap, completionCount]);
+  }, [challenge, entries, visitedIds, onsenMap, completionCount, base.eligibleOnsenIds]);
 
   const spend = useMemo<SpendHighlights | null>(() => {
     if (!challenge) return null;
     return computeSpendHighlights({
       entries,
       onsenMap,
-      eligibleOnsenIds: challenge.snapshotEligibleOnsenIds,
+      eligibleOnsenIds: base.eligibleOnsenIds,
     });
-  }, [challenge, entries, onsenMap]);
+  }, [challenge, entries, onsenMap, base.eligibleOnsenIds]);
 
   const experience = useMemo<ExperienceResult | null>(
     () => (challenge ? computeExperience(entries) : null),

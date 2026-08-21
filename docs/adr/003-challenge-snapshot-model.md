@@ -1,7 +1,7 @@
 # ADR-003: Challenge Snapshot Model
 
 **Date:** 2026-03-24
-**Status:** Accepted
+**Status:** Accepted (amended by ADR-010: the snapshot is a floor; eligibility is judged against snapshot ∪ live pool)
 
 ## Context
 
@@ -22,7 +22,7 @@ Completion is evaluated as: count of unique visits where `onsenId ∈ snapshotEl
 
 If an onsen is later deprecated (`isActive: false`): visits to it still count toward completion (it was eligible when the challenge started). It displays as "archived" in the UI.
 
-If new onsens are added to the official pool: existing challenges are unaffected. New challenges started after the update will include them.
+If new onsens are added to the official pool: since ADR-010, additions reach existing challenges too, through the read-time union. The snapshot's job narrows to blocking removals.
 
 ## Consequences
 

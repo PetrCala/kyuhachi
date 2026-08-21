@@ -27,7 +27,7 @@ type OnsenInfo = Pick<
  * catalog doc hasn't loaded) are skipped; they reappear once the data arrives.
  */
 export function buildNextCandidates(
-  eligibleOnsenIds: string[],
+  eligibleOnsenIds: readonly string[],
   visitedOnsenIds: ReadonlySet<string>,
   onsenInfo: ReadonlyMap<string, OnsenInfo>
 ): NextOnsenCandidate[] {

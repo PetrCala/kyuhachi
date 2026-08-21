@@ -49,6 +49,22 @@ export function computeEarnedTier(
   return tier?.id ?? null;
 }
 
+/**
+ * The pool a visit is judged against: the challenge's frozen snapshot unioned
+ * with the type's live pool. Mirrors `effectiveEligibleIds` in
+ * `@kyuhachi/shared` (ADR-010); Functions is a separate package, so keep the
+ * two in sync. Must match the client's counting exactly, or claimTier refuses
+ * tiers the app shows as earned once a publish grows the pool.
+ */
+export function effectiveEligibleSet(
+  snapshotIds: readonly string[],
+  liveIds: readonly string[] | null | undefined,
+): Set<string> {
+  const union = new Set<string>(snapshotIds);
+  for (const id of liveIds ?? []) union.add(id);
+  return union;
+}
+
 export interface ChallengeEvaluation {
   /** Highest tier the challenge currently *qualifies* for, or null. */
   eligibleTier: string | null;
@@ -83,7 +99,7 @@ export async function evaluateChallenge(
   if (!typeSnap.exists) return null;
   const type = typeSnap.data() as DocumentData;
 
-  const eligibleSet = new Set(eligible);
+  const eligibleSet = effectiveEligibleSet(eligible, type.eligibleOnsenIds as string[] | undefined);
   const visitsSnap = await challengeRef.collection('visits').get();
   const eligibleDocs = visitsSnap.docs.filter((d) => eligibleSet.has(d.id));
   const transports = eligibleDocs.map(

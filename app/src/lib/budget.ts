@@ -24,7 +24,7 @@ export interface BudgetOnsenInfo {
 }
 
 export interface BudgetInput {
-  /** Frozen eligible pool for the challenge (`challenge.snapshotEligibleOnsenIds`). */
+  /** The challenge's effective pool (snapshot ∪ live, ADR-010): pass `eligibleOnsenIds` from the context. */
   eligibleOnsenIds: readonly string[];
   /** Every onsen id visited in the challenge; eligibility is intersected here. */
   visitedOnsenIds: ReadonlySet<string>;

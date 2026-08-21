@@ -23,7 +23,7 @@ import {
   type FirebaseFirestoreTypes,
 } from '@react-native-firebase/firestore';
 import type { ChallengeDocument, ChallengeTypeDocument } from '@kyuhachi/shared';
-import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
+import { COLLECTIONS, SUBCOLLECTIONS, effectiveEligibleIds } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/firebase';
 import { firebaseErrorKey } from '@/lib/firebase-errors';
@@ -125,17 +125,23 @@ export default function ChallengeList() {
     let cancelled = false;
     Promise.all(
       challenges.map(async (c) => {
-        const visitsSnap: FirebaseFirestoreTypes.QuerySnapshot = await getDocs(
-          collection(
-            db,
-            COLLECTIONS.USERS,
-            user.uid,
-            SUBCOLLECTIONS.CHALLENGES,
-            c.id,
-            SUBCOLLECTIONS.VISITS
-          )
-        );
-        const eligible = new Set(c.data.snapshotEligibleOnsenIds);
+        const [visitsSnap, typeSnap] = await Promise.all([
+          getDocs(
+            collection(
+              db,
+              COLLECTIONS.USERS,
+              user.uid,
+              SUBCOLLECTIONS.CHALLENGES,
+              c.id,
+              SUBCOLLECTIONS.VISITS
+            )
+          ) as Promise<FirebaseFirestoreTypes.QuerySnapshot>,
+          // The live pool, for the snapshot ∪ live union (ADR-010). Already
+          // fetched by the typeInfo effect, so this is a cache hit.
+          getDoc(doc(db, COLLECTIONS.CHALLENGE_TYPES, c.data.typeId)),
+        ]);
+        const live = (typeSnap.data() as ChallengeTypeDocument | undefined)?.eligibleOnsenIds;
+        const eligible = effectiveEligibleIds(c.data.snapshotEligibleOnsenIds, live);
         return [c.id, visitsSnap.docs.filter((d) => eligible.has(d.id)).length] as const;
       })
     ).then((entries) => {

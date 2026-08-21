@@ -88,9 +88,10 @@ export interface ChallengeTypeDocument {
 /**
  * /users/{userId}/challenges/{challengeId}
  *
- * snapshotEligibleOnsenIds is frozen at creation and never mutated.
- * visitCount is NOT stored here: derive it client-side by counting visits
- * where onsenId ∈ snapshotEligibleOnsenIds.
+ * snapshotEligibleOnsenIds is frozen at creation and never mutated. It is a
+ * FLOOR, not the pool: eligibility is judged against
+ * `effectiveEligibleIds(snapshot, live)` (ADR-010), so derive visitCount
+ * client-side by counting visits whose onsenId is in that union.
  */
 export interface ChallengeDocument {
   typeId: string
@@ -124,6 +125,32 @@ export interface ChallengeDocument {
   /** Set by onVisitCreated Function when unique eligible visits >= completionCount */
   completedAt: Timestamp | null
   createdAt: Timestamp
+}
+
+/**
+ * The set a visit is judged against: the challenge's frozen snapshot unioned
+ * with the challenge type's live pool (ADR-010).
+ *
+ * The two directions of catalog change are not symmetric. A removal upstream
+ * must never invalidate a running challenge, and the snapshot side guarantees
+ * that: anything the user signed up with stays eligible forever. An addition
+ * can only give the user more ways to finish, so the live side flows straight
+ * through. For a given challenge the union only ever grows, which is what
+ * makes "a data update broke my challenge" impossible by construction.
+ *
+ * `liveIds` is null/undefined when the challenge_types doc has not loaded yet
+ * (first boot offline, or a failed read); the union then degrades to the
+ * snapshot alone, which is exactly the pre-ADR-010 behaviour. Never "fix" this
+ * by re-snapshotting the challenge document: that path was considered and
+ * rejected because it lets a shrunken publish strand recorded visits.
+ */
+export function effectiveEligibleIds(
+  snapshotIds: readonly string[],
+  liveIds: readonly string[] | null | undefined
+): Set<string> {
+  const union = new Set(snapshotIds)
+  for (const id of liveIds ?? []) union.add(id)
+  return union
 }
 
 // ---------------------------------------------------------------------------
