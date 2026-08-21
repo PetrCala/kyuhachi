@@ -136,11 +136,13 @@ export default function ChallengeList() {
               SUBCOLLECTIONS.VISITS
             )
           ) as Promise<FirebaseFirestoreTypes.QuerySnapshot>,
-          // The live pool, for the snapshot ∪ live union (ADR-010). Already
-          // fetched by the typeInfo effect, so this is a cache hit.
-          getDoc(doc(db, COLLECTIONS.CHALLENGE_TYPES, c.data.typeId)),
+          // The live pool, for the snapshot ∪ live union (ADR-010). Usually a
+          // cache hit (the typeInfo effect fetched it), but offline with a cold
+          // cache it can reject; degrade that challenge to its snapshot rather
+          // than let one rejection zero every challenge's count.
+          getDoc(doc(db, COLLECTIONS.CHALLENGE_TYPES, c.data.typeId)).catch(() => null),
         ]);
-        const live = (typeSnap.data() as ChallengeTypeDocument | undefined)?.eligibleOnsenIds;
+        const live = (typeSnap?.data() as ChallengeTypeDocument | undefined)?.eligibleOnsenIds;
         const eligible = effectiveEligibleIds(c.data.snapshotEligibleOnsenIds, live);
         return [c.id, visitsSnap.docs.filter((d) => eligible.has(d.id)).length] as const;
       })
