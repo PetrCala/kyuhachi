@@ -176,3 +176,64 @@ Connect in the same pass.
 4. In App Store Connect: attach the build, fill in App Privacy to match
    [Collected data](#collected-data), fill in App Review Information with the
    demo credentials, then submit.
+
+## Review notes
+
+[app/fastlane/metadata/review_information/notes.txt](../app/fastlane/metadata/review_information/notes.txt)
+is the source of truth for the **Notes** field; `fastlane metadata` pushes it.
+Edit the file, never the App Store Connect text area, or the next `deliver` run
+overwrites the edit.
+
+The field caps at **4000 characters**, and the Japanese characters in it are one
+character each there but three bytes on disk, so `wc -c` overstates it:
+
+```bash
+node -e "const s=require('fs').readFileSync('app/fastlane/metadata/review_information/notes.txt','utf8');console.log([...s].length)"
+```
+
+The notes answer, by name, the seven things Apple's Guideline 2.1 information
+request asks for (see below). Keep all seven when editing: dropping one invites
+the same rejection.
+
+## Rejection history
+
+### 1.0 (build 92): Guideline 2.1, Information Needed (2026-08-14)
+
+Submitted 2026-08-11, rejected three days later. **Not a bug or a crash**: build
+92 processed clean, and the reviewer never said anything was broken. It is
+Apple's standard information request for a **new app's first submission**, which
+asks for seven things and a screen recording. The old notes covered roughly
+three of the seven.
+
+What was missing, and now is not: the device models and OS versions tested, an
+explicit statement of the target audience and the problem solved, setup and
+navigation instructions, the list of external services, a regional-differences
+answer, and a rights statement for third-party material.
+
+Answering it needs two moves, and **only one of them lives in this repo**:
+
+1. **The notes**, done in the file above, so every future submission carries
+   the answers up front and never triggers this request again.
+2. **A screen recording**, captured on a physical device on the latest iOS,
+   attached as a reply in Resolution Center. There is no way to script this;
+   see the shot list below.
+
+### Screen recording shot list
+
+Apple wants one continuous recording that starts at app launch and walks the
+core flows. Record on the iPhone 14 from a TestFlight install, not a simulator:
+they ask for a physical device, and they check. Cover, in order:
+
+1. Launch to the sign-in screen; register a **new** account with email/password
+   (do not start from an already-signed-in state).
+2. Sign out, then sign back in with the demo account.
+3. Home and the Spaport stamp book; Map; Onsens list with a search.
+4. Record a visit, including attaching a photo. This trips the photo permission
+   prompt, so let it appear on camera.
+5. The location permission prompt, then "Near you" and Finder on a route.
+6. Import a route from a `.gpx` file.
+7. Menu > Account > **Delete account**, all the way through the confirmation.
+
+Steps 1 and 7 are the ones reviewers most often find missing. There are no
+purchases, subscriptions, ATT prompt or user-to-user content to film, and the
+reply should say so explicitly rather than leave the reviewer wondering.
