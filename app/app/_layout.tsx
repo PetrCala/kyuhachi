@@ -140,6 +140,14 @@ export default function RootLayout() {
                           name="onsens/edit-visit"
                           options={{ presentation: 'modal', headerShown: true }}
                         />
+                        {/* Full-screen so the photo sits on black edge to edge,
+                            with the screen's own close button instead of a
+                            header, and faded in so the photo grows out of the
+                            card rather than sliding over it. */}
+                        <Stack.Screen
+                          name="onsens/photos"
+                          options={{ presentation: 'fullScreenModal', animation: 'fade' }}
+                        />
                       </Stack>
                     </RowActionsSheetProvider>
                   </StampCelebrationProvider>

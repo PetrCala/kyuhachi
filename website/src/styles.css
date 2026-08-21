@@ -472,4 +472,26 @@ body {
     width: auto;
     max-height: 62%;
   }
+
+  /* Photos scroll sideways instead of stacking into rows. The panel is a short
+     sheet at this width, where a grid of thumbs costs most of the height the
+     notes and the visit facts need, and one photo at a time is how the app
+     shows them too. On a wide screen the panel is a tall sidebar and the grid
+     stays: it shows every photo at once with nothing to swipe. */
+  .photo-grid {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .photo-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .photo-thumb {
+    flex: 0 0 100%;
+    aspect-ratio: 3 / 2;
+    scroll-snap-align: start;
+  }
 }

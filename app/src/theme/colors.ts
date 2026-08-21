@@ -52,6 +52,11 @@ const palette = {
   // Scrim behind modal sheets (semi-transparent black)
   scrim: 'rgba(0, 0, 0, 0.4)',
 
+  // Ground of the full-screen photo viewer. Pure black rather than `black`
+  // (#1a1a1a): a photo laid on a near-black ground reads as a dark grey frame
+  // around it, while true black disappears and leaves only the photograph.
+  photoGround: '#000000',
+
   // Onsen mark grounds: deep dye tones, named for the traditional Japanese
   // colour each is drawn from. Seven distinct hues plus a neutral, all dark
   // enough that inverted text laid over them stays legible.
@@ -71,6 +76,7 @@ export const colors = {
   backgroundSecondary: palette.gray100, // grouped lists, inset sections
   backgroundElevated:  palette.gray50,  // cards, text inputs
   overlay:             palette.scrim,   // dimming behind bottom-sheet modals
+  photoViewer:         palette.photoGround, // full-screen photo viewer ground
 
   // Text
   textPrimary:     palette.black,  // headings, primary content

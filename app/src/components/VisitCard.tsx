@@ -1,9 +1,11 @@
 import type { ComponentProps } from 'react';
-import { View, Text, Pressable, Image, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import type { TransportMode } from '@kyuhachi/shared';
 import OnsenIcon from '@/components/OnsenIcon';
+import { VisitPhotoStrip } from '@/components/VisitPhotoStrip';
 import { usePreferences } from '@/context/PreferencesContext';
 import { formatVisitDate } from '@/lib/format-visit-date';
 import { onsenReading } from '@/lib/onsen-name';
@@ -43,6 +45,7 @@ export function VisitCard({
   completed = false,
 }: VisitCardProps) {
   const { t, i18n } = useTranslation();
+  const router = useRouter();
   const { showReadings } = usePreferences();
   const { visit, onsenName, nameKana, nameRomaji, areaName, prefecture } = item;
   // Reading shown under the kanji name: romaji in a non-JP UI, kana in Japanese.
@@ -117,15 +120,15 @@ export function VisitCard({
       </View>
 
       {photoUrls.length > 0 ? (
-        <View style={styles.photoWrap}>
-          <Image source={{ uri: photoUrls[0] }} style={styles.photo} resizeMode="cover" />
-          {photoUrls.length > 1 ? (
-            <View style={styles.photoBadge}>
-              <Ionicons name="images-outline" size={typography.sizes.xs} color={colors.textInverted} />
-              <Text style={styles.photoBadgeText}>{photoUrls.length}</Text>
-            </View>
-          ) : null}
-        </View>
+        <VisitPhotoStrip
+          urls={photoUrls}
+          onPressPhoto={(index) =>
+            router.push({
+              pathname: '/onsens/photos',
+              params: { id: item.onsenId, index: String(index) },
+            })
+          }
+        />
       ) : null}
 
       {hasStats ? (
@@ -276,33 +279,6 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.medium,
     color: colors.actionPrimary,
-  },
-  photoWrap: {
-    position: 'relative',
-    marginTop: spacing[3],
-  },
-  photo: {
-    width: '100%',
-    aspectRatio: 3 / 2,
-    borderRadius: radii.md,
-    backgroundColor: colors.backgroundSecondary,
-  },
-  photoBadge: {
-    position: 'absolute',
-    top: spacing[2],
-    right: spacing[2],
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing[1],
-    paddingHorizontal: spacing[2],
-    paddingVertical: spacing[1],
-    borderRadius: radii.full,
-    backgroundColor: colors.overlay,
-  },
-  photoBadgeText: {
-    fontSize: typography.sizes.xs,
-    fontWeight: typography.weights.medium,
-    color: colors.textInverted,
   },
   chipRow: {
     flexDirection: 'row',

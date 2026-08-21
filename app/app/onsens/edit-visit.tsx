@@ -55,6 +55,7 @@ import { useStampCelebration } from '@/context/StampCelebrationContext';
 import { useVisit } from '@/hooks/useVisit';
 import { db, storage } from '@/firebase';
 import { firebaseErrorKey } from '@/lib/firebase-errors';
+import { downscalePhoto, PHOTO_QUALITY } from '@/lib/downscale-photo';
 import { RatingStars } from '@/components/visit/RatingStars';
 import { OptionChips, type ChipOption } from '@/components/visit/OptionChips';
 import { BoolChips } from '@/components/visit/BoolChips';
@@ -110,6 +111,9 @@ export default function EditVisit() {
   const [showDetails, setShowDetails] = useState(false);
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
+  // True while freshly picked photos are being scaled down. Save waits for it:
+  // it writes whatever `photos` holds at the moment it runs.
+  const [staging, setStaging] = useState(false);
   // Photos are staged locally and only uploaded/written on Save; Cancel discards
   // them. `originalPhotoUrls` remembers what the doc had so Save can delete the
   // Storage objects for any the user removed.
@@ -332,6 +336,10 @@ export default function EditVisit() {
   }
 
   function handleAddPhoto() {
+    // The library's own selection counter stops at the slots still free, so the
+    // user sees the limit while picking rather than having photos silently
+    // dropped afterwards. The slice below is what actually holds MAX_PHOTOS.
+    const remaining = MAX_PHOTOS - photos.length;
     ActionSheetIOS.showActionSheetWithOptions(
       {
         options: [
@@ -344,16 +352,38 @@ export default function EditVisit() {
       async (buttonIndex) => {
         let result: ImagePicker.ImagePickerResult | null = null;
         if (buttonIndex === 1) {
-          result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.7 });
+          result = await ImagePicker.launchCameraAsync({
+            mediaTypes: ['images'],
+            quality: PHOTO_QUALITY,
+          });
         } else if (buttonIndex === 2) {
           result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ['images'],
-            quality: 0.7,
+            quality: PHOTO_QUALITY,
+            allowsMultipleSelection: true,
+            selectionLimit: remaining,
           });
         }
-        if (result && !result.canceled && result.assets[0]) {
-          const uri = result.assets[0].uri;
-          setPhotos((ps) => [...ps, { kind: 'new', uri }]);
+        if (!result || result.canceled) return;
+        // Scaled down before they are staged, so what the strip previews is what
+        // eventually uploads. The camera returns a single asset; the library may
+        // return several, and both take this one path.
+        //
+        // One at a time, not Promise.all: a full-resolution iPhone frame is
+        // ~50 MB decoded, so resizing six at once would hold a third of a
+        // gigabyte of bitmaps at the peak. The user is waiting either way.
+        //
+        // Save is blocked meanwhile (see `staging`). It writes whatever `photos`
+        // holds when it runs, so saving mid-resize would otherwise drop the
+        // photos still in flight without saying so.
+        setStaging(true);
+        try {
+          for (const asset of result.assets) {
+            const uri = await downscalePhoto(asset.uri, asset.width, asset.height);
+            setPhotos((ps) => [...ps, { kind: 'new' as const, uri }].slice(0, MAX_PHOTOS));
+          }
+        } finally {
+          setStaging(false);
         }
       }
     );
@@ -402,8 +432,17 @@ export default function EditVisit() {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
         >
-          {/* Photos (staged locally; uploaded on Save) */}
-          <View style={styles.photoGrid}>
+          {/* Photos (staged locally; uploaded on Save). Laid out as a
+              horizontal strip, in the same order and the same left-to-right
+              reading as the card's photo strip, so which photo is the cover is
+              visible from here. */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            style={styles.photoStripScroll}
+            contentContainerStyle={styles.photoStrip}
+          >
             {photos.map((photo, index) => (
               <View
                 key={photo.kind === 'existing' ? photo.url : `new:${index}:${photo.uri}`}
@@ -434,7 +473,7 @@ export default function EditVisit() {
                 <Ionicons name="add" size={typography.sizes.xxl} color={colors.actionPrimary} />
               </Pressable>
             )}
-          </View>
+          </ScrollView>
 
           {/* Base */}
           <Field label={t('onsenDetail.labelRating')}>
@@ -655,10 +694,10 @@ export default function EditVisit() {
 
           <Pressable
             accessibilityRole="button"
-            accessibilityState={{ disabled: saving || removing, busy: saving }}
-            style={[styles.saveButton, (saving || removing) && styles.buttonDisabled]}
+            accessibilityState={{ disabled: saving || removing || staging, busy: saving || staging }}
+            style={[styles.saveButton, (saving || removing || staging) && styles.buttonDisabled]}
             onPress={handleSaveVisit}
-            disabled={saving || removing}
+            disabled={saving || removing || staging}
           >
             <Text style={styles.saveButtonText}>
               {saving ? t('onsenDetail.saving') : t('onsenDetail.saveButton')}
@@ -717,11 +756,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.background,
   },
-  photoGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing[2],
+  photoStripScroll: {
     marginBottom: spacing[2],
+  },
+  photoStrip: {
+    flexDirection: 'row',
+    gap: spacing[2],
   },
   photoThumbWrap: {
     position: 'relative',
