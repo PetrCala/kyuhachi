@@ -32,6 +32,7 @@ export {
   CROWD_LEVELS,
   VISITED_WITH_OPTIONS,
   EMPTY_VISIT_STRUCTURED_DATA,
+  effectiveEligibleIds,
 } from './types/challenge';
 
 export type { PoiCategory, Poi } from './types/finder';

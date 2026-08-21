@@ -30,7 +30,7 @@ import type {
   TransportMode,
   VisitDocument,
 } from '@kyuhachi/shared';
-import { COLLECTIONS, SUBCOLLECTIONS } from '@kyuhachi/shared';
+import { COLLECTIONS, SUBCOLLECTIONS, effectiveEligibleIds } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
 import { useOnsenCatalog } from '@/context/OnsenCatalogContext';
 import { db, functions } from '@/firebase';
@@ -110,6 +110,13 @@ export interface ActiveChallengeProgress {
   visitedIds: Set<string>;
   /** Every visit in the active challenge, keyed by onsenId. */
   visits: Map<string, VisitDocument>;
+  /**
+   * The pool the active challenge is judged against: frozen snapshot ∪ live
+   * type pool (ADR-010). The one list consumers should count or enumerate
+   * against; reading challenge.snapshotEligibleOnsenIds directly reintroduces
+   * the pre-ADR-010 gap.
+   */
+  eligibleOnsenIds: readonly string[];
   /** Display info for the active challenge's eligible onsens, keyed by onsenId. */
   onsenMap: Map<string, OnsenDisplayInfo>;
   /** Eligible onsens for the active challenge; display order is handled by OnsenList. */
@@ -137,6 +144,7 @@ const ActiveChallengeContext = createContext<ActiveChallengeProgress>({
   activeRoute: null,
   visitedIds: new Set(),
   visits: new Map(),
+  eligibleOnsenIds: [],
   onsenMap: new Map(),
   rows: [],
   clearRoute: async () => {},
@@ -173,6 +181,8 @@ export function ActiveChallengeProvider({ children }: { children: ReactNode }) {
   const [ranks, setRanks] = useState<Rank[]>([]);
   const [completionCount, setCompletionCount] = useState<number | null>(null);
   const [baseMode, setBaseMode] = useState<TransportMode | null>(null);
+  // The challenge type's live eligibleOnsenIds; null until the doc resolves.
+  const [livePoolIds, setLivePoolIds] = useState<string[] | null>(null);
   const { onsenMap: catalogMap } = useOnsenCatalog();
   const [activeRoute, setActiveRoute] = useState<RouteDocument | null>(null);
   const [loading, setLoading] = useState(true);
@@ -304,6 +314,7 @@ export function ActiveChallengeProvider({ children }: { children: ReactNode }) {
       setRanks([]);
       setCompletionCount(null);
       setBaseMode(null);
+      setLivePoolIds(null);
       return;
     }
     const unsub = onSnapshot(
@@ -314,6 +325,7 @@ export function ActiveChallengeProvider({ children }: { children: ReactNode }) {
           setRanks([]);
           setCompletionCount(null);
           setBaseMode(null);
+          setLivePoolIds(null);
           return;
         }
         const data = snapshot.data() as ChallengeTypeDocument;
@@ -322,24 +334,39 @@ export function ActiveChallengeProvider({ children }: { children: ReactNode }) {
         setRanks(data.ranks ?? []);
         setCompletionCount(data.completionCount);
         setBaseMode(data.baseMode ?? null);
+        setLivePoolIds(data.eligibleOnsenIds ?? null);
       },
       () => {
         setTiers([]);
         setRanks([]);
         setCompletionCount(null);
         setBaseMode(null);
+        setLivePoolIds(null);
       }
     );
     return unsub;
   }, [challenge?.typeId, t]);
 
+  /*
+   * The pool this challenge is judged against: frozen snapshot ∪ live type
+   * pool (ADR-010). Every eligibility decision below reads this one set, so a
+   * pool addition reaches everything at once and nothing can half-agree.
+   * `effectiveIdList` is the same thing in stable iteration order (snapshot
+   * first, additions after), for the consumers that build lists.
+   */
+  const effectiveIds = useMemo<Set<string>>(
+    () => (challenge ? effectiveEligibleIds(challenge.snapshotEligibleOnsenIds, livePoolIds) : new Set()),
+    [challenge, livePoolIds]
+  );
+  const effectiveIdList = useMemo<string[]>(() => [...effectiveIds], [effectiveIds]);
+
   // Display data for the eligible IDs, resolved from the offline-first catalog
-  // store (which holds every onsen ever published, so a snapshot id always
+  // store (which holds every onsen ever published, so a pool id always
   // resolves once the catalog is loaded, even for since-archived onsens).
   const onsenMap = useMemo<Map<string, OnsenDisplayInfo>>(() => {
     const collected = new Map<string, OnsenDisplayInfo>();
     if (!challenge) return collected;
-    for (const id of challenge.snapshotEligibleOnsenIds) {
+    for (const id of effectiveIdList) {
       const data = catalogMap.get(id);
       if (!data) continue;
       collected.set(id, {
@@ -354,7 +381,7 @@ export function ActiveChallengeProvider({ children }: { children: ReactNode }) {
       });
     }
     return collected;
-  }, [challenge, catalogMap]);
+  }, [challenge, effectiveIdList, catalogMap]);
 
   // Load the challenge's active route (cosmetic). A dangling activeRouteId
   // (the route was deleted) resolves to null and is shown as "no route".
@@ -376,7 +403,7 @@ export function ActiveChallengeProvider({ children }: { children: ReactNode }) {
   const rows = useMemo<OnsenRow[]>(() => {
     if (!challenge) return [];
     // Grouping/order (unvisited first, by prefecture, then area, then name) is applied by OnsenList.
-    return challenge.snapshotEligibleOnsenIds.map((id) => {
+    return effectiveIdList.map((id) => {
       const info = onsenMap.get(id);
       return {
         id,
@@ -392,27 +419,25 @@ export function ActiveChallengeProvider({ children }: { children: ReactNode }) {
         visited: visitedIds.has(id),
       };
     });
-  }, [challenge, onsenMap, visitedIds]);
+  }, [challenge, effectiveIdList, onsenMap, visitedIds]);
 
   const eligibleVisitCount = useMemo(() => {
     if (!challenge) return 0;
-    const eligible = new Set(challenge.snapshotEligibleOnsenIds);
-    return [...visitedIds].filter((id) => eligible.has(id)).length;
-  }, [challenge, visitedIds]);
+    return [...visitedIds].filter((id) => effectiveIds.has(id)).length;
+  }, [challenge, effectiveIds, visitedIds]);
 
   // Distinct prefectures among eligible visits: the second axis ranks gate on.
   // A missing prefecture ('' until the onsen's display data loads) isn't counted.
   const distinctPrefectures = useMemo(() => {
     if (!challenge) return 0;
-    const eligible = new Set(challenge.snapshotEligibleOnsenIds);
     const prefectures = new Set<string>();
     for (const id of visitedIds) {
-      if (!eligible.has(id)) continue;
+      if (!effectiveIds.has(id)) continue;
       const prefecture = onsenMap.get(id)?.prefecture;
       if (prefecture) prefectures.add(prefecture);
     }
     return prefectures.size;
-  }, [challenge, visitedIds, onsenMap]);
+  }, [challenge, effectiveIds, visitedIds, onsenMap]);
 
   // The official progression rank, derived purely from progress (no claim). The
   // current rank is the highest rung met on both axes; the next is the one to
@@ -433,10 +458,9 @@ export function ActiveChallengeProvider({ children }: { children: ReactNode }) {
   // button. Mirrors the server's check (the callable re-verifies before writing).
   const eligibleTier = useMemo<Tier | null>(() => {
     if (!challenge || tiers.length === 0) return null;
-    const eligibleSet = new Set(challenge.snapshotEligibleOnsenIds);
     const transports: (TransportMode | null)[] = [];
     for (const [onsenId, visit] of visits) {
-      if (eligibleSet.has(onsenId)) {
+      if (effectiveIds.has(onsenId)) {
         transports.push(visit.structuredData?.transportMode ?? null);
       }
     }
@@ -449,7 +473,7 @@ export function ActiveChallengeProvider({ children }: { children: ReactNode }) {
       daysSinceStart,
     };
     return highestEligibleTier(tiers, progress);
-  }, [challenge, tiers, visits, baseMode, eligibleVisitCount]);
+  }, [challenge, tiers, visits, baseMode, effectiveIds, eligibleVisitCount]);
 
   // Opens the unified Routes screen. Attaching a route to the challenge now
   // happens there via each route's ⋯ menu, not by tapping, so this no longer
@@ -504,6 +528,7 @@ export function ActiveChallengeProvider({ children }: { children: ReactNode }) {
       activeRoute,
       visitedIds,
       visits,
+      eligibleOnsenIds: effectiveIdList,
       onsenMap,
       rows,
       clearRoute,
@@ -528,6 +553,7 @@ export function ActiveChallengeProvider({ children }: { children: ReactNode }) {
       activeRoute,
       visitedIds,
       visits,
+      effectiveIdList,
       onsenMap,
       rows,
       clearRoute,

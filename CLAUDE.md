@@ -40,7 +40,9 @@ Each is backed by an ADR in [docs/adr/](docs/adr/).
   fixed list. The pool is defined in `challenge_types`; completion = unique eligible
   visits ≥ 88.
 - **Challenge snapshots are frozen at creation.** Catalog changes never mutate
-  existing challenges.
+  existing challenges. The snapshot is a floor, not the pool: eligibility is
+  judged against `effectiveEligibleIds(snapshot, live)` (ADR-010), so pool
+  additions reach running challenges and removals never do.
 - **Onsen documents are never deleted** — deprecated onsens get `isActive: false`.
 - **Offline-first.** Firestore offline persistence is on from day one; not optional.
 - **Firestore rules enforce ownership.** Standard user operations write Firestore

@@ -62,6 +62,7 @@ export default function Home() {
     visits,
     visitedIds,
     onsenMap,
+    eligibleOnsenIds,
     clearRoute,
     selectRoute,
   } = useActiveChallengeProgress();
@@ -109,9 +110,8 @@ export default function Home() {
   // Eligible onsens the user hasn't visited yet, fed to the "nearest unvisited"
   // card. The card hides itself when this is empty (challenge complete).
   const nextCandidates = useMemo(
-    () =>
-      challenge ? buildNextCandidates(challenge.snapshotEligibleOnsenIds, visitedIds, onsenMap) : [],
-    [challenge, visitedIds, onsenMap]
+    () => (challenge ? buildNextCandidates(eligibleOnsenIds, visitedIds, onsenMap) : []),
+    [challenge, eligibleOnsenIds, visitedIds, onsenMap]
   );
 
   const [celebration, setCelebration] = useState<TierCelebration | null>(null);

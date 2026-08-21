@@ -77,7 +77,7 @@ function PassportPage({
 export default function Passport() {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
-  const { loading, challenge, completionCount, eligibleVisitCount, visits, onsenMap } =
+  const { loading, challenge, completionCount, eligibleVisitCount, visits, onsenMap, eligibleOnsenIds } =
     useActiveChallengeProgress();
   // null until the user pages by hand; the displayed page then follows the swipe.
   // Before that, the indicator tracks the page the book opened on (the latest stamp).
@@ -86,7 +86,8 @@ export default function Passport() {
   // Eligible visits in visit order: the sequence the book fills in.
   const stamped = useMemo<StampEntry[]>(() => {
     if (!challenge) return [];
-    const eligible = new Set(challenge.snapshotEligibleOnsenIds);
+    // The effective pool (ADR-010): a pool addition earns a passport page too.
+    const eligible = new Set(eligibleOnsenIds);
     const list: StampEntry[] = [];
     for (const [onsenId, visit] of visits) {
       if (!eligible.has(onsenId)) continue;
@@ -101,7 +102,7 @@ export default function Passport() {
     }
     list.sort((a, b) => a.ms - b.ms);
     return list;
-  }, [challenge, visits, onsenMap]);
+  }, [challenge, eligibleOnsenIds, visits, onsenMap]);
 
   // Layout values, computed before the early returns so the hooks order is
   // stable. completionCount is null only while loading, when we bail out below.
