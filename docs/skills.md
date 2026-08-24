@@ -11,6 +11,7 @@ Slash commands available in this repo. All skills live in `.claude/commands/` an
 | `/check-types` | — | Whenever you touch Firestore reads/writes |
 | `/check-offline` | — | When implementing any Firestore-backed screen |
 | `/pr-checklist` | — | Final pass before opening a PR |
+| `/release` | — | Before promoting a TestFlight build to the App Store |
 | `/update-skills-docs` | — | After adding or modifying a skill file |
 
 ---
@@ -61,6 +62,16 @@ Runs a full pre-PR gate across the changed files: types, styling, Firestore data
 
 ```
 /pr-checklist
+```
+
+---
+
+### `/release`
+
+Audits App Store release readiness: compares the live App Store version against the latest tag, drafts release notes from the commit range, verifies the TestFlight build is green, and flags backend pairing (Functions, Firestore rules) plus checklist drift (privacy manifest, metadata lengths, icon). Reports PASS/WARN/BLOCKER and ends with the manual App Store Connect steps. Never submits anything itself.
+
+```
+/release
 ```
 
 ---
