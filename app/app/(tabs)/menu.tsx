@@ -138,6 +138,11 @@ export default function Menu() {
           onPress={() => router.push('/menu/preferences')}
         />
         <Row
+          icon="heart-outline"
+          label={t('menu.support')}
+          onPress={() => router.push('/menu/support')}
+        />
+        <Row
           icon="information-circle-outline"
           label={t('menu.about')}
           onPress={() => router.push('/menu/about')}

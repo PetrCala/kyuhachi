@@ -278,6 +278,7 @@ const ja: Record<keyof typeof en, string> = {
   'menu.account': 'アカウント',
   'menu.language': '言語',
   'menu.about': 'アプリについて',
+  'menu.support': 'アプリを応援する',
 
   // account (Menu → Account)
   'account.title': 'アカウント',
@@ -364,6 +365,19 @@ const ja: Record<keyof typeof en, string> = {
   'stampClaim.caption': '御湯印帳に新しい御湯印を。',
   'stampClaim.collect': '獲得する',
   'stampClaim.a11yLabel': '新しいスタンプを獲得',
+  // support (Menu → Support Kyuhachi)
+  'support.title': 'アプリを応援する',
+  'support.intro':
+    'Kyuhachiは個人で作っているアプリです。無料で、広告も外部の解析ツールもありません。湯めぐりの役に立っているなら、こんな形で支えてもらえると助かります。',
+  'support.spreadHeader': '広める',
+  'support.rate': 'App Storeで評価する',
+  'support.share': 'アプリを共有する',
+  'support.shareMessage': 'Kyuhachiで九州八十八湯をめぐっています。',
+  'support.improveHeader': 'よりよくする',
+  'support.reportBug': '不具合を報告',
+  'support.suggest': '要望を送る',
+  'support.source': 'GitHubでソースコードを見る',
+  'support.note': '購入するものはありません。評価と、試してくれる友人のほうがずっと力になります。',
 
   // about (More → About)
   'about.title': 'アプリについて',
