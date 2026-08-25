@@ -11,6 +11,11 @@
  * Also enforces the keywords format: comma-separated with no space after the
  * commas, because a space is a wasted character out of the 100.
  *
+ * release_notes.txt ("What's New") is deliberately not part of this tree: it
+ * is per-version copy written directly in App Store Connect at submission
+ * time (see docs/app-store-listing.md), so this script fails if the file
+ * reappears instead of checking its length.
+ *
  * Exits non-zero if anything is over, so it can gate a `deliver` run.
  */
 
@@ -29,7 +34,6 @@ const LIMITS = {
   'promotional_text.txt': 170,
   'keywords.txt': 100,
   'description.txt': 4000,
-  'release_notes.txt': 4000,
 };
 
 const UNLIMITED = ['support_url.txt', 'marketing_url.txt', 'privacy_url.txt'];
@@ -72,6 +76,18 @@ for (const locale of LOCALES) {
     else if (!readFileSync(path, 'utf8').trim().startsWith('http')) {
       fail(`${file} is not a URL`);
     }
+  }
+
+  // release_notes.txt ("What's New") must NOT be in the tree: it is per-version
+  // copy written directly in App Store Connect at submission time (the /release
+  // skill drafts it, a human pastes it in). If the file reappears, `deliver`
+  // would upload it on the next metadata run and clobber whatever was actually
+  // submitted for that version.
+  const releaseNotesPath = join(METADATA, locale, 'release_notes.txt');
+  if (existsSync(releaseNotesPath)) {
+    fail("release_notes.txt exists. What's New is written in App Store Connect per release; delete the file.");
+  } else {
+    console.log(`  ok    ${'release_notes.txt'.padEnd(22)} not in the tree, written in App Store Connect per release`);
   }
 }
 

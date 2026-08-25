@@ -16,11 +16,10 @@ app/fastlane/metadata/
 │   ├── keywords.txt
 │   ├── description.txt
 │   ├── promotional_text.txt
-│   ├── release_notes.txt
 │   ├── support_url.txt
 │   ├── marketing_url.txt
 │   └── privacy_url.txt
-├── ja/                            same nine files
+├── ja/                            same eight files
 └── review_information/
     ├── notes.txt                  what App Review needs to know
     ├── first_name.txt
@@ -54,7 +53,10 @@ Apple enforces these. The copy in the tree is inside all of them.
 | `promotional_text.txt` | 170 | Editable without a new build, so it is the place for anything seasonal |
 | `keywords.txt` | 100 | Total length of the whole list. Comma-separated, no space after the commas: a space costs a character |
 | `description.txt` | 4000 | |
-| `release_notes.txt` | 4000 | "What's New". Required from the second version onward; v1.0 uses it as a feature summary |
+
+`release_notes.txt` ("What's New") is not in this table because it is not in
+the tree; Apple's limit for it is still 4000 characters. See
+[What's New](#whats-new-release-notes) below.
 
 Check every field after an edit:
 
@@ -64,6 +66,27 @@ npm run check:metadata
 
 The script reads the tree and prints each field's length against its limit,
 exiting non-zero if anything is over.
+
+## What's New (release notes)
+
+`release_notes.txt` is deliberately not in this tree, for either locale.
+"What's New" only makes sense once a build has shipped and you know exactly
+what changed in it, so it is written directly in App Store Connect at
+submission time instead. The `/release` skill (see [skills.md](skills.md))
+drafts it from the commit range between the live version and the latest tag;
+a human then pastes that draft into the new version's "What's New" field in
+App Store Connect and adjusts it there.
+
+Apple's 4000-character limit still applies. Check it by hand, or in the App
+Store Connect field itself, since `npm run check:metadata` only checks fields
+that live in the tree.
+
+The file used to live here as the v1.0 feature summary. Once real releases
+started writing their own "What's New" text in App Store Connect instead
+(first at 1.0.15), the file went stale, and running `fastlane metadata` would
+have silently overwritten a real release's notes with it. `npm run
+check:metadata` now fails if `release_notes.txt` reappears in either locale
+folder, so that can't happen again.
 
 ## Positioning: the one rule that matters
 
@@ -133,6 +156,9 @@ What the lane does and does not do:
   the `beta` lane as usual.
 - `overwrite_screenshots: true`, so re-running after a re-capture replaces the
   set instead of appending to it.
+- Leaves "What's New" alone. `release_notes.txt` isn't in the tree (see
+  [What's New](#whats-new-release-notes) above), so `deliver` never touches
+  that field.
 - **`submit_for_review: false`.** It fills the version in App Store Connect and
   stops. Pressing Submit stays a human decision.
 
@@ -145,4 +171,5 @@ bad merge cannot rewrite your store page.
 
 Pasting by hand into App Store Connect also works and needs no key. The tree
 stays the source of truth either way, so paste from it rather than editing in
-the browser and letting the two drift.
+the browser and letting the two drift. The one exception is "What's New":
+App Store Connect is the source of truth for that field, not the tree.
