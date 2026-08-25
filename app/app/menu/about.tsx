@@ -1,32 +1,25 @@
 import type { ComponentProps } from 'react';
-import { ScrollView, View, Text, Pressable, Linking, StyleSheet } from 'react-native';
+import { ScrollView, View, Text, Pressable, StyleSheet } from 'react-native';
 import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import * as Application from 'expo-application';
+import {
+  DATA_SOURCE_URL,
+  GITHUB_URL,
+  ISSUES_URL,
+  PRIVACY_URL,
+  TERMS_URL,
+  openUrl,
+} from '@/lib/links';
 import { colors, spacing, typography, radii } from '@/theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
-// External destinations. Not translatable: these are configuration, not copy.
-const GITHUB_URL = 'https://github.com/PetrCala/kyuhachi';
-const ISSUES_URL = 'https://github.com/PetrCala/kyuhachi/issues';
-const DATA_SOURCE_URL = 'https://www.88onsen.com';
-// Hosted on Firebase Hosting (default domain, no custom domain). Built from the
-// source docs at docs/legal/{privacy,terms}.md by scripts/build-legal-html.mjs.
-const PRIVACY_URL = 'https://kyuhachi-fddcc.web.app/privacy';
-const TERMS_URL = 'https://kyuhachi-fddcc.web.app/terms';
-
 // 九 (kyu) over 八 (hachi), set in Klee One: the app's visual identity. Mirrors
 // the sign-in brand mark; not a translatable string.
 const BRAND_MARK = '九\n八';
-
-function openUrl(url: string) {
-  Linking.openURL(url).catch(() => {
-    // Nothing actionable if the device has no handler for the URL.
-  });
-}
 
 type LinkRowProps = {
   icon: IconName;

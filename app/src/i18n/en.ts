@@ -279,6 +279,7 @@ const en = {
   'menu.account': 'Account',
   'menu.language': 'Language',
   'menu.about': 'About',
+  'menu.support': 'Support Kyuhachi',
 
   // account (Menu → Account)
   'account.title': 'Account',
@@ -370,6 +371,20 @@ const en = {
   'stampClaim.caption': 'A fresh seal for your Spaport.',
   'stampClaim.collect': 'Collect',
   'stampClaim.a11yLabel': 'New stamp collected',
+  // support (Menu → Support Kyuhachi)
+  'support.title': 'Support Kyuhachi',
+  'support.intro':
+    'Kyuhachi is one person’s side project: free, no ads, no third-party analytics. If it is earning its place in your bag, here is what helps.',
+  'support.spreadHeader': 'Spread the word',
+  'support.rate': 'Rate it on the App Store',
+  'support.share': 'Share Kyuhachi',
+  'support.shareMessage': 'I’m walking the Kyushu 88 with Kyuhachi.',
+  'support.improveHeader': 'Make it better',
+  'support.reportBug': 'Report a bug',
+  'support.suggest': 'Suggest an idea',
+  'support.source': 'Read the source on GitHub',
+  'support.note':
+    'There is nothing to buy here. A rating, and a friend who tries it, are worth more.',
 
   // about (More → About)
   'about.title': 'About',
