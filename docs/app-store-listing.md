@@ -67,6 +67,9 @@ exiting non-zero if anything is over.
 
 ## Positioning: the one rule that matters
 
+The full voice and positioning guide is [brand-voice.md](brand-voice.md); read
+it before rewriting any of the copy. The non-negotiable core:
+
 Kyuhachi tracks the 九州八十八湯 challenge and is **not** affiliated with the
 organisers or with 88onsen.com. That constraint shaped the copy:
 
