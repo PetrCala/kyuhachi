@@ -1,5 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react-native';
-import { Linking, Share } from 'react-native';
+import { Alert, Linking, Share } from 'react-native';
+import { useTipJar } from '@/hooks/useTipJar';
 
 import SupportScreen from '../../app/menu/support';
 
@@ -10,12 +11,38 @@ jest.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
+// The store side is covered by use-tip-jar.test.tsx; here the hook is a stub.
+jest.mock('@/hooks/useTipJar', () => ({ useTipJar: jest.fn() }));
+
+const mockTipJar = useTipJar as jest.Mock;
+const tip = jest.fn();
+
 const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
 const shareSpy = jest.spyOn(Share, 'share').mockResolvedValue({ action: 'sharedAction' });
+
+function tipJar(overrides: Partial<ReturnType<typeof useTipJar>> = {}) {
+  return {
+    status: 'ready' as const,
+    products: [
+      { id: 'com.kyuhachi.app.tip.bath', title: 'Buy me a bath', price: '¥300' },
+      { id: 'com.kyuhachi.app.tip.towel', title: 'A towel too', price: '¥800' },
+    ],
+    pendingId: null,
+    tipsGiven: 0,
+    tip,
+    ...overrides,
+  };
+}
+
+beforeEach(() => {
+  mockTipJar.mockReturnValue(tipJar());
+});
 
 afterEach(() => {
   openURL.mockClear();
   shareSpy.mockClear();
+  tip.mockClear();
+  mockTipJar.mockReset();
 });
 
 test('the rate row opens the App Store review composer', () => {
@@ -52,4 +79,49 @@ test('the feedback rows open GitHub', () => {
     'https://github.com/PetrCala/kyuhachi/issues/new',
     'https://github.com/PetrCala/kyuhachi',
   ]);
+});
+
+test('the tip rows show the store’s title and price, and buy on tap', () => {
+  render(<SupportScreen />);
+
+  expect(screen.getByText('¥300')).toBeTruthy();
+  fireEvent.press(screen.getByText('Buy me a bath'));
+
+  expect(tip).toHaveBeenCalledWith('com.kyuhachi.app.tip.bath');
+});
+
+test('a purchase in flight blocks the other tip rows', () => {
+  mockTipJar.mockReturnValue(tipJar({ pendingId: 'com.kyuhachi.app.tip.bath' }));
+  render(<SupportScreen />);
+
+  fireEvent.press(screen.getByText('A towel too'));
+
+  expect(tip).not.toHaveBeenCalled();
+});
+
+test('an unavailable store explains itself instead of showing rows', () => {
+  mockTipJar.mockReturnValue(tipJar({ status: 'unavailable', products: [] }));
+  render(<SupportScreen />);
+
+  expect(screen.getByText('support.tipUnavailable')).toBeTruthy();
+  expect(screen.queryByText('Buy me a bath')).toBeNull();
+});
+
+test('the note thanks a user who has already tipped', () => {
+  mockTipJar.mockReturnValue(tipJar({ tipsGiven: 2 }));
+  render(<SupportScreen />);
+
+  expect(screen.getByText('support.tipThanks')).toBeTruthy();
+  expect(screen.queryByText('support.tipExplain')).toBeNull();
+});
+
+test('a failed purchase is surfaced as an alert', () => {
+  const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  render(<SupportScreen />);
+
+  // The screen owns the message; the hook only decides when to call it.
+  mockTipJar.mock.calls[0][0].onPurchaseFailed();
+
+  expect(alert).toHaveBeenCalledWith('support.tipErrorTitle', 'support.tipErrorMessage');
+  alert.mockRestore();
 });

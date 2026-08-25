@@ -5,7 +5,9 @@ Kyuhachi ships to TestFlight on every push to `master`
 review step on top of that. This file records what review needs, where each
 piece lives in the repo, and how to re-verify it for the next release.
 
-v1.0 is free, with no in-app purchases and no third-party ad or analytics SDKs.
+The app is free and carries no third-party ad or analytics SDKs. Its only
+purchases are the optional tips described in [tip-jar.md](tip-jar.md); they
+unlock nothing, and no part of the app is gated behind one.
 
 ## Before every submission
 
@@ -21,6 +23,7 @@ v1.0 is free, with no in-app purchases and no third-party ad or analytics SDKs.
 | Dev tools off in the store build | `extra.enableDevTools` in [app/app.config.js](../app/app.config.js) | `deploy.yml` sets no `EXPO_PUBLIC_ENABLE_DEV_TOOLS`, so it resolves to false |
 | Accessibility | labels/roles on interactive elements | `app/src/__tests__/accessibility-coverage.test.ts` fails on any element that loses them |
 | App Check | monitoring only, not enforced | [app-check.md](app-check.md); see the warning below before enabling enforcement |
+| In-app purchases | three consumable tips, `shared/src/types/support.ts` | [tip-jar.md](tip-jar.md); products must be attached to the version before submitting |
 
 Two reviews back this checklist rather than being steps in it: the rules review
 in [firestore-rules-audit.md](firestore-rules-audit.md) and the App Check
@@ -74,6 +77,12 @@ declared here. Three gaps exist as of this release:
 - **`NSPrivacyAccessedAPICategoryUserDefaults` / `CA92.1`**: `@react-native-firebase/app`
   (`RNFBPreferences.m`) and `@react-native-firebase/auth` (`RNFBAuthModule.m`)
   both use `NSUserDefaults`; neither package ships a manifest.
+
+`expo-iap` (the tip jar's StoreKit bridge) ships no manifest either, but needs
+no declaration: its iOS sources touch no required-reason API, and StoreKit 2
+itself is not on Apple's list. The purchase is handled by Apple end to end, so
+it adds nothing to `NSPrivacyCollectedDataTypes` either; the app's only local
+record is a count of tips given, which never leaves the device.
 
 The custom `MKLocalSearch` wrapper in
 [app/modules/local-search/ios/LocalSearchModule.swift](../app/modules/local-search/ios/LocalSearchModule.swift)

@@ -377,7 +377,14 @@ const ja: Record<keyof typeof en, string> = {
   'support.reportBug': '不具合を報告',
   'support.suggest': '要望を送る',
   'support.source': 'GitHubでソースコードを見る',
-  'support.note': '購入するものはありません。評価と、試してくれる友人のほうがずっと力になります。',
+  'support.tipHeader': '心付け',
+  'support.tipExplain':
+    '心付けはお礼のためだけのものです。入れても入れなくても、アプリの機能は何も変わりません。',
+  'support.tipThanks': 'ありがとうございます。そのまま次の湯に使わせてもらいます。',
+  'support.tipUnavailable': '今は心付けを受け取れません。App Storeへの接続が必要です。',
+  'support.tipErrorTitle': '心付けを送れませんでした',
+  'support.tipErrorMessage': 'App Storeで購入を完了できませんでした。請求は発生していません。',
+  'support.note': '評価や、試してくれる友人の存在も、心付けと同じくらい力になります。',
 
   // about (More → About)
   'about.title': 'アプリについて',

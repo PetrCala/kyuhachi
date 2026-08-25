@@ -1,8 +1,21 @@
 import type { ComponentProps } from 'react';
-import { ScrollView, View, Text, Pressable, Share, StyleSheet } from 'react-native';
+import { useCallback } from 'react';
+import {
+  ScrollView,
+  View,
+  Text,
+  Pressable,
+  Share,
+  Alert,
+  ActivityIndicator,
+  StyleSheet,
+} from 'react-native';
 import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
+import type { TipProductId } from '@kyuhachi/shared';
+import { useTipJar } from '@/hooks/useTipJar';
+import type { TipProduct } from '@/lib/tip-jar';
 import {
   APP_STORE_URL,
   GITHUB_URL,
@@ -14,6 +27,14 @@ import {
 import { colors, spacing, typography, radii } from '@/theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
+
+// One icon per tier, in the same order the store returns them: a bath, a towel
+// to dry off with, a night's stay.
+const TIP_ICONS: Record<TipProductId, IconName> = {
+  'com.kyuhachi.app.tip.bath': 'water-outline',
+  'com.kyuhachi.app.tip.towel': 'shirt-outline',
+  'com.kyuhachi.app.tip.stay': 'moon-outline',
+};
 
 type RowProps = {
   icon: IconName;
@@ -45,8 +66,49 @@ function Row({ icon, label, onPress, external, last }: RowProps) {
   );
 }
 
+type TipRowProps = {
+  product: TipProduct;
+  pending: boolean;
+  disabled: boolean;
+  onPress: (id: TipProductId) => void;
+  last?: boolean;
+};
+
+function TipRow({ product, pending, disabled, onPress, last }: TipRowProps) {
+  return (
+    <Pressable
+      onPress={() => onPress(product.id)}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityState={{ disabled }}
+    >
+      <View style={[styles.row, last && styles.rowLast]}>
+        <Ionicons
+          name={TIP_ICONS[product.id]}
+          size={typography.sizes.xl}
+          color={colors.textSecondary}
+          style={styles.rowIcon}
+        />
+        {/* The store's own title and price: already localized to the user's
+            storefront and currency, so the app never formats either. */}
+        <Text style={styles.rowLabel}>{product.title}</Text>
+        {pending ? (
+          <ActivityIndicator color={colors.textSecondary} />
+        ) : (
+          <Text style={styles.price}>{product.price}</Text>
+        )}
+      </View>
+    </Pressable>
+  );
+}
+
 export default function Support() {
   const { t } = useTranslation();
+
+  const onPurchaseFailed = useCallback(() => {
+    Alert.alert(t('support.tipErrorTitle'), t('support.tipErrorMessage'));
+  }, [t]);
+  const { status, products, pendingId, tipsGiven, tip } = useTipJar({ onPurchaseFailed });
 
   const share = () => {
     Share.share({ message: t('support.shareMessage'), url: APP_STORE_URL }).catch(() => {
@@ -61,6 +123,33 @@ export default function Support() {
       <View style={styles.group}>
         <Text style={styles.bodyText}>{t('support.intro')}</Text>
       </View>
+
+      <Text style={styles.sectionHeader}>{t('support.tipHeader')}</Text>
+      <View style={styles.group}>
+        {status === 'loading' ? (
+          <View style={[styles.row, styles.rowLast]}>
+            <ActivityIndicator color={colors.textSecondary} />
+          </View>
+        ) : null}
+        {status === 'unavailable' ? (
+          <Text style={styles.bodyText}>{t('support.tipUnavailable')}</Text>
+        ) : null}
+        {status === 'ready'
+          ? products.map((product, index) => (
+              <TipRow
+                key={product.id}
+                product={product}
+                pending={pendingId === product.id}
+                disabled={pendingId !== null}
+                onPress={tip}
+                last={index === products.length - 1}
+              />
+            ))
+          : null}
+      </View>
+      <Text style={styles.note}>
+        {tipsGiven > 0 ? t('support.tipThanks') : t('support.tipExplain')}
+      </Text>
 
       <Text style={styles.sectionHeader}>{t('support.spreadHeader')}</Text>
       <View style={styles.group}>
@@ -96,7 +185,7 @@ export default function Support() {
         />
       </View>
 
-      <Text style={styles.note}>{t('support.note')}</Text>
+      <Text style={[styles.note, styles.noteLast]}>{t('support.note')}</Text>
     </ScrollView>
   );
 }
@@ -140,6 +229,10 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     color: colors.textPrimary,
   },
+  price: {
+    fontSize: typography.sizes.md,
+    color: colors.textSecondary,
+  },
   sectionHeader: {
     fontSize: typography.sizes.sm,
     color: colors.textMuted,
@@ -151,7 +244,10 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     lineHeight: 20,
     color: colors.textMuted,
-    marginTop: spacing[6],
+    marginTop: spacing[3],
     marginHorizontal: spacing[4],
+  },
+  noteLast: {
+    marginTop: spacing[6],
   },
 });

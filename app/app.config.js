@@ -159,6 +159,7 @@ module.exports = {
     "@react-native-firebase/auth",
     "@react-native-firebase/app-check",
     "expo-apple-authentication",
+    "expo-iap",
     "./plugins/withAllowNonModularIncludes",
     "react-native-maps",
     [
