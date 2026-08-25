@@ -35,6 +35,10 @@ export {
   effectiveEligibleIds,
 } from './types/challenge';
 
+export type { TipProductId } from './types/support';
+
+export { TIP_PRODUCT_IDS, isTipProductId } from './types/support';
+
 export type { PoiCategory, Poi } from './types/finder';
 
 export { POI_CATEGORIES } from './types/finder';

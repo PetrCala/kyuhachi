@@ -68,7 +68,7 @@ Runs a full pre-PR gate across the changed files: types, styling, Firestore data
 
 ### `/release`
 
-Audits App Store release readiness: compares the live App Store version against the latest tag, drafts release notes from the commit range, verifies the TestFlight build is green, and flags backend pairing (Functions, Firestore rules) plus checklist drift (privacy manifest, metadata lengths, icon). Reports PASS/WARN/BLOCKER and ends with the manual App Store Connect steps. Never submits anything itself.
+Audits App Store release readiness: compares the live App Store version against the latest tag, drafts release notes from the commit range, verifies the TestFlight build is green, and flags backend pairing (Functions, Firestore rules) plus checklist drift (privacy manifest, metadata lengths, icon, tip-jar products). Reports PASS/WARN/BLOCKER and ends with the manual App Store Connect steps. Never submits anything itself.
 
 ```
 /release

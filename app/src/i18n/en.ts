@@ -383,8 +383,16 @@ const en = {
   'support.reportBug': 'Report a bug',
   'support.suggest': 'Suggest an idea',
   'support.source': 'Read the source on GitHub',
-  'support.note':
-    'There is nothing to buy here. A rating, and a friend who tries it, are worth more.',
+  'support.tipHeader': 'Tip jar',
+  'support.tipExplain':
+    'A tip is a thank-you and nothing else. Every part of the app works the same whether you leave one or not.',
+  'support.tipThanks': 'Thank you. That one goes straight into the next onsen.',
+  'support.tipUnavailable':
+    'The tip jar cannot be reached right now. It needs a connection to the App Store.',
+  'support.tipErrorTitle': 'Tip failed',
+  'support.tipErrorMessage':
+    'The App Store could not complete the purchase. You have not been charged.',
+  'support.note': 'A rating, and a friend who tries it, help as much as a tip does.',
 
   // about (More → About)
   'about.title': 'About',

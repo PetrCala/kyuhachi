@@ -31,6 +31,7 @@ Check what the release range touches beyond the app:
 - `app/fastlane/metadata/` changed: run `node scripts/check-metadata-lengths.mjs` (BLOCKER on failure) and remind that the listing only updates via a manual `bundle exec fastlane metadata` run.
 - `app/assets/icon.png` changed: remind to verify the generated 1024px icon has no alpha (steps in docs/app-store-submission.md).
 - Permission-prompt strings or new native modules added: WARN to re-check the App Privacy answers against the collected-data table in docs/app-store-submission.md.
+- `shared/src/types/support.ts` changed, or this is the first release carrying the tip jar: BLOCKER unless the three consumable products are at least "Ready to Submit" in App Store Connect and selected in the version's In-App Purchases section (steps in docs/tip-jar.md). Products submitted without a binary never leave "Waiting for Review".
 
 ### 6. Demo account
 

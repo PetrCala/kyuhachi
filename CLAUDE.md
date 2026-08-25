@@ -52,6 +52,9 @@ Each is backed by an ADR in [docs/adr/](docs/adr/).
   a challenge's optional `activeRouteId` never affects completion.
 - **Tiers (bronze/silver/gold)** load their thresholds from `challenge_types` — never
   hardcode them. Transport is user-reported per visit.
+- **Tips unlock nothing.** The tip jar is three consumable IAPs (ADR-011); no
+  feature, cosmetic, or limit depends on a purchase, and there is no receipt
+  validation or server component because there is no entitlement to protect.
 
 ## Conventions (enforced)
 
