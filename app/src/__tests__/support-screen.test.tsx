@@ -24,8 +24,8 @@ function tipJar(overrides: Partial<ReturnType<typeof useTipJar>> = {}) {
   return {
     status: 'ready' as const,
     products: [
-      { id: 'com.kyuhachi.app.tip.bath', title: 'Buy me a bath', price: '¥300' },
-      { id: 'com.kyuhachi.app.tip.towel', title: 'A towel too', price: '¥800' },
+      { id: 'com.kyuhachi.app.tip.bath', price: '¥300' },
+      { id: 'com.kyuhachi.app.tip.towel', price: '¥800' },
     ],
     pendingId: null,
     tipsGiven: 0,
@@ -81,11 +81,13 @@ test('the feedback rows open GitHub', () => {
   ]);
 });
 
-test('the tip rows show the store’s title and price, and buy on tap', () => {
+test('the tip rows pair an app-localized name with the store’s price', () => {
   render(<SupportScreen />);
 
+  // Name from i18n (follows the in-app language), price from the store.
+  expect(screen.getByText('support.tipBath')).toBeTruthy();
   expect(screen.getByText('¥300')).toBeTruthy();
-  fireEvent.press(screen.getByText('Buy me a bath'));
+  fireEvent.press(screen.getByText('support.tipBath'));
 
   expect(tip).toHaveBeenCalledWith('com.kyuhachi.app.tip.bath');
 });
@@ -94,7 +96,7 @@ test('a purchase in flight blocks the other tip rows', () => {
   mockTipJar.mockReturnValue(tipJar({ pendingId: 'com.kyuhachi.app.tip.bath' }));
   render(<SupportScreen />);
 
-  fireEvent.press(screen.getByText('A towel too'));
+  fireEvent.press(screen.getByText('support.tipTowel'));
 
   expect(tip).not.toHaveBeenCalled();
 });
@@ -104,7 +106,7 @@ test('an unavailable store explains itself instead of showing rows', () => {
   render(<SupportScreen />);
 
   expect(screen.getByText('support.tipUnavailable')).toBeTruthy();
-  expect(screen.queryByText('Buy me a bath')).toBeNull();
+  expect(screen.queryByText('support.tipBath')).toBeNull();
 });
 
 test('the note thanks a user who has already tipped', () => {

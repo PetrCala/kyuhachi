@@ -3,13 +3,16 @@ import type { Product } from 'expo-iap';
 import { TIP_PRODUCT_IDS, isTipProductId, type TipProductId } from '@kyuhachi/shared';
 
 /**
- * A tip product as the Support screen shows it. Title and price come straight
- * from the store, so they are already localized to the user's storefront and
- * currency; the app never formats a price itself.
+ * A tip product as the Support screen shows it.
+ *
+ * The price comes straight from the store, already formatted for the user's
+ * storefront and currency; the app never formats one itself. The *name* does
+ * not: StoreKit localizes product names by the device's App Store account, so
+ * a user reading the app in Japanese on a non-Japanese storefront would get
+ * English names. The name is an i18n string on the screen instead.
  */
 export type TipProduct = {
   id: TipProductId;
-  title: string;
   price: string;
 };
 
@@ -28,7 +31,7 @@ export function toTipProducts(products: readonly Product[]): TipProduct[] {
 
   return TIP_PRODUCT_IDS.flatMap((id) => {
     const product = byId.get(id);
-    return product ? [{ id, title: product.title, price: product.displayPrice }] : [];
+    return product ? [{ id, price: product.displayPrice }] : [];
   });
 }
 

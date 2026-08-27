@@ -21,10 +21,10 @@ test('orders the store products cheapest first, whatever order they arrive in', 
   ]);
 });
 
-test('keeps the store’s own title and price', () => {
-  expect(toTipProducts([bath])).toEqual([
-    { id: 'com.kyuhachi.app.tip.bath', title: 'Buy me a bath', price: '¥300' },
-  ]);
+test('keeps the store’s own price and nothing else', () => {
+  // The name is an app string, not a store string: StoreKit localizes product
+  // names by the device's App Store account, which the app cannot influence.
+  expect(toTipProducts([bath])).toEqual([{ id: 'com.kyuhachi.app.tip.bath', price: '¥300' }]);
 });
 
 test('drops products that are not tips', () => {

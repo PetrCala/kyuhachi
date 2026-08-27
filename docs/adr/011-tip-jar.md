@@ -50,9 +50,14 @@ Four rules follow from "a tip is a thank-you":
    one thank-you line. Nothing reads it to decide what the user may do, so
    losing it on reinstall costs the user nothing.
 
-Prices are shown as the store reports them (`displayPrice`), and product titles
-come from App Store Connect, so both are already localized to the user's
-storefront and currency. The app never formats a price.
+Prices are shown as the store reports them (`displayPrice`), already formatted
+for the user's storefront and currency; the app never formats one. Tier
+**names** are the app's own i18n strings, not the store's product names:
+StoreKit localizes a product name by the device's App Store account, so a
+reader who has set the app to Japanese on, say, a Czech storefront would
+otherwise get English names in an otherwise Japanese screen. The App Store
+Connect display names still exist (they appear in the purchase sheet) and are
+kept in step by hand, in `scripts/asc/tip-products.mjs`.
 
 ## Consequences
 
