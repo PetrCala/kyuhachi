@@ -63,7 +63,8 @@ only returns products that are at least Ready to Submit, and a product cannot
 reach Ready to Submit without a screenshot. So the first screenshot cannot come
 from a real purchase flow.
 
-Two ways out, both legitimate, both showing the real screen with the real copy:
+Two ways out if the products ever do get filtered out, both showing the real
+screen with the real copy:
 
 - **A StoreKit configuration file in Xcode** (File → New → StoreKit
   Configuration File, then Product → Scheme → Edit Scheme → Run → Options).
@@ -73,11 +74,21 @@ Two ways out, both legitimate, both showing the real screen with the real copy:
   the exact titles and prices published above, built to the simulator. Never
   committed; revert it after capturing.
 
-Then upload the same image to all three products:
+In practice neither was needed: products in Missing Metadata *are* returned to
+a TestFlight build, so a screenshot of the real screen on a real phone is the
+easiest source. Take one, then upload the same image to all three products:
 
 ```bash
 node scripts/asc/tip-products.mjs screenshot path/to/shot.png
 ```
+
+App Store Connect accepts review screenshots only at specific dimensions and
+rejects everything else with `IMAGE_INCORRECT_DIMENSIONS`, minutes after the
+upload itself reports success. A phone screenshot is not one of the accepted
+sizes, so the script letterboxes it to 640x920 first. Two more traps in the
+same call: the relationship is `inAppPurchaseV2` (`inAppPurchase` comes back
+as a 409), and a failed asset shows up only in `assetDeliveryState`, never as
+an HTTP error, which is why `status` prints it.
 
 ## 4. Submitting
 
