@@ -1,90 +1,98 @@
 # Tip jar: App Store Connect setup
 
 The in-app side of the tip jar is finished and tested. It cannot work until the
-products exist in App Store Connect, and until they do, `fetchProducts` returns
-an empty list and the Support screen shows "The tip jar cannot be reached right
-now." That is the expected state of a build made before the steps below are
-done. Why it is built this way: [ADR-011](adr/011-tip-jar.md).
+products exist and are approved in App Store Connect; until then `fetchProducts`
+returns nothing and the Support screen shows "The tip jar cannot be reached
+right now." That is the expected state of a build made before the steps below
+are done, not a bug. Why it is built this way: [ADR-011](adr/011-tip-jar.md).
 
-## 1. Prerequisites (once)
+To see where things stand at any point:
 
-Both of these are silent failures: without them, products stay in **Missing
-Metadata** and the store returns nothing to the app, with no error that says
-why.
+```bash
+node scripts/asc/tip-products.mjs status
+```
+
+## 1. Prerequisites (once, manual)
+
+Both are silent failures: without them, products stay in **Missing Metadata**
+and the store returns nothing to the app, with no error that says why.
 
 - **Paid Applications Agreement** accepted in App Store Connect →
   Business → Agreements.
-- **Banking and tax details** filled in for the account, including the Japanese
-  tax forms if the account is Japan-based.
-- Confirm the account is enrolled in the **Small Business Program** (15% rather
-  than 30%).
+- **Banking and tax details** filled in for the account.
+- Confirm enrolment in the **Small Business Program** (15% rather than 30%).
+  The proceeds the API reports on a price point are a quick sanity check: ¥191
+  on the ¥300 tier is the 30% rate after Japanese consumption tax, ¥232 is the
+  15% one.
 
 ## 2. Create the products
 
-App Store Connect → the app (`6761064476`) → **Monetization → In-App
-Purchases**. Three products, all of type **Consumable**:
+```bash
+node scripts/asc/tip-products.mjs setup
+```
 
-| Product ID | Reference name | Price point |
+Idempotent: it skips anything that already exists, so it is safe to re-run
+after a failure partway through. It creates each product, both localizations,
+the territory list (mirroring the app's own), and the price.
+
+| Product ID | Price (JPN base) | Type |
 |---|---|---|
-| `com.kyuhachi.app.tip.bath` | Tip: bath | ¥300 |
-| `com.kyuhachi.app.tip.towel` | Tip: towel | ¥800 |
-| `com.kyuhachi.app.tip.stay` | Tip: stay | ¥2,000 |
+| `com.kyuhachi.app.tip.bath` | ¥300 | Consumable |
+| `com.kyuhachi.app.tip.towel` | ¥800 | Consumable |
+| `com.kyuhachi.app.tip.stay` | ¥2,000 | Consumable |
 
-The ids must match `TIP_PRODUCT_IDS` in
-[shared/src/types/support.ts](../shared/src/types/support.ts) exactly. StoreKit
-silently omits an id it does not recognise, so a typo shows up as a missing row
-rather than an error.
+The ids, names, descriptions and review note all live in
+[scripts/asc/tip-products.mjs](../scripts/asc/tip-products.mjs) so there is one
+copy of them; they must match `TIP_PRODUCT_IDS` in
+[shared/src/types/support.ts](../shared/src/types/support.ts) exactly, because
+StoreKit silently omits an id it does not recognise. Only the JPN price is set
+by hand: Apple derives the other 174 territories from it.
 
-Each product needs **two localizations**, English and Japanese. The display
-name is what the app renders in the row, so it carries the voice
-([brand-voice.md](brand-voice.md)); the description is only seen in the App
-Store listing.
+What the API teaches you the hard way:
 
-| Product | EN display name | JA display name |
-|---|---|---|
-| bath | Buy me a bath | 一湯ぶんの心付け |
-| towel | A bath and a towel | 湯とタオルぶん |
-| stay | A night's stay | 一泊ぶん |
+- **Localization descriptions cap at 45 characters** and names at 30. Longer
+  copy is rejected, so these are terser than the app's own strings.
+- **A price schedule resource exists as soon as the product does**, carrying no
+  price. Its existence proves nothing; check `manualPrices` instead.
+- **Transient 500s are normal.** The client retries them.
 
-| Product | EN description | JA description |
-|---|---|---|
-| bath | A thank-you the size of one onsen entry fee. Unlocks nothing. | 温泉一回ぶんのお礼です。機能は何も変わりません。 |
-| towel | A thank-you the size of a bath and a rental towel. Unlocks nothing. | 入浴とタオルぶんのお礼です。機能は何も変わりません。 |
-| stay | A thank-you the size of a night in a small inn. Unlocks nothing. | 素泊まり一泊ぶんのお礼です。機能は何も変わりません。 |
+## 3. Review screenshots
 
-Each product also needs a **review screenshot**: the Support screen with the
-tip jar visible, taken from a simulator or a device.
+Each product needs a screenshot, and this is the one genuine catch-22: sandbox
+only returns products that are at least Ready to Submit, and a product cannot
+reach Ready to Submit without a screenshot. So the first screenshot cannot come
+from a real purchase flow.
 
-## 3. Review notes
+Two ways out, both legitimate, both showing the real screen with the real copy:
 
-Paste this into each product's review notes. It answers the two questions a
-reviewer asks about a tip jar:
+- **A StoreKit configuration file in Xcode** (File → New → StoreKit
+  Configuration File, then Product → Scheme → Edit Scheme → Run → Options).
+  Apple's own mechanism, but it only applies when running from the Xcode GUI:
+  `xcodebuild` and `simctl launch` do not sync it.
+- **A temporary local stub** of `useTipJar` returning the three products with
+  the exact titles and prices published above, built to the simulator. Never
+  committed; revert it after capturing.
 
-> Optional tip. It unlocks no features, content, or functionality: the app
-> behaves identically whether or not a tip is ever given, and no part of the
-> app is gated. Consumable so it can be given more than once; there is nothing
-> to restore. To see it: Menu → Support Kyuhachi.
+Then upload the same image to all three products:
+
+```bash
+node scripts/asc/tip-products.mjs screenshot path/to/shot.png
+```
 
 ## 4. Submitting
 
-The **first** time, the products must be submitted for review **attached to a
-binary** (select them in the version's "In-App Purchases" section before
-submitting). Products submitted on their own stay in "Waiting for Review"
-indefinitely.
+The **first** time, the products must be submitted **attached to a binary**:
+select them in the version's In-App Purchases section before submitting.
+Products submitted on their own sit in "Waiting for Review" indefinitely.
 
 `expo-iap` is a native module, so the release carrying the tip jar has to be an
 EAS build. It cannot go out as an OTA update.
 
-## 5. Testing before release
+## 5. Testing once approved
 
 - **Sandbox on device.** Create a Sandbox Apple Account in App Store Connect →
   Users and Access → Sandbox, then sign into it on the device under Settings →
-  Developer → Sandbox Apple Account. Purchases are free and repeatable. The
-  products must be at least "Ready to Submit" for sandbox to return them.
-- **Simulator.** Sandbox does not work there. Add a StoreKit configuration file
-  in Xcode (File → New → StoreKit Configuration File, synced with App Store
-  Connect) and select it in the scheme's Run → Options. This is a local-only
-  change to `ios/`, which is gitignored.
+  Developer → Sandbox Apple Account. Purchases are free and repeatable.
 - **The unavailable path** is worth seeing at least once: turn on airplane mode
   and open the Support screen.
 
