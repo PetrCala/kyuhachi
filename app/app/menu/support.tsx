@@ -28,12 +28,20 @@ import { colors, spacing, typography, radii } from '@/theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
-// One icon per tier, in the same order the store returns them: a bath, a towel
-// to dry off with, a night's stay.
+// One icon and one label per tier: a bath, a towel to dry off with, a night's
+// stay. The label is ours rather than the store's product name, because
+// StoreKit localizes names by the device's App Store account and would show a
+// Japanese reader on a non-Japanese storefront the English name.
 const TIP_ICONS: Record<TipProductId, IconName> = {
   'com.kyuhachi.app.tip.bath': 'water-outline',
   'com.kyuhachi.app.tip.towel': 'shirt-outline',
   'com.kyuhachi.app.tip.stay': 'moon-outline',
+};
+
+const TIP_LABELS: Record<TipProductId, string> = {
+  'com.kyuhachi.app.tip.bath': 'support.tipBath',
+  'com.kyuhachi.app.tip.towel': 'support.tipTowel',
+  'com.kyuhachi.app.tip.stay': 'support.tipStay',
 };
 
 type RowProps = {
@@ -68,13 +76,14 @@ function Row({ icon, label, onPress, external, last }: RowProps) {
 
 type TipRowProps = {
   product: TipProduct;
+  label: string;
   pending: boolean;
   disabled: boolean;
   onPress: (id: TipProductId) => void;
   last?: boolean;
 };
 
-function TipRow({ product, pending, disabled, onPress, last }: TipRowProps) {
+function TipRow({ product, label, pending, disabled, onPress, last }: TipRowProps) {
   return (
     <Pressable
       onPress={() => onPress(product.id)}
@@ -89,12 +98,12 @@ function TipRow({ product, pending, disabled, onPress, last }: TipRowProps) {
           color={colors.textSecondary}
           style={styles.rowIcon}
         />
-        {/* The store's own title and price: already localized to the user's
-            storefront and currency, so the app never formats either. */}
-        <Text style={styles.rowLabel}>{product.title}</Text>
+        <Text style={styles.rowLabel}>{label}</Text>
         {pending ? (
           <ActivityIndicator color={colors.textSecondary} />
         ) : (
+          // The store's own price string: already formatted for the user's
+          // storefront and currency, so the app never formats one.
           <Text style={styles.price}>{product.price}</Text>
         )}
       </View>
@@ -139,6 +148,7 @@ export default function Support() {
               <TipRow
                 key={product.id}
                 product={product}
+                label={t(TIP_LABELS[product.id])}
                 pending={pendingId === product.id}
                 disabled={pendingId !== null}
                 onPress={tip}

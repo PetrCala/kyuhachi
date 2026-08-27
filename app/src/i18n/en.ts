@@ -384,6 +384,13 @@ const en = {
   'support.suggest': 'Suggest an idea',
   'support.source': 'Read the source on GitHub',
   'support.tipHeader': 'Tip jar',
+  // Tier names are ours, not the store's: StoreKit localizes product names by
+  // the device's App Store account, which the in-app language switch cannot
+  // reach. Keep these in step with the display names in App Store Connect
+  // (scripts/asc/tip-products.mjs).
+  'support.tipBath': 'Buy me a bath',
+  'support.tipTowel': 'A bath and a towel',
+  'support.tipStay': 'A night’s stay',
   'support.tipExplain':
     'A tip is a thank-you and nothing else. Every part of the app works the same whether you leave one or not.',
   'support.tipThanks': 'Thank you. That one goes straight into the next onsen.',

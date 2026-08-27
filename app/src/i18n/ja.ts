@@ -378,6 +378,9 @@ const ja: Record<keyof typeof en, string> = {
   'support.suggest': '要望を送る',
   'support.source': 'GitHubでソースコードを見る',
   'support.tipHeader': '心付け',
+  'support.tipBath': '一湯ぶんの心付け',
+  'support.tipTowel': '湯とタオルぶん',
+  'support.tipStay': '一泊ぶん',
   'support.tipExplain':
     '心付けはお礼のためだけのものです。入れても入れなくても、アプリの機能は何も変わりません。',
   'support.tipThanks': 'ありがとうございます。そのまま次の湯に使わせてもらいます。',
