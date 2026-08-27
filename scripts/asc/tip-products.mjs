@@ -13,9 +13,11 @@
  * Every command is idempotent: `setup` skips what already exists, so it is
  * safe to re-run after a failure partway through.
  */
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFileSync, statSync } from 'node:fs';
-import { basename } from 'node:path';
+import { basename, join } from 'node:path';
+import { tmpdir } from 'node:os';
 import { asc, APP_ID } from './asc.mjs';
 
 // Apple's limits: reference name 64 chars, localization name 30, description 45.
@@ -217,9 +219,48 @@ async function status() {
   }
 }
 
+// App Store Connect validates review screenshots against a fixed list of
+// dimensions and rejects anything else with IMAGE_INCORRECT_DIMENSIONS, well
+// after the upload appears to succeed. A phone screenshot (1170x2532, and
+// 1125x2436 too) is not on the list; 640x920 is.
+const REVIEW_WIDTH = 640;
+const REVIEW_HEIGHT = 920;
+
+/** Read a PNG's dimensions out of its IHDR chunk. */
+function pngSize(bytes) {
+  return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+}
+
+/** Scale to fit and letterbox onto white, so the aspect ratio survives. */
+function toReviewSize(file) {
+  const fitted = join(tmpdir(), 'asc-review-fit.png');
+  const padded = join(tmpdir(), 'asc-review.png');
+  execFileSync('sips', ['-Z', String(REVIEW_HEIGHT), file, '--out', fitted], { stdio: 'ignore' });
+  execFileSync(
+    'sips',
+    [
+      '-p', String(REVIEW_HEIGHT), String(REVIEW_WIDTH),
+      '--padColor', 'FFFFFF',
+      fitted, '--out', padded,
+    ],
+    { stdio: 'ignore' }
+  );
+  return padded;
+}
+
 /** Upload one PNG as the review screenshot for every tip product. */
-async function screenshot(file) {
-  if (!file) throw new Error('usage: tip-products.mjs screenshot <path-to-png>');
+async function screenshot(input) {
+  if (!input) throw new Error('usage: tip-products.mjs screenshot <path-to-png>');
+
+  let file = input;
+  const source = pngSize(readFileSync(input));
+  if (source.width !== REVIEW_WIDTH || source.height !== REVIEW_HEIGHT) {
+    file = toReviewSize(input);
+    console.log(
+      `resized ${source.width}x${source.height} -> ${REVIEW_WIDTH}x${REVIEW_HEIGHT} (${file})`
+    );
+  }
+
   const bytes = readFileSync(file);
   const fileSize = statSync(file).size;
   const fileName = basename(file);
@@ -238,7 +279,9 @@ async function screenshot(file) {
       data: {
         type: 'inAppPurchaseAppStoreReviewScreenshots',
         attributes: { fileName, fileSize },
-        relationships: { inAppPurchase: { data: { type: 'inAppPurchases', id } } },
+        // The relationship is inAppPurchaseV2, not inAppPurchase; the wrong
+        // name comes back as a 409, not a 400.
+        relationships: { inAppPurchaseV2: { data: { type: 'inAppPurchases', id } } },
       },
     });
 
