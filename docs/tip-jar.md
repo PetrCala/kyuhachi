@@ -92,9 +92,31 @@ an HTTP error, which is why `status` prints it.
 
 ## 4. Submitting
 
-The **first** time, the products must be submitted **attached to a binary**:
-select them in the version's In-App Purchases section before submitting.
-Products submitted on their own sit in "Waiting for Review" indefinitely.
+The **first** time, the products must go to review **attached to a binary**.
+Once one product of a type is approved, later ones can be submitted alone.
+
+```bash
+node scripts/asc/submit-version.mjs 1.0.18            # stage it, print the plan
+node scripts/asc/submit-version.mjs 1.0.18 --submit   # then send to App Review
+```
+
+The script attaches the build, writes the release notes, and puts the version
+and all three products on one review submission. It refuses to run if the build
+is still processing or a product is not ready, and says "nothing to do" if the
+version is already in review.
+
+Three things it encodes that cost an afternoon to work out:
+
+- **There is only one editable version record.** After a rejection that record
+  *is* the rejected version, so a new release renames it rather than creating a
+  second one, which App Store Connect refuses with "You cannot create a new
+  version of the App in the current state."
+- **A product is never submitted directly.** In the v2 model each product has
+  versions, and the submission item points at `inAppPurchaseVersion`. Not
+  `inAppPurchaseV2` (what the *screenshot* endpoint wants) and not
+  `inAppPurchase`; both return a 409 saying the relationship is unknown without
+  naming the right one.
+- **The app version item is `appStoreVersion`**, not `appStoreVersionForReview`.
 
 `expo-iap` is a native module, so the release carrying the tip jar has to be an
 EAS build. It cannot go out as an OTA update.
