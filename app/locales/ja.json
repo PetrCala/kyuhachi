@@ -1,5 +1,5 @@
 {
-  "NSCameraUsageDescription": "訪問の写真を撮影するため、カメラへのアクセスを許可してください。",
-  "NSPhotoLibraryUsageDescription": "訪問の写真を追加するため、写真ライブラリへのアクセスを許可してください。",
-  "NSLocationWhenInUseUsageDescription": "地図上に現在地を表示するため、位置情報へのアクセスを許可してください。"
+  "NSCameraUsageDescription": "温泉でその場で写真を撮り、訪問の記録に添付するためにカメラを使用します。たとえば、入浴した日の湯屋の写真をその記録に残せます。",
+  "NSPhotoLibraryUsageDescription": "すでに撮影した写真を訪問の記録に添付するために、写真ライブラリを使用します。たとえば、前日に撮った露天風呂の写真をその温泉の記録に追加できます。",
+  "NSLocationWhenInUseUsageDescription": "現在地は、地図上での自分の位置表示と、近くの温泉の一覧に使います。「近くの湯」には、設定した距離以内の温泉と、そこまでの距離を表示します。ルート沿いの店や宿を探すときは、検索のために現在地をApple マップへ送信します。"
 }
