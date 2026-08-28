@@ -165,14 +165,14 @@ module.exports = {
     [
       "expo-image-picker",
       {
-        "cameraPermission": "Allow Kyuhachi to access your camera to take visit photos.",
-        "photosPermission": "Allow Kyuhachi to access your photos to add visit photos."
+        "cameraPermission": "Kyuhachi uses the camera so you can photograph an onsen while you are there and attach the picture to that visit, for example a shot of the bath house on the day you logged it.",
+        "photosPermission": "Kyuhachi uses your photo library so you can attach photos you have already taken to a visit, for example adding yesterday's photo of the outdoor bath to that onsen's record."
       }
     ],
     [
       "expo-location",
       {
-        "locationWhenInUsePermission": "Allow Kyuhachi to use your location to show where you are on the map."
+        "locationWhenInUsePermission": "Kyuhachi uses your location to show where you are on the onsen map and to list the springs nearest you: the “Near you” section shows onsens within the distance you choose, and how far away each one is. When you search for shops or lodging along your route, your location is sent to Apple Maps to run that search."
       }
     ],
   ],

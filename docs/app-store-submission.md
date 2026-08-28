@@ -18,7 +18,7 @@ unlock nothing, and no part of the app is gated behind one.
 | Demo account for App Review | [scripts/seed-demo-account.ts](../scripts/seed-demo-account.ts) | see [Demo account](#demo-account-for-app-review) |
 | Marketing version | `version` in [app/package.json](../app/package.json) | `npm run version:bump -- minor` |
 | Encryption declaration | `ios.infoPlist.ITSAppUsesNonExemptEncryption: false` | already set in app.config.js |
-| Permission prompt strings | `expo-image-picker` / `expo-location` plugin options + `app/locales/{en,ja}.json` | shown in the iOS system prompts |
+| Permission prompt strings | `expo-image-picker` / `expo-location` plugin options + `app/locales/{en,ja}.json` | shown in the iOS system prompts; each must name the use **and** give an example, see [Purpose strings](#purpose-strings) |
 | Firestore rules | [firebase/firestore.rules](../firebase/firestore.rules) | [firestore-rules-audit.md](firestore-rules-audit.md); emulator suite runs in CI |
 | Dev tools off in the store build | `extra.enableDevTools` in [app/app.config.js](../app/app.config.js) | `deploy.yml` sets no `EXPO_PUBLIC_ENABLE_DEV_TOOLS`, so it resolves to false |
 | Accessibility | labels/roles on interactive elements | `app/src/__tests__/accessibility-coverage.test.ts` fails on any element that loses them |
@@ -35,6 +35,23 @@ build cannot attest, every Firestore read fails and the app looks broken to
 them, which is a rejection with no useful error to explain it. Enable it between
 submissions, one service at a time, per the rollout order in
 [app-check.md](app-check.md).
+
+## Purpose strings
+
+1.0.15 was rejected under **guideline 5.1.1(ii)** for exactly one reason: the
+location purpose string said what access was wanted, not what the app does with
+it. "Allow Kyuhachi to use your location to show where you are on the map" is
+the shape Apple rejects.
+
+A purpose string has to do two things: describe the use, and give a **specific
+example**. The current location string does both, naming the "Near you" section
+and the Apple Maps search behind the Finder. Camera and photo-library strings
+follow the same shape.
+
+They live in two places that must agree: the plugin options in
+[app/app.config.js](../app/app.config.js) (the English base iOS falls back to)
+and the localized overrides in `app/locales/{en,ja}.json`. Change one, change
+the other.
 
 ## Privacy manifest
 
