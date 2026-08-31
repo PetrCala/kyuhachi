@@ -4,10 +4,15 @@
  *   node scripts/asc/submit-version.mjs <version>            # prepare, print a plan
  *   node scripts/asc/submit-version.mjs <version> --submit   # prepare, then submit
  *
- * Written for the release that carries the tip jar, where the three consumable
- * products must go to review attached to the binary (docs/tip-jar.md). It is
- * useful for any release: without --submit it only stages the version, and the
- * final PATCH that hands the build to App Review is behind the flag.
+ * Originally written for the release that carried the tip jar, where the three
+ * consumable products had to go to review attached to the binary
+ * (docs/tip-jar.md). It is useful for any release: without --submit it only
+ * stages the version, and the final PATCH that hands the build to App Review is
+ * behind the flag.
+ *
+ * WHATS_NEW below is per-release and MUST be updated before staging a new
+ * version. Staging PATCHes it onto the version's localizations, so leaving last
+ * release's text here publishes the wrong notes.
  *
  * Release notes live here rather than in app/fastlane/metadata: the tree's
  * release_notes.txt was removed precisely so a metadata upload can never
@@ -33,25 +38,27 @@ const EDITABLE = new Set([
   'INVALID_BINARY',
 ]);
 
+// v1.1.0. Replace wholesale for the next release; do not append.
 const WHATS_NEW = {
   'en-US': [
-    '- Swipe through your visit photos in a new strip and full-screen viewer',
-    '- Challenge progress now recognizes onsens newly added to the official pool',
-    '- New in the menu: Support Kyuhachi, with a tip jar if the app has earned one. Nothing is locked behind it',
+    '- Onsen photos are here: every onsen in the catalog now shows its own photograph',
+    '- Each photo is credited to 九州観光機構, and tapping the credit opens that onsen on 88onsen.com',
+    '- An onsen without a photograph keeps its generated mark',
   ].join('\n'),
   ja: [
-    '- 訪問写真をスワイプで閲覧できるフルスクリーンビューアを追加',
-    '- 公式対象リストに追加された温泉がチャレンジの進捗に反映されるように',
-    '- メニューに「アプリを応援する」を追加。心付けも用意しましたが、機能は何も変わりません',
+    '- 温泉の写真を追加。カタログの各温泉に写真が表示されます',
+    '- 写真は九州観光機構のご提供です。クレジットをタップすると88温泉の該当ページが開きます',
+    '- 写真のない温泉は、これまで通り生成マークを表示します',
   ].join('\n'),
 };
 
-/** Products to submit alongside the binary; empty once they are approved once. */
-const TIP_PRODUCT_IDS = [
-  'com.kyuhachi.app.tip.bath',
-  'com.kyuhachi.app.tip.towel',
-  'com.kyuhachi.app.tip.stay',
-];
+/**
+ * Products to submit alongside the binary; empty once they are approved once.
+ * Emptied 2026-08-31: all three tip consumables are APPROVED and shipped in
+ * 1.0.18, so they no longer need to ride along with a binary. Repopulate only
+ * for a NEW product, which does have to go to review attached to a build.
+ */
+const TIP_PRODUCT_IDS = [];
 
 const build = await (async () => {
   const builds = await asc(
