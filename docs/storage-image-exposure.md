@@ -1,6 +1,34 @@
 # Onsen catalog photos: exposure and what to do about it
 
-*Written: 2026-08-10.*
+*Written: 2026-08-10. Resolved 2026-08-31.*
+
+## Status: resolved, photos are on
+
+**On 2026-08-31 一般社団法人 九州観光機構 replied to the permission request below and
+granted it, with no conditions attached.** `SHOW_CATALOG_PHOTOS` is now `true` and
+the app displays the catalog photos.
+
+The request that was granted offered per-photo credit plus a link back, so the app
+gives both even though the reply imposed neither: `OnsenHeroImage` renders a credit
+over every photo, linking to that onsen's page on 88onsen.com (`detailPageUrl`,
+published by the data repo). The offer was part of what they agreed to.
+
+Two commitments outlive this document, and both are cheap only for as long as
+nobody undoes them:
+
+- **Takedown on request.** `SHOW_CATALOG_PHOTOS` is the kill switch. Setting it to
+  `false` stops both the rendering and the prefetching in one edit, and the hero
+  falls back to `OnsenHeroMark` everywhere. Clearing the Storage download tokens
+  (procedure below, still accurate) is the second half if the objects themselves
+  have to stop being reachable.
+- **Credit stays with the photo.** Anything that renders a catalog photo goes
+  through `OnsenHeroImage`, which is why the credit lives in that component and
+  not at its call sites.
+
+The rest of this document is the history: why the photos were gated off, what the
+exposure actually was, and what a refusal would have required. It is kept because
+the token mechanism it describes is still how the photos are served, and because
+the takedown procedure is the part that could still be needed.
 
 ## Background
 
@@ -172,7 +200,9 @@ discloses that the photos were already rehosted during development and are
 currently disabled, commits to deleting them on a refusal, and asks explicitly
 whether the photo rights sit with 九州観光機構 or with each individual facility.
 
-**No reply changes anything until it arrives. Until then the flag stays off.**
+**The reply arrived on 2026-08-31: yes, unconditional.** See the status section at
+the top of this document for what was done. The table below is what was planned
+for each possible answer, kept for the record.
 
 ### What each answer means
 

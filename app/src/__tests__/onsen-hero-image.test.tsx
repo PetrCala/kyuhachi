@@ -37,15 +37,47 @@ function drawn(onsen: CachedOnsen): string {
 }
 
 describe('OnsenHeroImage', () => {
-  // SHOW_CATALOG_PHOTOS is off (app/src/lib/catalog-photos.ts): every onsen
-  // renders the generated mark regardless of imageUrl.
-  it('renders the generated mark even when the onsen has a photo', () => {
+  // SHOW_CATALOG_PHOTOS is on (app/src/lib/catalog-photos.ts): an onsen with a
+  // photo shows it, credited, and the mark is the fallback for one without.
+  it('renders the photo, not the mark, when the onsen has one', () => {
     render(
       <OnsenHeroImage
         onsen={cachedOnsen({ imageUrl: 'https://img.example/a.jpg', blurhash: 'LEHV6nWB2yk8' })}
         style={{}}
       />
     );
+    expect(screen.queryByLabelText('onsenPreview.onsenMark')).toBeNull();
+    expect(screen.getByText('onsenPhoto.credit')).toBeTruthy();
+  });
+
+  // The credit is a term of the licence the photos are shown under, so it is
+  // present on every photo, whether or not there is a page to link back to.
+  it('credits the photo with a link when the source page is known', () => {
+    render(
+      <OnsenHeroImage
+        onsen={cachedOnsen({
+          imageUrl: 'https://img.example/a.jpg',
+          detailPageUrl: 'https://www.88onsen.com/spot/detail/hid/1',
+        })}
+        style={{}}
+      />
+    );
+    expect(screen.getByRole('link', { name: 'onsenPhoto.credit' })).toBeTruthy();
+  });
+
+  it('still credits the photo when the source page is missing, without a link', () => {
+    render(
+      <OnsenHeroImage
+        onsen={cachedOnsen({ imageUrl: 'https://img.example/a.jpg', detailPageUrl: null })}
+        style={{}}
+      />
+    );
+    expect(screen.getByText('onsenPhoto.credit')).toBeTruthy();
+    expect(screen.queryByRole('link')).toBeNull();
+  });
+
+  it('falls back to the mark for an onsen with no photo', () => {
+    render(<OnsenHeroImage onsen={cachedOnsen({ imageUrl: null })} style={{}} />);
     expect(screen.getByLabelText('onsenPreview.onsenMark')).toBeTruthy();
   });
 

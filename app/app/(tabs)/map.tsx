@@ -296,8 +296,9 @@ export default function MapScreen() {
   // straight from onRegionChangeComplete, which fires once per pan/zoom, so this
   // is naturally debounced and never runs per gesture frame.
   //
-  // Gated on SHOW_CATALOG_PHOTOS: while catalog photos aren't rendered (see
-  // that constant), there's nothing for a warm cache to speed up.
+  // Gated on SHOW_CATALOG_PHOTOS: with photos off there is nothing for a warm
+  // cache to speed up, and the flag is the takedown kill switch (see that
+  // constant), so it has to stop the fetching too, not just the rendering.
   const handleRegionSettle = useCallback(
     (region: Region) => {
       handleCameraSettle();

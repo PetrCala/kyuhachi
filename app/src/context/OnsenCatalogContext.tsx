@@ -64,9 +64,9 @@ const OnsenCatalogContext = createContext<OnsenCatalogContextValue>({
  * connectivity returns, without polling or a network-info dependency.
  *
  * After a sync (and once per launch from an existing cache), every catalog
- * photo would be prefetched into expo-image's disk cache so onsen images are
- * also available offline; this is currently off along with `SHOW_CATALOG_PHOTOS`
- * (see that constant), so the prefetch effect below is a no-op for now.
+ * photo is prefetched into expo-image's disk cache so onsen images are also
+ * available offline. The effect below is gated on `SHOW_CATALOG_PHOTOS` and
+ * becomes a no-op if the photos are ever turned off again.
  *
  * Frozen-challenge-snapshot invariant: this cache is display data only. It is
  * never consulted when a challenge is created: `snapshotCatalogVersion` still
@@ -168,9 +168,9 @@ export function OnsenCatalogProvider({ children }: { children: ReactNode }) {
   // path costs nothing. Fire-and-forget by design: a photo that never lands
   // falls back to its blurhash placeholder.
   //
-  // Gated on SHOW_CATALOG_PHOTOS: while catalog photos aren't rendered (see
-  // that constant), warming their disk cache would only burn bandwidth and
-  // storage on device for images nothing ever displays.
+  // Gated on SHOW_CATALOG_PHOTOS: with photos off this would burn bandwidth and
+  // on-device storage for images nothing displays, and the flag is the takedown
+  // kill switch (see that constant), so it has to stop the fetching too.
   useEffect(() => {
     if (!SHOW_CATALOG_PHOTOS) return;
     if (version === null || onsens.length === 0) return;

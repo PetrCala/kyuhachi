@@ -52,6 +52,9 @@ const ja: Record<keyof typeof en, string> = {
   // onsen preview (map marker → image-forward half-sheet)
   'onsenPreview.areaPrefecture': '{{area}} ・ {{prefecture}}',
   'onsenPreview.onsenMark': '温泉の装飾マーク',
+
+  // 温泉カタログ写真のクレジット。表示条件の一部であり、省略不可。
+  'onsenPhoto.credit': '写真提供：九州観光機構',
   'onsenPreview.viewFullDetails': '詳細を見る',
   'onsenPreview.close': '閉じる',
   'onsenPreview.visited': '訪問済み',

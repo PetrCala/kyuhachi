@@ -23,6 +23,7 @@ export function onsenDoc(overrides: Partial<OnsenDocument> = {}): OnsenDocument 
     adultFee: null,
     springQuality: null,
     websiteUrl: null,
+    detailPageUrl: null,
     imageUrl: null,
     blurhash: null,
     isActive: true,
