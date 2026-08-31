@@ -39,20 +39,24 @@ service firebase.storage {
         && request.resource.size < 10 * 1024 * 1024;
     }
 
-    // Rehosted onsen catalog photos: explicitly denied.
+    // Rehosted onsen catalog photos: denied on this surface, which is not the
+    // surface they are served on.
     // Path: /onsen-images/{kyuhachiId}.webp
     //
-    // These are scraped from 88onsen.com with no cleared copyright provenance
-    // (see docs/storage-image-exposure.md), and the app no longer displays
-    // them (SHOW_CATALOG_PHOTOS in app/src/lib/catalog-photos.ts). This rule
-    // is belt-and-suspenders, not the actual fix: the data repo's uploader
-    // writes each object with a `firebaseStorageDownloadTokens` metadata
-    // value, and Firebase serves a request bearing a valid token regardless
-    // of these rules. Rules only govern access through the Storage SDK/REST
-    // surface, which never carries a token; they cannot revoke one already
-    // issued. Actually stopping the tokenized download URLs from working
-    // requires rotating or clearing that metadata on the live objects, which
-    // is outside this repo; see docs/storage-image-exposure.md.
+    // The app DOES display these (SHOW_CATALOG_PHOTOS in
+    // app/src/lib/catalog-photos.ts): 九州観光機構 granted permission on
+    // 2026-08-31, see docs/storage-image-exposure.md. This deny is not a
+    // leftover from that gate and must not be relaxed to "fix" the photos.
+    //
+    // The photos reach the app through tokenized download URLs. The data repo's
+    // uploader writes each object with a `firebaseStorageDownloadTokens`
+    // metadata value, and Firebase serves a request bearing a valid token
+    // regardless of these rules: rules govern only the Storage SDK/REST
+    // surface, which never carries a token. So the app is unaffected by this
+    // block, and no client has any reason to read the prefix through the SDK.
+    // Keeping it closed means the only way to reach these objects stays the one
+    // that can be revoked wholesale (clear the token metadata), which is what a
+    // takedown request would need.
     match /onsen-images/{fileName} {
       allow read, write: if false;
     }

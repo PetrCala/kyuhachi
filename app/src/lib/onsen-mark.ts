@@ -2,8 +2,8 @@
  * The generated onsen mark: everything that turns one catalog onsen into the
  * designed emblem `OnsenHeroMark` draws, with no I/O and no randomness.
  *
- * Catalog photographs are gated off (see `SHOW_CATALOG_PHOTOS`) and licensed
- * per-onsen photography isn't obtainable, so the hero slot carries a drawn mark
+ * Not every onsen has a catalog photograph, and photos can be turned off
+ * wholesale (see `SHOW_CATALOG_PHOTOS`), so the hero slot carries a drawn mark
  * instead of an empty plate. To be worth the space it has to say something, so
  * every part of it is seeded from data the catalog already publishes:
  *
@@ -17,7 +17,8 @@
  *   device, across reinstalls.
  *
  * Nothing here reads `imageUrl` or `blurhash`: the mark is deliberately
- * independent of the scraped photo set the app is walking away from.
+ * independent of the photo set, so it is unaffected by anything that happens to
+ * the photos (an onsen that has none, or the flag going off).
  */
 import { colors } from '@/theme';
 

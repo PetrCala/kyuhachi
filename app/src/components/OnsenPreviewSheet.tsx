@@ -44,8 +44,8 @@ interface OnsenPreviewSheetProps {
 
 /**
  * An image-forward bottom-sheet preview shown when a map marker is tapped. A
- * large hero (a photo, or the generated `OnsenHeroImage` mark while
- * `SHOW_CATALOG_PHOTOS` is off) is pinned at the top with the name overlaid on
+ * large hero (the onsen's photo, or the generated mark for one without) is
+ * pinned at the top with the name overlaid on
  * a scrim and a close affordance; below it a scrollable info area mirrors the
  * detail screen's rows, and a pinned primary CTA opens the full detail screen.
  *

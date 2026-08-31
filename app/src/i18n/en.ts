@@ -52,6 +52,13 @@ const en = {
   // The generated mark shown where a photo would be; decorative, and what it
   // encodes (prefecture, spring quality) is on screen as text anyway.
   'onsenPreview.onsenMark': 'Decorative onsen mark',
+
+  // Catalog photo credit. Shown over every catalog photograph, and tapping it
+  // opens that onsen's page on the source site. 九州観光機構 granted the licence
+  // on a request that offered credit plus a link back, so this string is part of
+  // the terms the photos are shown under, not a caption to trim. The
+  // organisation is named the way it names itself.
+  'onsenPhoto.credit': 'Photo: Kyushu Tourism Organization',
   'onsenPreview.viewFullDetails': 'View full details',
   'onsenPreview.close': 'Close',
   // The check icon beside this label carries the tick, so the text omits it.

@@ -82,6 +82,18 @@ export interface OnsenDocument {
   adultFee: number | null;
   springQuality: string | null;
   websiteUrl: string | null;
+  /**
+   * The onsen's page on 88onsen.com, the source of `imageUrl`. Published so the
+   * app can credit each catalog photo back to where it came from: the licence
+   * granted by 九州観光機構 on 2026-08-31 was requested on the terms of per-photo
+   * credit plus a link back, and the app never sees the upstream id the URL is
+   * built from. This is the photo's attribution target, not a general "more
+   * info" link; `websiteUrl` is the facility's own site.
+   *
+   * null on any doc published before the data repo backfilled it, so the credit
+   * has to render as plain text when it's missing rather than assuming a link.
+   */
+  detailPageUrl: string | null;
   imageUrl: string | null;
   /** BlurHash of imageUrl, shown as an instant placeholder while the photo loads. Published by the data repo alongside imageUrl. */
   blurhash: string | null;
