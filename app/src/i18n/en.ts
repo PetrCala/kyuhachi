@@ -56,9 +56,13 @@ const en = {
   // Catalog photo credit. Shown over every catalog photograph, and tapping it
   // opens that onsen's page on the source site. 九州観光機構 granted the licence
   // on a request that offered credit plus a link back, so this string is part of
-  // the terms the photos are shown under, not a caption to trim. The
-  // organisation is named the way it names itself.
-  'onsenPhoto.credit': 'Photo: Kyushu Tourism Organization',
+  // the terms the photos are shown under, not a caption to trim.
+  //
+  // The organisation's name stays Japanese even here: it is a proper noun, this
+  // locale already shows Japanese onsen names untranslated, and crediting a real
+  // body under a rendering of its name that it may not use itself is worse than
+  // asking an English reader to take the name as given.
+  'onsenPhoto.credit': 'Photo: 九州観光機構',
   'onsenPreview.viewFullDetails': 'View full details',
   'onsenPreview.close': 'Close',
   // The check icon beside this label carries the tick, so the text omits it.
