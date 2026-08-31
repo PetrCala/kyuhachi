@@ -198,7 +198,17 @@ Connect in the same pass.
 
 1. `npm run version:bump -- minor` (or `patch`/`major`), commit, push to `master`.
 2. Wait for the TestFlight build from [deploy.yml](../.github/workflows/deploy.yml).
-3. Re-run `npm run seed:demo` so the demo account matches the build.
-4. In App Store Connect: attach the build, fill in App Privacy to match
-   [Collected data](#collected-data), fill in App Review Information with the
-   demo credentials, then submit.
+3. Write the release notes: `release-notes/<version>/en-US.txt` and `ja.txt`.
+   See [release-notes/README.md](../release-notes/README.md). Staging in step 5
+   refuses to run without them, which is deliberate: it is the only thing
+   stopping a release from publishing the previous version's What's New.
+4. Re-run `npm run seed:demo` so the demo account matches the build, and rotate
+   its password.
+5. `node scripts/asc/submit-version.mjs <version>` to stage: it creates the
+   version, attaches the build, and writes the notes. It does not submit.
+6. In App Store Connect: check the build and notes it staged, fill in App
+   Privacy to match [Collected data](#collected-data), fill in App Review
+   Information with the demo credentials, then submit.
+
+Adding `--submit` to step 5 sends it to review without step 6, so only use it
+once App Privacy and App Review Information are already correct for the version.
