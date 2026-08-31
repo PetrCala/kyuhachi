@@ -10,15 +10,17 @@
  * stages the version, and the final PATCH that hands the build to App Review is
  * behind the flag.
  *
- * WHATS_NEW below is per-release and MUST be updated before staging a new
- * version. Staging PATCHes it onto the version's localizations, so leaving last
- * release's text here publishes the wrong notes.
+ * Release notes live in release-notes/<version>/<locale>.txt, read at staging
+ * time. A version with no notes, or missing a locale the App Store lists, is a
+ * hard failure: staging PATCHes what it has, so a silent skip would leave that
+ * locale on the previous release's What's New.
  *
- * Release notes live here rather than in app/fastlane/metadata: the tree's
+ * They are kept out of app/fastlane/metadata deliberately: that tree's
  * release_notes.txt was removed precisely so a metadata upload can never
  * overwrite a live app's What's New (see docs/app-store-submission.md).
  */
 import { asc, APP_ID } from './asc.mjs';
+import { assertEveryLocaleCovered, releaseNotes } from './release-notes.mjs';
 
 const TARGET = process.argv[2];
 const DO_SUBMIT = process.argv.includes('--submit');
@@ -38,19 +40,8 @@ const EDITABLE = new Set([
   'INVALID_BINARY',
 ]);
 
-// v1.1.0. Replace wholesale for the next release; do not append.
-const WHATS_NEW = {
-  'en-US': [
-    '- Onsen photos are here: every onsen in the catalog now shows its own photograph',
-    '- Each photo is credited to 九州観光機構, and tapping the credit opens that onsen on 88onsen.com',
-    '- An onsen without a photograph keeps its generated mark',
-  ].join('\n'),
-  ja: [
-    '- 温泉の写真を追加。カタログの各温泉に写真が表示されます',
-    '- 写真は九州観光機構のご提供です。クレジットをタップすると88温泉の該当ページが開きます',
-    '- 写真のない温泉は、これまで通り生成マークを表示します',
-  ].join('\n'),
-};
+const WHATS_NEW = releaseNotes(TARGET);
+console.log(`notes      : ${Object.keys(WHATS_NEW).sort().join(', ')}`);
 
 /**
  * Products to submit alongside the binary; empty once they are approved once.
@@ -124,9 +115,9 @@ await asc('PATCH', `/v1/appStoreVersions/${version.id}/relationships/build`, {
 console.log('build      : attached');
 
 const locs = await asc('GET', `/v1/appStoreVersions/${version.id}/appStoreVersionLocalizations`);
+assertEveryLocaleCovered(locs.data.map((l) => l.attributes.locale), WHATS_NEW, TARGET);
 for (const loc of locs.data) {
   const whatsNew = WHATS_NEW[loc.attributes.locale];
-  if (!whatsNew) continue;
   await asc('PATCH', `/v1/appStoreVersionLocalizations/${loc.id}`, {
     data: { type: 'appStoreVersionLocalizations', id: loc.id, attributes: { whatsNew } },
   });

@@ -1,0 +1,3 @@
+- Onsen photos are here: every onsen in the catalog now shows its own photograph
+- Each photo is credited to 九州観光機構, and tapping the credit opens that onsen on 88onsen.com
+- An onsen without a photograph keeps its generated mark
