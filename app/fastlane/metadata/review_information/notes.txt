@@ -1,22 +1,33 @@
-Kyuhachi tracks a user's personal progress through the 九州八十八湯 (Kyushu 88 Hot Springs) challenge, a well-known hot spring stamp challenge in Kyushu, Japan. The app is independent and fan-made. It is not affiliated with, endorsed by, or licensed from the 九州八十八湯 organisation or 88onsen.com, and it says so on the About screen, in the App Store description, and in the Terms and Privacy Policy. Onsen names, addresses and opening hours are factual reference information about publicly listed public baths.
+WHAT THE APP DOES, AND FOR WHOM
+Kyuhachi is a personal progress tracker for the 九州八十八湯 (Kyushu 88 Hot Springs) challenge, a well-known hot spring stamp challenge in Kyushu, Japan. The user records which of the eligible public baths they have bathed in; the app keeps the count, the map, the stamp book and the statistics. It is for people travelling Kyushu who are working through the challenge. The challenge is otherwise tracked on paper, which is easy to lose and hard to plan a trip around.
 
-SIGN-IN IS REQUIRED (no anonymous mode)
-Everything the app does is a per-user record: the challenges you start, the onsens you have bathed in, your photos, your notes and your imported routes. All of it is stored under the signed-in account in Firebase and is read back only by that account, enforced by Firestore security rules. There is no useful content to show a signed-out user and no server-side identity to attach records to, so the app requires an account. Sign in with Apple and email/password are both offered.
+DEVICES AND OS TESTED BEFORE SUBMISSION
+iPhone 14 on iOS 26 (physical device, installed from TestFlight) and the iPhone 17 simulator on iOS 26.5. Minimum deployment target is iOS 15.1.
 
-DEMO ACCOUNT
-A demo account is provided in the Demo Account fields of this App Review Information section (username and password). Sign in with the email/password form on the first screen. The account is pre-seeded with an active challenge and a set of recorded visits so every screen has content: home, map, onsen list and detail, the Spaport stamp book, the stats section, imported routes and area guides.
+SETTING UP AND REACHING EVERY FEATURE
+Sign in with the email/password form on the first screen, using the demo account in the Sign-In Information fields of this section. It is pre-seeded with an active challenge and recorded visits, so every screen has content. No sample files are needed.
+Four tabs: Home (progress, and the Spaport stamp book), Map, Onsens (full list, search, Near you), Menu. Menu holds Challenges, Stats, Routes, Preferences, About, Language and Account. Route import accepts any .gpx, .kml or .tcx track; Finder then appears on that route.
+
+WHY SIGN-IN IS REQUIRED (no anonymous mode)
+Everything the app does is a per-user record: challenges started, onsens bathed in, photos, notes, imported routes. All of it is stored under the signed-in account in Firebase and read back only by that account, enforced by Firestore security rules. There is no useful content to show a signed-out user and no identity to attach records to. Sign in with Apple and email/password are both offered.
+
+EXTERNAL SERVICES USED
+Firebase Authentication (Sign in with Apple, email/password), Cloud Firestore (user records and the onsen catalog), Firebase Storage (visit photos), Firebase App Check (monitoring only, not enforced). Apple Maps via MapKit for the map, and MKLocalSearch for Finder. No payment processor, no AI service, no advertising or analytics SDK.
+
+REGIONAL DIFFERENCES
+None. The app behaves identically in every region and store front. The UI ships in English and Japanese, selected by device language, and both expose exactly the same features. The onsen data describes Kyushu, Japan, and is the same for every user wherever they are.
+
+RIGHTS AND THIRD-PARTY MATERIAL
+The app is independent and fan-made. It is not affiliated with, endorsed by, or licensed from the 九州八十八湯 organisation or 88onsen.com, and says so on the About screen, in the App Store description, and in the Terms and Privacy Policy. It ships no third-party photography. Onsen names, addresses, opening hours and fees are factual reference information about publicly listed public baths. Every image in the app is either our own artwork or a photo the user took. The app is not in a regulated industry and needs no permits.
 
 LOCATION
-Location is optional and requested only when in use. It powers three things: showing your position on the map alongside the onsen pins, the "Near you" section of the onsen list, and Finder, which looks ahead along an imported route for convenience stores, roadside stations, campsites and hotels. The app does not track or store a location history, and it works without location permission: everything remains reachable through search and the full onsen list.
+Optional, requested only when in use. It powers the user's position on the map, the "Near you" section of the onsen list, and Finder, which looks ahead along an imported route for convenience stores, roadside stations, campsites and hotels. No location history is tracked or stored, and the app works fully without the permission.
 
 PHOTOS AND USER-GENERATED CONTENT
-A user may attach a photo to a visit. Photos are private to the account that uploaded them. There is no feed, no sharing, no following, no comments, no public profiles and no way for one user to see another user's visits, photos or notes. Storage security rules restrict every photo path to its owner's uid. Because no user content is ever shown to another user, the app has no in-app moderation, reporting or blocking, and Guideline 1.2 user-generated content requirements do not apply.
+A user may attach a photo to a visit. Photos are private to the uploading account; Storage rules restrict every path to its owner's uid. There is no feed, sharing, following, comments or public profile, and no way for one user to see another's visits, photos or notes. Because no user content ever reaches another user, the app carries no moderation, reporting or blocking.
 
 ACCOUNT DELETION
-Account deletion is available in the app under Menu > Account > Delete account. It removes the profile, all challenges and visits, all visit photos and all imported routes.
+Menu > Account > Delete account. It removes the profile, all challenges and visits, all visit photos, and all imported routes.
 
 PURCHASES
-The app is free. There are no in-app purchases, no subscriptions and no tipping.
-
-THIRD-PARTY SERVICES
-Firebase (Authentication, Firestore, Storage, App Check) for the backend, Apple Maps for the map, and MapKit local search for Finder. No advertising or analytics SDKs.
+The app is free. No in-app purchases, no subscriptions, no tipping.
