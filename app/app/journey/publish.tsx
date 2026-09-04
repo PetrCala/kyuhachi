@@ -27,7 +27,8 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { Stack, Redirect } from 'expo-router';
+import { Stack } from 'expo-router';
+import RedirectHome from '@/components/RedirectHome';
 import { useTranslation } from 'react-i18next';
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
@@ -138,7 +139,7 @@ export default function PublishJourneyDay() {
       </>
     );
   }
-  if (!isJourneyUser) return <Redirect href="/" />;
+  if (!isJourneyUser) return <RedirectHome />;
 
   /**
    * Read and parse one picked file. Returns null (and counts as unreadable) for

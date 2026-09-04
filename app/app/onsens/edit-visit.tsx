@@ -164,7 +164,7 @@ export default function EditVisit() {
     if (!gone) return;
     if (dismissToHome) router.dismissAll();
     else if (router.canGoBack()) router.back();
-    else router.replace('/');
+    else router.dismissTo('/'); // never `replace('/')` from a root-level screen: see RedirectHome
   }, [loading, visit, id, router, dismissToHome]);
 
   function visitRef() {

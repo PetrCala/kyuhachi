@@ -18,7 +18,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { Stack, Redirect, router } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import {
   collection,
   query,
@@ -31,6 +31,7 @@ import { COLLECTIONS, TRANSPORT_MODES } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
 import { db } from '@/firebase';
 import { DEV_TOOLS_ENABLED } from '@/lib/dev/flags';
+import RedirectHome from '@/components/RedirectHome';
 import {
   createMockChallenge,
   addVisitsToActiveChallenge,
@@ -87,7 +88,7 @@ export default function DevTools() {
 
   // Expo Router bundles every file under app/, so the screen must redirect when
   // dev tools are disabled; hiding the menu entry is not enough on its own.
-  if (!DEV_TOOLS_ENABLED) return <Redirect href="/" />;
+  if (!DEV_TOOLS_ENABLED) return <RedirectHome />;
 
   function applyCount(n: number) {
     setCount(String(Math.max(0, Math.min(n, poolSize || n))));
@@ -108,7 +109,7 @@ export default function DevTools() {
       });
       Alert.alert('Mock challenge created', `id: ${id}`, [
         { text: 'Stay', style: 'cancel' },
-        { text: 'Go home', onPress: () => router.replace('/') },
+        { text: 'Go home', onPress: () => router.dismissTo('/') },
       ]);
     } catch (error) {
       Alert.alert('Create failed', String(error));

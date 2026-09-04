@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useRef,
   useState,
   type ReactNode,
@@ -37,6 +38,11 @@ interface RowActionsSheetContextValue {
 }
 
 const RowActionsSheetContext = createContext<RowActionsSheetContextValue | null>(null);
+
+// How long after a requested close we wait for gorhom's `onClose` before
+// treating the sheet as closed anyway (its slide-out is a spring well under
+// this). See `requestClose` for why the fallback exists.
+const CLOSE_FALLBACK_MS = 800;
 
 /**
  * Imperative handle to the app-level row-actions sheet. Throws if used outside
@@ -95,24 +101,60 @@ export function RowActionsSheetProvider({ children }: { children: ReactNode }) {
   // The item picked before the dismiss animation; run once the sheet settles.
   const pendingAction = useRef<(() => void) | null>(null);
 
-  const open = useCallback((next: RowActionsConfig) => {
-    pendingAction.current = null;
-    setConfig(next);
+  // Set while a close we asked for is in flight; cleared when it lands. See
+  // `requestClose`.
+  const closeFallback = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearCloseFallback = useCallback(() => {
+    if (closeFallback.current) clearTimeout(closeFallback.current);
+    closeFallback.current = null;
   }, []);
+  useEffect(() => clearCloseFallback, [clearCloseFallback]);
 
-  const selectAction = useCallback((onPress: () => void) => {
-    pendingAction.current = onPress;
-    sheetRef.current?.close();
-  }, []);
+  const open = useCallback(
+    (next: RowActionsConfig) => {
+      pendingAction.current = null;
+      clearCloseFallback();
+      setConfig(next);
+    },
+    [clearCloseFallback]
+  );
 
   // Any close (swipe, backdrop, cancel, or a chosen action) clears the config
   // and then runs the pending action (null for a plain dismissal) over the
   // now-settled UI.
   const handleClose = useCallback(() => {
+    clearCloseFallback();
     const action = pendingAction.current;
     pendingAction.current = null;
     setConfig(null);
     action?.();
+  }, [clearCloseFallback]);
+
+  // Ask gorhom to slide the sheet out, and guarantee the close lands. The sheet
+  // unmounts only on gorhom's `onClose`, which fires only for an animation that
+  // *finished*; an interrupted one, or a `close()` gorhom drops (it no-ops while
+  // a close is already in flight), would leave this root-level sheet mounted,
+  // its full-screen container and gesture handlers sitting over every screen,
+  // the Map tab included: the shape #240 removed. So a requested close is
+  // followed up: by `onClose` if gorhom finishes, by this timer if it doesn't.
+  const requestClose = useCallback(() => {
+    sheetRef.current?.close();
+    clearCloseFallback();
+    closeFallback.current = setTimeout(handleClose, CLOSE_FALLBACK_MS);
+  }, [clearCloseFallback, handleClose]);
+
+  const selectAction = useCallback(
+    (onPress: () => void) => {
+      pendingAction.current = onPress;
+      requestClose();
+    },
+    [requestClose]
+  );
+
+  // A requested close that got interrupted and settled back at an open detent:
+  // ask again. gorhom reports the settled index here.
+  const handleChange = useCallback((index: number) => {
+    if (index >= 0 && closeFallback.current) sheetRef.current?.close();
   }, []);
 
   const renderBackdrop = useCallback(
@@ -150,6 +192,7 @@ export function RowActionsSheetProvider({ children }: { children: ReactNode }) {
           enableDynamicSizing
           enablePanDownToClose
           onClose={handleClose}
+          onChange={handleChange}
           backdropComponent={renderBackdrop}
           backgroundStyle={styles.sheetBackground}
           handleIndicatorStyle={styles.handleIndicator}
@@ -185,7 +228,7 @@ export function RowActionsSheetProvider({ children }: { children: ReactNode }) {
 
             <Pressable
               accessibilityRole="button"
-              onPress={() => sheetRef.current?.close()}
+              onPress={requestClose}
               style={({ pressed }) => [styles.cancel, pressed && styles.optionPressed]}
             >
               <Text style={styles.cancelText}>{config.cancelLabel}</Text>
