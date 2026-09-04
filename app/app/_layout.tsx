@@ -48,7 +48,11 @@ function NavigationController() {
     if (!user && !onSignIn) {
       router.replace('/sign-in');
     } else if (user && onSignIn) {
-      router.replace('/');
+      // `dismissTo`, not `replace`: after a sign-out from inside the app the
+      // root stack is `[(tabs), sign-in]`, and a REPLACE would swap sign-in for
+      // a *second* tab layout (two live maps). POP_TO walks back to the existing
+      // one, and on a cold start (`[sign-in]` only) replaces it with a fresh one.
+      router.dismissTo('/');
     }
   }, [user, isLoading]);
 

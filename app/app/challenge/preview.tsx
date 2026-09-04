@@ -171,7 +171,11 @@ export default function ChallengePreview() {
         if (__DEV__) console.warn('[challenge] create failed', error);
         Alert.alert(t('challenge.errorCreate'), t(firebaseErrorKey(error)));
       });
-      router.replace('/');
+      // `dismissTo`, never `replace`: `/` lives inside the tab layout and this
+      // screen is a root-stack sibling of it, so a REPLACE here would swap this
+      // screen for a *second* `(tabs)` entry (two tab layouts, two live maps).
+      // POP_TO returns to the existing one; see RedirectHome.
+      router.dismissTo('/');
     } catch (error) {
       // Reached only by the pre-commit reads (catalog version / previous
       // default), which resolve from cache offline and reject fast when uncached.

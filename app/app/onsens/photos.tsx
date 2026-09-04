@@ -53,7 +53,7 @@ export default function VisitPhotosScreen() {
   useEffect(() => {
     if (loading || urls.length > 0) return;
     if (router.canGoBack()) router.back();
-    else router.replace('/');
+    else router.dismissTo('/'); // never `replace('/')` from a root-level screen: see RedirectHome
   }, [loading, urls.length, router]);
 
   function handleScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {

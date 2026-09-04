@@ -23,6 +23,10 @@ type OnsenRow = CachedOnsen;
 // The sheet rests at a single fixed height, image-forward, with room for a few
 // info rows and the CTA without resizing to content.
 const SNAP_POINTS = ['78%'];
+// How long after `open` goes false we wait for gorhom's `onClose` before
+// reporting closed anyway. gorhom's default slide-out is a spring well under
+// this; see the effect below for why the fallback exists.
+const CLOSE_FALLBACK_MS = 800;
 // Hero image height: the image-forward focal point of the sheet.
 const HERO_HEIGHT = 200;
 
@@ -88,24 +92,44 @@ export default function OnsenPreviewSheet({
   // footer overlays the content rather than reserving space).
   const [footerHeight, setFooterHeight] = useState(0);
 
+  // Latest onClosed, read from the (stable) handler without rebuilding it.
+  const onClosedRef = useRef(onClosed);
+  onClosedRef.current = onClosed;
+  const openRef = useRef(open);
+  openRef.current = open;
+
   // Play the slide-out when the parent lowers `open` (its "View full details" CTA
   // dismisses the sheet as it pushes the detail screen). Driven through the ref
   // rather than by handing gorhom a new `index`: the index prop is ignored while
   // the entrance animation is still in flight, so a quick dismissal would be
   // dropped and leave the sheet sitting open over the map, whereas the imperative
   // close animates from wherever the sheet has got to.
+  //
+  // The parent unmounts this sheet only on `onClosed`, and gorhom fires its
+  // `onClose` only for an animation that *finished*: one interrupted by a touch
+  // on the sheet, or a `close()` that gorhom drops (it no-ops while layout is
+  // unmeasured or a close is already in flight), would leave the sheet mounted
+  // over the map indefinitely, with real gesture handlers in its full-screen
+  // container: the map-freeze shape #239 removed. So once `open` is false the
+  // closed report is guaranteed: by gorhom if it finishes, by this timer if not.
   useEffect(() => {
-    if (!open) sheetRef.current?.close();
+    if (open) return;
+    sheetRef.current?.close();
+    const timer = setTimeout(() => onClosedRef.current(), CLOSE_FALLBACK_MS);
+    return () => clearTimeout(timer);
   }, [open]);
 
-  // Latest onClosed, read from the (stable) handler without rebuilding it.
-  const onClosedRef = useRef(onClosed);
-  onClosedRef.current = onClosed;
   // gorhom fires `onClose` from its animation-completed worklet, i.e. once the
   // slide-out has actually finished, which is precisely when the parent may drop
   // the mount. Any close routes through here: swipe-down, backdrop tap, the close
   // affordance, or `open` going false.
   const handleClosed = useCallback(() => onClosedRef.current(), []);
+  // A close that got interrupted and settled back at an open detent while the
+  // parent still wants it closed: ask again. gorhom reports the settled index
+  // here, so this is the one place that state is visible.
+  const handleChange = useCallback((index: number) => {
+    if (index >= 0 && !openRef.current) sheetRef.current?.close();
+  }, []);
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
@@ -182,6 +206,7 @@ export default function OnsenPreviewSheet({
       enableDynamicSizing={false}
       enablePanDownToClose
       onClose={handleClosed}
+      onChange={handleChange}
       backdropComponent={renderBackdrop}
       footerComponent={renderFooter}
       backgroundStyle={styles.sheetBackground}

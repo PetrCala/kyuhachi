@@ -7,13 +7,26 @@ import {
   Animated,
   Pressable,
   StyleSheet,
+  type LayoutChangeEvent,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { router, useLocalSearchParams, useNavigation } from 'expo-router';
+import {
+  router,
+  useFocusEffect,
+  useLocalSearchParams,
+  useNavigation,
+  useRootNavigationState,
+} from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import MapView, { Marker, Polyline, PROVIDER_DEFAULT, type Region } from 'react-native-maps';
+import MapView, {
+  Marker,
+  Polyline,
+  PROVIDER_DEFAULT,
+  type Camera,
+  type Region,
+} from 'react-native-maps';
 import {
   doc,
   onSnapshot,
@@ -27,8 +40,14 @@ import { usePreferences } from '@/context/PreferencesContext';
 import { db } from '@/firebase';
 import { SHOW_CATALOG_PHOTOS } from '@/lib/catalog-photos';
 import { simulatedCoordinate } from '@/lib/dev-location';
+import { DEV_TOOLS_ENABLED } from '@/lib/dev/flags';
+import { formatMapDoctorReport, withTimeout } from '@/lib/dev/map-doctor';
 import { distanceToPolylineKm } from '@/lib/geo';
+import { isFiniteCamera, isFiniteRegion } from '@/lib/map-camera';
 import { useActiveChallengeProgress } from '@/hooks/useActiveChallengeProgress';
+import { useMapCameraGate } from '@/hooks/useMapCameraGate';
+import { rootRouteNames } from '@/hooks/useSingleTabLayoutAssertion';
+import MapDoctorButton from '@/components/dev/MapDoctorButton';
 import MapZoomControl, { MIN_ALTITUDE, MAX_ALTITUDE } from '@/components/MapZoomControl';
 import OnsenMarker from '@/components/OnsenMarker';
 import OnsenPreviewSheet from '@/components/OnsenPreviewSheet';
@@ -76,13 +95,20 @@ const KYUSHU_OVERVIEW_ALTITUDE = estimateAltitude(KYUSHU_REGION.latitudeDelta);
  *  Maps animates the camera on its own ease-in-out curve), not a snap. */
 const FOCUS_FLY_IN_MS = 1200;
 
-/** Pause after the map reports ready before any camera command runs. A map that
- *  has just reported ready is still laying out its initial region, and driving the
- *  camera into that misbehaves: the "Show on map" fly-in gets swallowed and snaps
- *  straight to the pin, and a region set against a not-yet-sized map can leave
- *  MapKit with a camera it never recovers from (tiles draw, gestures do nothing).
- *  A short settle lets the initial region land first. */
+/** Pause after the map becomes commandable (in a window, laid out, ready) before
+ *  any camera command runs. A map that has just (re)appeared is still laying out
+ *  its region, and driving the camera into that misbehaves: the "Show on map"
+ *  fly-in gets swallowed and snaps straight to the pin, and a region set against
+ *  a not-yet-sized map can leave MapKit with a camera it never recovers from
+ *  (tiles draw, gestures do nothing). A short settle lets the layout land first.
+ *  Applied by the camera gate every time the gate opens, not only on first mount:
+ *  the Map tab is detached from the native hierarchy whenever another tab is
+ *  active, so "re-attached" is as delicate as "just mounted". */
 const CAMERA_SETTLE_MS = 400;
+
+/** Ceiling on a `getCamera()` read issued by the map doctor, so a native read
+ *  that never settles can't hang the report. */
+const DOCTOR_CAMERA_TIMEOUT_MS = 1000;
 
 /** A map region that frames the route's bounding box with a little padding. */
 function regionForBounds(bounds: RouteDocument['bounds']): Region {
@@ -147,11 +173,95 @@ export default function MapScreen() {
   // Live camera altitude (Apple Maps), read after each gesture settles so the
   // zoom slider's knob tracks pinch as well as its own drags.
   const [altitude, setAltitude] = useState<number | undefined>(undefined);
-  // Flips true once the MapView reports ready. A "Show on map" focus waits on this
-  // so its camera move actually lands: with an active route the screen stays in its
-  // loading state until the route resolves, so onsens, the route, and the map can
-  // become ready in any order; animating before the map exists would be a no-op.
+  // The three facts the camera gate below needs about the native map. Together
+  // they say whether a camera command can be sent right now:
+  //  - `mapReady`: the MapView reported onMapReady (false again after a remount);
+  //  - `laidOut`: its last onLayout had a non-zero size;
+  //  - `focused`: this tab screen is focused. Inactive tabs are detached from the
+  //    native view hierarchy and a screen pushed over the tabs blurs this one, so
+  //    while unfocused the map is not in any window.
   const [mapReady, setMapReady] = useState(false);
+  const [laidOut, setLaidOut] = useState(false);
+  const [focused, setFocused] = useState(false);
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
+      return () => setFocused(false);
+    }, [])
+  );
+  const handleMapLayout = useCallback((event: LayoutChangeEvent) => {
+    const { width, height } = event.nativeEvent.layout;
+    setLaidOut(width > 0 && height > 0);
+  }, []);
+  // Bumped by the map doctor's "remount" to tear the native map down and mount
+  // a fresh one (the MapView's `key`). The last settled region seeds the new
+  // map so the remount is invisible apart from the freeze it may clear.
+  const [mapInstance, setMapInstance] = useState(0);
+  const lastRegionRef = useRef<Region | null>(null);
+  // When each kind of map event last fired; the doctor reads them to tell
+  // "touches never reach MapKit" from "MapKit gets them and ignores them".
+  const lastEventAtRef = useRef({ press: 0, regionChange: 0, regionComplete: 0 });
+
+  // Re-set the map's own camera, unchanged: the documented way to wake MKMapView
+  // out of the stuck-gesture state it can fall into after a long press or a
+  // hierarchy change. Runs after every re-attach of this tab (see the gate) and
+  // from the doctor's "nudge" button.
+  const nudgeCamera = useCallback(async () => {
+    try {
+      const camera = await mapRef.current?.getCamera();
+      if (camera && isFiniteCamera(camera)) mapRef.current?.setCamera(camera);
+    } catch {
+      // Map gone or camera unavailable: nothing to nudge.
+    }
+  }, []);
+
+  // Every imperative camera command goes through this gate: run now if the map
+  // is focused, laid out, ready and settled, otherwise held and replayed in
+  // order once it is. This is what keeps a "Show on map" focus, a route that
+  // arrives while another tab is active, or a recenter from ever reaching a
+  // detached or unsized native map, which is the camera-corruption freeze.
+  const { ready: gateReady, run: runCameraCommand, pending: pendingCameraCommands } =
+    useMapCameraGate({
+      focused,
+      laidOut,
+      mapReady,
+      settleMs: CAMERA_SETTLE_MS,
+      onReopen: nudgeCamera,
+    });
+
+  // The gated, validated forms of the three camera commands the screen uses.
+  // Non-finite input (a NaN span from a malformed route bound, say) is dropped
+  // rather than handed to MapKit, which only rejects an invalid centre.
+  const animateToRegionSafe = useCallback(
+    (region: Region, duration?: number) => {
+      if (!isFiniteRegion(region)) {
+        if (__DEV__) console.warn('[map] dropped non-finite region', region);
+        return;
+      }
+      runCameraCommand(() => mapRef.current?.animateToRegion(region, duration));
+    },
+    [runCameraCommand]
+  );
+  const setCameraSafe = useCallback(
+    (camera: Partial<Camera>) => {
+      if (!isFiniteCamera(camera)) {
+        if (__DEV__) console.warn('[map] dropped non-finite camera', camera);
+        return;
+      }
+      runCameraCommand(() => mapRef.current?.setCamera(camera));
+    },
+    [runCameraCommand]
+  );
+  const animateCameraSafe = useCallback(
+    (camera: Partial<Camera>, duration: number) => {
+      if (!isFiniteCamera(camera)) {
+        if (__DEV__) console.warn('[map] dropped non-finite camera', camera);
+        return;
+      }
+      runCameraCommand(() => mapRef.current?.animateCamera(camera, { duration }));
+    },
+    [runCameraCommand]
+  );
 
   // The on-map controls auto-hide together after a spell of no interaction and
   // reappear on any map touch or control use. `controlsVisible` drives both their
@@ -221,7 +331,7 @@ export default function MapScreen() {
   const handleRecenter = useCallback(async () => {
     // When simulating, recenter on the fake spot: no permission or GPS needed.
     if (simulated) {
-      mapRef.current?.animateToRegion({
+      animateToRegionSafe({
         latitude: simulated.latitude,
         longitude: simulated.longitude,
         latitudeDelta: USER_LOCATION_DELTA,
@@ -243,7 +353,7 @@ export default function MapScreen() {
       const { coords } = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
-      mapRef.current?.animateToRegion({
+      animateToRegionSafe({
         latitude: coords.latitude,
         longitude: coords.longitude,
         latitudeDelta: USER_LOCATION_DELTA,
@@ -252,12 +362,11 @@ export default function MapScreen() {
     } catch {
       Alert.alert(t('common.errorTitle'), t('map.locationError'));
     }
-  }, [simulated, locationGranted, t]);
+  }, [simulated, locationGranted, t, animateToRegionSafe]);
 
   // Read the actual camera altitude once a gesture settles (and on first ready)
   // to keep the slider knob in sync with pinch. getCamera can reject in teardown.
-  const handleCameraSettle = useCallback(async () => {
-    setMapReady(true);
+  const readAltitude = useCallback(async () => {
     try {
       const camera = await mapRef.current?.getCamera();
       if (camera?.altitude !== undefined) setAltitude(camera.altitude);
@@ -265,6 +374,20 @@ export default function MapScreen() {
       // Map gone or camera unavailable: leave the last known altitude in place.
     }
   }, []);
+
+  // The map exists natively from here on: opens the camera gate (after its
+  // settle) and seeds the zoom knob.
+  const handleMapReady = useCallback(() => {
+    setMapReady(true);
+    void readAltitude();
+  }, [readAltitude]);
+
+  // A tap on the map itself: wakes the auto-hiding controls, and is the doctor's
+  // proof that touches reach MapKit at all.
+  const handleMapPress = useCallback(() => {
+    lastEventAtRef.current.press = Date.now();
+    bumpControls();
+  }, [bumpControls]);
 
   // True while a streaming altitude read is in flight, so the per-frame reads
   // below never pile up overlapping getCamera calls.
@@ -276,15 +399,16 @@ export default function MapScreen() {
   // Guarded to one read at a time; onRegionChangeComplete still does the final,
   // authoritative read.
   const handleRegionChange = useCallback(async () => {
+    lastEventAtRef.current.regionChange = Date.now();
     bumpControls();
     if (streamingReadRef.current) return;
     streamingReadRef.current = true;
     try {
-      await handleCameraSettle();
+      await readAltitude();
     } finally {
       streamingReadRef.current = false;
     }
-  }, [bumpControls, handleCameraSettle]);
+  }, [bumpControls, readAltitude]);
 
   // Onsen ids whose photo we've already asked expo-image to prefetch, so panning
   // back over the same pins doesn't re-issue fetches.
@@ -301,7 +425,9 @@ export default function MapScreen() {
   // constant), so it has to stop the fetching too, not just the rendering.
   const handleRegionSettle = useCallback(
     (region: Region) => {
-      handleCameraSettle();
+      lastEventAtRef.current.regionComplete = Date.now();
+      lastRegionRef.current = region;
+      void readAltitude();
       if (!SHOW_CATALOG_PHOTOS) return;
       const latMin = region.latitude - region.latitudeDelta / 2;
       const latMax = region.latitude + region.latitudeDelta / 2;
@@ -316,7 +442,7 @@ export default function MapScreen() {
       }
       if (urls.length) void Image.prefetch(urls, { cachePolicy: 'memory-disk' });
     },
-    [handleCameraSettle, onsens]
+    [readAltitude, onsens]
   );
 
   // Stable across renders so the memoized OnsenMarkers never re-render or
@@ -407,13 +533,16 @@ export default function MapScreen() {
   // A "Show on map" navigation flies the camera in from the Kyushu overview, so
   // frame the overview at mount: when this screen mounts fresh for that navigation
   // (the Map tab hadn't been opened yet), the fly-in then starts wide even before
-  // the camera commands run. Otherwise frame the route if there is one.
+  // the camera commands run. Otherwise frame the route if there is one. A map
+  // remounted by the doctor picks up where the previous one settled instead.
+  const remountRegion = mapInstance > 0 ? lastRegionRef.current : null;
   const initialRegion =
-    focusOnsenId && focusTs
+    remountRegion ??
+    (focusOnsenId && focusTs
       ? KYUSHU_REGION
       : route
         ? regionForBounds(route.bounds)
-        : KYUSHU_REGION;
+        : KYUSHU_REGION);
 
   // Onsens actually drawn as pins. With the "Near route" filter on and a route
   // present, keep only those within the preferred radius of the route; otherwise
@@ -448,11 +577,11 @@ export default function MapScreen() {
   // static `initialRegion` can't. Keyed on the bounds so it animates once per
   // distinct route, not on every snapshot.
   //
-  // Waits on `mapReady` and then a settle, for the same reason the focus effect
-  // below does: a newly selected route resolves in the very commit that mounts
-  // the map, so without the wait this fires the screen's first camera command at
-  // a native map that has no size yet, which is how MapKit ends up with a camera
-  // it never recovers from.
+  // The command goes through the camera gate, so a route that resolves in the
+  // very commit that mounts the map, or while another tab is active (attaching a
+  // route from the Routes screen), is held until the map is in a window, laid
+  // out, ready and settled, then replayed. Firing it earlier is how MapKit ends
+  // up with a camera it never recovers from.
   //
   // Exception: a "Show on map" navigation (focus params present) is an explicit
   // request to view one onsen, so it owns the camera. The active route loads
@@ -461,77 +590,127 @@ export default function MapScreen() {
   // let the focus effect below win.
   const framedBoundsRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!mapReady || !route || (focusOnsenId && focusTs)) return;
+    if (!route || (focusOnsenId && focusTs)) return;
     const { minLat, minLng, maxLat, maxLng } = route.bounds;
     const key = `${minLat},${minLng},${maxLat},${maxLng}`;
     if (key === framedBoundsRef.current) return;
     framedBoundsRef.current = key;
-    const timer = setTimeout(
-      () => mapRef.current?.animateToRegion(regionForBounds(route.bounds)),
-      CAMERA_SETTLE_MS
-    );
-    return () => clearTimeout(timer);
-  }, [mapReady, route, focusOnsenId, focusTs]);
+    animateToRegionSafe(regionForBounds(route.bounds));
+  }, [route, focusOnsenId, focusTs, animateToRegionSafe]);
 
   // Arriving from an onsen's "Show on map": fly in to that pin. We snap to the
   // whole-Kyushu overview first, then ease the camera down to the onsen so the
   // zoom plays as a deliberate descent (Apple Maps' built-in ease-in-out curve)
   // rather than an instant jump, whatever the map happened to be framing. A short
   // settle separates the snap from the animation: it keeps MapKit from coalescing
-  // both into one move from the old view, and gives a freshly mounted map (this
-  // screen reached via a tab that hadn't shown the map yet) time to lay out its
-  // initial region before we animate, which it would otherwise swallow.
+  // both into one move from the old view.
   //
   // We don't open the preview half-sheet: the user came straight from this
   // onsen's detail screen, so the sheet would just repeat what they already saw.
   // `focusTs` is a per-tap nonce so tapping again re-flies to the same onsen (an
   // unchanging id alone wouldn't re-fire the effect); the guard stops a re-run on
-  // unrelated re-renders or when returning to this tab. Waits on `mapReady` so the
-  // move isn't a no-op against an unmounted map, and the route-framing effect above
-  // yields whenever these focus params are present, so a late-loading route can't
-  // override us.
+  // unrelated re-renders or when returning to this tab. Both steps go through the
+  // camera gate: the `dismissTo` that brings us here re-attaches this tab in the
+  // same commit, so without the gate the snap would hit a map that is not laid
+  // out yet. The route-framing effect above yields whenever these focus params
+  // are present, so a late-loading route can't override us.
   const focusedTokenRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!mapReady || !focusOnsenId || !focusTs || focusedTokenRef.current === focusTs) {
-      return;
-    }
+    if (!focusOnsenId || !focusTs || focusedTokenRef.current === focusTs) return;
     const target = onsens.find((o) => o.id === focusOnsenId);
     if (!target) return; // onsen list not loaded yet; re-runs when it arrives
     focusedTokenRef.current = focusTs;
-    mapRef.current?.setCamera({
-      center: { latitude: KYUSHU_REGION.latitude, longitude: KYUSHU_REGION.longitude },
-      altitude: KYUSHU_OVERVIEW_ALTITUDE,
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    runCameraCommand(() => {
+      setCameraSafe({
+        center: { latitude: KYUSHU_REGION.latitude, longitude: KYUSHU_REGION.longitude },
+        altitude: KYUSHU_OVERVIEW_ALTITUDE,
+      });
+      timer = setTimeout(() => {
+        animateCameraSafe(
+          {
+            center: { latitude: target.lat, longitude: target.lng },
+            altitude: FOCUS_ONSEN_ALTITUDE,
+          },
+          FOCUS_FLY_IN_MS
+        );
+      }, CAMERA_SETTLE_MS);
     });
-    const timer = setTimeout(() => {
-      mapRef.current?.animateCamera(
-        {
-          center: { latitude: target.lat, longitude: target.lng },
-          altitude: FOCUS_ONSEN_ALTITUDE,
-        },
-        { duration: FOCUS_FLY_IN_MS }
-      );
-    }, CAMERA_SETTLE_MS);
-    return () => clearTimeout(timer);
-  }, [mapReady, focusOnsenId, focusTs, onsens]);
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [focusOnsenId, focusTs, onsens, runCameraCommand, setCameraSafe, animateCameraSafe]);
+
+  // Dev-tools map doctor (see MapDoctorButton): a state dump for the moment the
+  // map is found frozen, plus the two recovery actions. Reads the root stack so
+  // a duplicated tab layout shows up in the same report.
+  const rootNavigationState = useRootNavigationState();
+  const buildDoctorReport = useCallback(async () => {
+    let camera: Camera | null = null;
+    let cameraError: string | null = null;
+    try {
+      camera = await withTimeout(mapRef.current?.getCamera(), DOCTOR_CAMERA_TIMEOUT_MS);
+    } catch (error) {
+      cameraError = String(error instanceof Error ? error.message : error);
+    }
+    return formatMapDoctorReport({
+      now: Date.now(),
+      focused,
+      laidOut,
+      mapReady,
+      gateReady,
+      queued: pendingCameraCommands(),
+      instance: mapInstance,
+      lastPressAt: lastEventAtRef.current.press,
+      lastRegionChangeAt: lastEventAtRef.current.regionChange,
+      lastRegionCompleteAt: lastEventAtRef.current.regionComplete,
+      camera,
+      cameraError,
+      sheet: sheetOnsen ? (sheetOpen ? 'open' : 'closing') : 'none',
+      rootRoutes: rootRouteNames(rootNavigationState),
+    });
+  }, [
+    focused,
+    laidOut,
+    mapReady,
+    gateReady,
+    pendingCameraCommands,
+    mapInstance,
+    sheetOnsen,
+    sheetOpen,
+    rootNavigationState,
+  ]);
+  // Tear the native map down and mount a fresh one at the last settled region.
+  // The readiness facts reset with it, so the gate closes until the new map
+  // reports its layout and onMapReady, and no command lands on it before then.
+  const remountMap = useCallback(() => {
+    setMapReady(false);
+    setLaidOut(false);
+    setAltitude(undefined);
+    setMapInstance((n) => n + 1);
+  }, []);
 
   return (
     <View style={styles.container}>
       {mapMounted && (
         <>
           <MapView
+            // Only the doctor's remount ever changes this; see `remountMap`.
+            key={mapInstance}
             ref={mapRef}
             style={styles.map}
             provider={PROVIDER_DEFAULT}
             initialRegion={initialRegion}
             showsUserLocation={!simulated && locationGranted}
-            onMapReady={handleCameraSettle}
+            onLayout={handleMapLayout}
+            onMapReady={handleMapReady}
             onRegionChange={handleRegionChange}
             // No `onPanDrag`: on iOS that prop makes react-native-maps install its
             // own pan gesture recognizer, which fights the map's built-in scroll and
             // can leave the map un-pannable (frozen) while overlay buttons still tap.
             // `onRegionChange` already fires throughout a drag, so the auto-hide
             // controls still wake without it.
-            onPress={bumpControls}
+            onPress={handleMapPress}
             onRegionChangeComplete={handleRegionSettle}
           >
             {visibleOnsens.map((onsen) => (
@@ -642,6 +821,17 @@ export default function MapScreen() {
               <Ionicons name="locate" size={spacing[6]} color={colors.actionPrimary} />
             </Pressable>
           </Animated.View>
+          {/* Dev-tools-only map doctor, top-right. Outside the auto-hide fade on
+              purpose: it has to stay tappable while the map is frozen. */}
+          {DEV_TOOLS_ENABLED && (
+            <View style={styles.doctorSlot}>
+              <MapDoctorButton
+                buildReport={buildDoctorReport}
+                onNudge={() => void nudgeCamera()}
+                onRemount={remountMap}
+              />
+            </View>
+          )}
           {/* Mounted only while there is an onsen to preview: a closed sheet left
               mounted would keep a full-screen box-none container over the map, the
               very pattern the slot comment above warns about. */}
@@ -718,6 +908,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: spacing[4],
     bottom: spacing[6],
+  },
+  // Corner slot for the dev-tools map doctor, top-right, clear of the zoom
+  // slider's vertical centre and the filter pill's top-left.
+  doctorSlot: {
+    position: 'absolute',
+    right: spacing[4],
+    top: spacing[4],
   },
   // "Near route" filter pill. White pill when off; filled with the primary
   // color when on. Positioned by its `filterSlot` wrapper.

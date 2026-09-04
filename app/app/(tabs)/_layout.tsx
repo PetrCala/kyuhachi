@@ -2,10 +2,14 @@ import { Tabs } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import OnsenIcon from '@/components/OnsenIcon';
+import { useSingleTabLayoutAssertion } from '@/hooks/useSingleTabLayoutAssertion';
 import { colors } from '@/theme';
 
 export default function TabsLayout() {
   const { t } = useTranslation();
+  // Dev-tools guard: this layout must exist exactly once in the root stack (a
+  // second copy means a second live MapView; see the hook).
+  useSingleTabLayoutAssertion();
 
   return (
     <Tabs
