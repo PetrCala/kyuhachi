@@ -147,17 +147,34 @@ functions deploy, targeted ones included.
 2. Create a Meta app at <https://developers.facebook.com/apps>, product
    **Instagram → API setup with Instagram business login**, and add the
    `instagram_business_basic` and `instagram_business_content_publish` scopes.
-3. Run the Instagram business login flow once, exchange the short-lived code
-   for a long-lived token, and note the Instagram user id.
-4. Put both into Secret Manager:
+3. In the same panel, under **Generate access tokens**, click *Add an
+   Instagram account*, log in as the account in the popup and allow access.
+   Copy the token it gives you. This is the whole reason to use the Instagram
+   Login path: no redirect URI, no OAuth implementation, no Facebook Page.
+   The dashboard's token is short-lived (about an hour), so it has to be
+   exchanged before it is worth storing, which is what the next step does.
+4. Verify it and turn it into a 60-day token, with the app secret from
+   **App settings → Basic**:
+
+   ```bash
+   IG_TOKEN=... IG_APP_SECRET=... ./scripts/verify-instagram-token.sh
+   ```
+
+   It confirms the account is BUSINESS or CREATOR, prints the Instagram user
+   id, exchanges the token for a long-lived one, and checks that the publish
+   scope is actually granted by reading the publishing quota. The token is
+   read from the environment and never written to a file. Store the token it
+   prints at the end, not the one from the dashboard.
+
+5. Put both into Secret Manager:
 
    ```bash
    firebase functions:secrets:set INSTAGRAM_USER_ID
    firebase functions:secrets:set INSTAGRAM_ACCESS_TOKEN
    ```
 
-5. Uncomment the `instagramJourney` export in `functions/src/index.ts`.
-6. `npm run deploy:functions`.
+6. Uncomment the `instagramJourney` export in `functions/src/index.ts`.
+7. `npm run deploy:functions`.
 
 The seeded token is only ever the first one. It rotates on refresh, and the
 live value lives in the private `journey_sync/instagram` document from then on:
