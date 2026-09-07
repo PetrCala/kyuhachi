@@ -68,10 +68,13 @@ confined to `website/src/hooks/useOnsens.ts` so nothing downstream sees the
 packing. This is the same move as storing walked tracks as encoded polylines
 ([journey-days.md](journey-days.md), "How a track is stored").
 
-The index is published by the private data repo, not from here. Until it
-publishes, `useOnsens` falls back to the old full-catalog read and warns in the
-console; delete `readFullCatalog` and its call site once
-`/catalog_index/current` exists in production.
+The index is published by the private data repo, not from here: its
+`bump_catalog_version` rewrites the document from the same live read that writes
+`/catalog_meta` on every publish, so the two cannot drift. The site therefore
+treats a missing index as a broken publish, not a state to fall back on: it
+raises the failure banner. (It shipped with a temporary fallback to the old
+full-catalog read for the window before the first publish, on 2026-09-07; that
+is gone.)
 
 The only hardcoded datum is Petr's uid (`website/src/config.ts`, mirrored by
 `isJourneyUser()` in the rules). Everything else is derived.

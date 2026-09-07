@@ -1,6 +1,6 @@
-import type { CatalogIndexDocument, CatalogIndexEntry, OnsenDocument } from '@kyuhachi/shared';
+import type { CatalogIndexDocument, CatalogIndexEntry } from '@kyuhachi/shared';
 import { CATALOG_INDEX_DOC_ID, CATALOG_INDEX_SCHEMA_VERSION, COLLECTIONS } from '@kyuhachi/shared';
-import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { db } from '../firebase';
 import type { CatalogOnsen } from '../types';
@@ -30,61 +30,24 @@ function unpack(entries: string): Map<string, CatalogOnsen> {
 }
 
 /**
- * True while the index is not there to be read yet, which is two states, not
- * one: the document is absent, or the rules that make it public have not
- * reached production (Firestore denies a read on a path no rule matches, so the
- * read throws instead of returning an empty snapshot). Rules and website deploy
- * from the same push on separate workflows, and `npm run dev` on a branch talks
- * to production, so both states are real and both are transient.
+ * The published catalog index, unpacked.
  *
- * Anything else, including a document that does not parse, is a broken publish
- * rather than a missing one, and is left to throw.
+ * A missing document is a broken publish rather than a state to fall back on:
+ * the data repo rewrites /catalog_index/current from the same live read that
+ * writes /catalog_meta, on every publish, so the only way it is absent is that
+ * something went wrong. Same for a schemaVersion this build does not know: the
+ * packing is not something to guess at. Both throw, and the caller turns that
+ * into the "part of the journey could not be loaded" banner rather than a
+ * quietly empty map.
  */
-function isNotPublishedYet(err: unknown): boolean {
-  return (err as { code?: string })?.code === 'permission-denied';
-}
-
-/**
- * /catalog_index/current, or null when it is not published yet.
- *
- * A document that exists but does not parse throws, and the caller says so
- * rather than quietly serving an older, slower catalog nobody would notice was
- * in use.
- */
-async function readIndex(): Promise<Map<string, CatalogOnsen> | null> {
-  const snap = await getDoc(doc(db, COLLECTIONS.CATALOG_INDEX, CATALOG_INDEX_DOC_ID)).catch(
-    (err: unknown) => {
-      if (isNotPublishedYet(err)) return null;
-      throw err;
-    }
-  );
-  if (snap == null || !snap.exists()) return null;
+async function readIndex(): Promise<Map<string, CatalogOnsen>> {
+  const snap = await getDoc(doc(db, COLLECTIONS.CATALOG_INDEX, CATALOG_INDEX_DOC_ID));
+  if (!snap.exists()) throw new Error('catalog_index/current is missing');
   const data = snap.data() as CatalogIndexDocument;
   if (data.schemaVersion !== CATALOG_INDEX_SCHEMA_VERSION) {
     throw new Error(`catalog index schemaVersion ${data.schemaVersion} is not readable here`);
   }
   return unpack(data.entries);
-}
-
-/**
- * The old read: all 161 documents with all 23 fields, 386 KB to render seven
- * fields per onsen.
- *
- * TEMPORARY. It exists only for the window between this deploying and the data
- * repo publishing the index, so the site never reads a document that is not
- * there. Once /catalog_index/current is live in production, delete this
- * function, `isNotPublishedYet`, the `.catch` in readIndex and the
- * `?? readFullCatalog()` below, and let readIndex return the map directly:
- * nothing downstream changes, because both paths produce the same map.
- */
-async function readFullCatalog(): Promise<Map<string, CatalogOnsen>> {
-  const snap = await getDocs(collection(db, COLLECTIONS.ONSENS));
-  const onsens = new Map<string, CatalogOnsen>();
-  for (const docSnap of snap.docs) {
-    const { name, nameRomaji, areaName, prefecture, lat, lng } = docSnap.data() as OnsenDocument;
-    onsens.set(docSnap.id, { id: docSnap.id, name, nameRomaji, areaName, prefecture, lat, lng });
-  }
-  return onsens;
 }
 
 /**
@@ -105,11 +68,6 @@ export function useOnsens(): State {
   useEffect(() => {
     let cancelled = false;
     readIndex()
-      .then(async (indexed) => {
-        if (indexed) return indexed;
-        console.warn('catalog index not published yet; reading the full catalog');
-        return readFullCatalog();
-      })
       .then((onsens) => {
         if (!cancelled) setState({ onsens, failed: false });
       })

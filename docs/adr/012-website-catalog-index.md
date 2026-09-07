@@ -98,12 +98,17 @@ field the catalog does not, and can be deleted and rebuilt at any time.
 - Onsen identity now has two published representations. They can drift, so the
   index is republished in the same operation as the catalog, and `version`
   ties it to the `/catalog_meta` version it was derived from.
-- Publishing is the data repo's job, so the two repos have to land in order:
-  rules first, then the publisher, then the site switches over. The website
-  ships with a temporary fallback to the full-catalog read for that window
-  (`readFullCatalog` in `website/src/hooks/useOnsens.ts`), to be deleted once
-  the index is live, exactly as the polyline change kept and then removed its
-  legacy `points` path.
+- Publishing is the data repo's job, so the two repos had to land in order:
+  rules first, then the publisher, then the site switching over. The website
+  shipped with a temporary fallback to the full-catalog read for that window,
+  exactly as the polyline change kept and then removed its legacy `points`
+  path. The index was first published on 2026-09-07 and the fallback was
+  removed the same day; a missing index is now a failure, not a fallback.
+- One thing that window taught: Firestore denies a read on a path no rule
+  matches, so before the rules deploy the read fails with `permission-denied`
+  rather than returning an absent document. A "read the new thing, fall back if
+  absent" rollout has to treat both as the same state, because rules and site
+  deploy from one push on two separate workflows.
 - The document is 24 KB against Firestore's 1 MiB limit, room for roughly 40x
   the current catalog. If it ever approached that, this decision would need
   revisiting rather than paging.
