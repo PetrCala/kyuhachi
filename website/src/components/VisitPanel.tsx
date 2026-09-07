@@ -7,10 +7,10 @@ import type {
 } from '@kyuhachi/shared';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { formatJstTimestamp } from '../lib/format-date';
-import type { OnsenWithId, VisitWithOnsenId } from '../types';
+import type { CatalogOnsen, VisitWithOnsenId } from '../types';
 
 interface Props {
-  onsen: OnsenWithId;
+  onsen: CatalogOnsen;
   visit: VisitWithOnsenId;
   onClose: () => void;
 }

@@ -16,6 +16,7 @@ export interface Timestamp {
 export const COLLECTIONS = {
 	ONSENS: "onsens",
 	CATALOG_META: "catalog_meta",
+	CATALOG_INDEX: "catalog_index",
 	AREA_GUIDES: "area_guides",
 	AREA_GUIDES_META: "area_guides_meta",
 	CHALLENGE_TYPES: "challenge_types",
@@ -31,5 +32,7 @@ export const SUBCOLLECTIONS = {
 } as const
 
 export const CATALOG_META_DOC_ID = "current"
+
+export const CATALOG_INDEX_DOC_ID = "current"
 
 export const AREA_GUIDES_META_DOC_ID = "current"

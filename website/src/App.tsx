@@ -15,7 +15,7 @@ import { useVisits } from './hooks/useVisits';
 import { effectiveEligibleIds } from './lib/effective-pool';
 import { distanceToPolylineKm } from './lib/geo';
 import { computeWalkStats } from './lib/walk-stats';
-import type { LayerVisibility, OnsenWithId } from './types';
+import type { CatalogOnsen, LayerVisibility } from './types';
 
 const DEFAULT_LAYERS: LayerVisibility = {
   walked: true,
@@ -88,7 +88,7 @@ export default function App() {
     if (!onsens) return [];
     return [...visits.keys()]
       .map((id) => onsens.get(id))
-      .filter((onsen): onsen is OnsenWithId => onsen != null);
+      .filter((onsen): onsen is CatalogOnsen => onsen != null);
   }, [visits, onsens]);
 
   /*
@@ -110,7 +110,7 @@ export default function App() {
     if (!onsens) return [];
     return effectivePoolIds
       .map((id) => onsens.get(id))
-      .filter((onsen): onsen is OnsenWithId => onsen != null);
+      .filter((onsen): onsen is CatalogOnsen => onsen != null);
   }, [onsens, effectivePoolIds]);
 
   /** The planned route, only once it holds enough points to be a line at all. */
@@ -148,11 +148,14 @@ export default function App() {
 
   /*
    * Only the challenge document blocks the page. It is one small doc, and
-   * everything else on the map is a layer that can arrive late: the catalog is
-   * ~800 KB and the walked tracks grow by ~95 KB per day walked, which on a
-   * phone put a full-screen "still trying to reach the server" over a site that
-   * was working perfectly and merely downloading. Those two report themselves
-   * through `stillArriving` instead, as a quiet pill over a usable map.
+   * everything else on the map is a layer that can arrive late: the catalog was
+   * ~386 KB (now ~24 KB, one packed document) and the walked tracks were ~95 KB
+   * per day walked (now ~2.6 KB, an encoded polyline), which on a phone put a
+   * full-screen "still trying to reach the server" over a site that was working
+   * perfectly and merely downloading. Both are small now, but they still report
+   * themselves through `stillArriving` rather than the overlay: neither is
+   * needed to draw a usable map, and a slow connection can still make either
+   * late.
    */
   const loading = challengeLoading;
   const stillArriving =
