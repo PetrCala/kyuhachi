@@ -3,7 +3,6 @@ import { COLLECTIONS } from '@kyuhachi/shared';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { db } from '../firebase';
-import type { LatLng } from '../lib/geo';
 import { decodePolyline } from '../lib/polyline';
 import type { WalkedDay } from '../types';
 
@@ -13,22 +12,19 @@ interface State {
 }
 
 /**
- * A document as it may actually be stored. Every day published since the track
- * became an encoded polyline carries `polyline`; days written before that still
- * carry a raw `points` array until the migration script has been over them
- * (scripts/migrate-journey-day-polylines.ts). Reading both means the site never
- * depends on the website deploy and the migration landing in a given order.
- * Drop the `points` half once no document has it.
+ * The encoding is a wire format and stops here: everything downstream of this
+ * hook sees a plain list of points.
+ *
+ * Every document carries `polyline`. The publish path has written nothing else
+ * since the track stopped being an array, and the two days that predated it
+ * were re-encoded by scripts/migrate-journey-day-polylines.ts. A document
+ * without one is therefore not a shape to fall back on but a broken write, and
+ * decoding throws, which the caller turns into the "part of the journey could
+ * not be loaded" banner rather than a map quietly missing a day.
  */
-type StoredJourneyDay = Omit<JourneyDayDocument, 'polyline'> & {
-  polyline?: string;
-  points?: LatLng[];
-};
-
-/** The stored track, however this particular document happens to hold it. */
-function toWalkedDay(stored: StoredJourneyDay): WalkedDay {
-  const { polyline, points, ...rest } = stored;
-  return { ...rest, points: polyline != null ? decodePolyline(polyline) : (points ?? []) };
+function toWalkedDay(stored: JourneyDayDocument): WalkedDay {
+  const { polyline, ...rest } = stored;
+  return { ...rest, points: decodePolyline(polyline) };
 }
 
 /**
@@ -47,7 +43,7 @@ export function useJourneyDays(): State {
       .then((snap) => {
         if (cancelled) return;
         setState({
-          days: snap.docs.map((docSnap) => toWalkedDay(docSnap.data() as StoredJourneyDay)),
+          days: snap.docs.map((docSnap) => toWalkedDay(docSnap.data() as JourneyDayDocument)),
           failed: false,
         });
       })

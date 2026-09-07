@@ -96,10 +96,12 @@ costs two characters.
 - The app reads this collection for distances and dates only, never for the
   track, so it never decodes anything.
 
-Documents written before the change carry `points` instead. Re-encode them with
+Every document carries `polyline`. The two days written before the change were
+re-encoded on 2026-09-07, and the site no longer reads a `points` array at all.
+If one ever turns up again (a restored backup, say), re-encode it with
 `npm run journey:migrate-polylines -- --dry-run` first, then without the flag;
-it is idempotent. The website reads either shape until every document has been
-migrated.
+it is idempotent and round-trips each track through the decoder before deleting
+anything.
 
 ## Publishing from the phone
 
