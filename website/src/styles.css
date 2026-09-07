@@ -759,10 +759,15 @@ body {
    start collapsed (App decides that at mount, off the same query) and sit as a
    row of pills instead of a column of cards.
 
-   Only one can be open at a time at this size, and the open one takes a full
-   line to itself, which leaves the other as a pill above or below it. A capped,
-   scrolling body then stops a long card from growing back over the map it is a
-   key to.
+   They sit in the top right, on the same line as the map's own zoom buttons,
+   which own the top left. Stacked under those buttons instead, the pills landed
+   a fifth of the way down the screen and read as something dropped in the
+   middle of the map rather than chrome in a corner.
+
+   Only one can be open at a time at this size, and the open card is too wide to
+   share a line with the other pill, so it always wraps onto a line of its own.
+   A capped, scrolling body then stops a long card from growing back over the
+   map it is a key to.
 
    The height half of the query catches a phone held sideways: 812px wide, so it
    passes the width test, with barely 300px of map under the header. Keep this
@@ -770,23 +775,37 @@ body {
 @media (max-width: 700px), (max-height: 500px) {
   .map-panels {
     flex-flow: row wrap;
+    justify-content: flex-end;
     gap: 6px;
     width: auto;
-    margin-right: 10px;
+    margin: 10px 10px 0;
   }
 
   .map-panel {
     width: auto;
   }
 
+  /* Wide enough for a stats row, and narrow enough that whichever line it wraps
+     onto, a right-aligned card still starts 50px in and so clears the zoom
+     buttons in the corner it may share a line with. */
   .map-panel-open {
-    flex: 1 0 100%;
+    flex: none;
+    width: min(320px, calc(100vw - 60px));
   }
 
   .layer-rows,
   .stats-rows {
     max-height: 38vh;
     overflow-y: auto;
+  }
+
+  /* The pills hold the top right now, where this used to print across them. At
+     the bottom it clears them, the zoom buttons and the presence pill, and a
+     status line is no worse for being down by the map's edge. */
+  .load-banner {
+    top: auto;
+    bottom: 60px;
+    left: 10px;
   }
 }
 
