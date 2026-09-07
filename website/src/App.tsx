@@ -206,9 +206,7 @@ export default function App() {
             <span>八</span>
           </span>
           <div>
-            <h1>
-              <span lang="ja">九州八十八湯</span> Journey
-            </h1>
+            <h1 lang="ja">九州八十八湯</h1>
             <p className="subtitle">88 of Kyushu's hot springs, on foot</p>
           </div>
         </div>
