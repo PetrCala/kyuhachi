@@ -1,5 +1,5 @@
 import type { VisitDocument } from '@kyuhachi/shared';
-import type { OnsenWithId, WalkedDay } from '../types';
+import type { CatalogOnsen, WalkedDay } from '../types';
 
 /**
  * The handful of numbers the site puts under the layer panel. All of it is
@@ -42,7 +42,7 @@ export interface WalkStats {
 export function computeWalkStats(input: {
   walkedDays: WalkedDay[] | null;
   visits: Map<string, VisitDocument>;
-  onsens: Map<string, OnsenWithId> | null;
+  onsens: Map<string, CatalogOnsen> | null;
   eligibleOnsenIds: string[] | null;
   completionCount: number | null;
 }): WalkStats {
@@ -111,7 +111,7 @@ export function computeWalkStats(input: {
 }
 
 /** Distinct prefectures over onsen ids that the catalog can resolve. */
-function countPrefectures(ids: string[], onsens: Map<string, OnsenWithId> | null): number | null {
+function countPrefectures(ids: string[], onsens: Map<string, CatalogOnsen> | null): number | null {
   if (!onsens) return null;
   const prefectures = new Set<string>();
   for (const id of ids) {

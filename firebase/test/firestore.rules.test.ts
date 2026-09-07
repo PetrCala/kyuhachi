@@ -112,6 +112,55 @@ describe('catalog_meta', () => {
 });
 
 // ---------------------------------------------------------------------------
+// /catalog_index
+// ---------------------------------------------------------------------------
+
+describe('catalog_index', () => {
+  const indexPath = 'catalog_index/current';
+
+  async function seedIndex() {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), indexPath), {
+        schemaVersion: 1,
+        version: 12,
+        count: 1,
+        entries: JSON.stringify([['onsen-1', '山田温泉', 'Yamada Onsen', '別府', '大分県', 33.28, 131.49]]),
+      });
+    });
+  }
+
+  // Public like /onsens, and for the same reason: the journey website reads it
+  // without signing in. It carries strictly less than /onsens already exposes.
+  test('unauthenticated: read allowed', async () => {
+    await seedIndex();
+    await assertSucceeds(getDoc(doc(unauthDb(), indexPath)));
+  });
+
+  test('unauthenticated: list allowed', async () => {
+    await seedIndex();
+    await assertSucceeds(getDocs(collection(unauthDb(), 'catalog_index')));
+  });
+
+  test('unauthenticated: write denied', async () => {
+    await assertFails(setDoc(doc(unauthDb(), indexPath), { schemaVersion: 1 }));
+  });
+
+  // Only the data repo's service account writes here, and admin credentials
+  // bypass rules; no client, signed in or not, may publish a catalog.
+  test('authenticated: write denied', async () => {
+    await assertFails(setDoc(doc(authDb('user-1'), indexPath), { schemaVersion: 1 }));
+    await assertFails(
+      setDoc(doc(authDb('juEfBPJSspS9E2dqMzRac07C1Gs1'), indexPath), { schemaVersion: 1 })
+    );
+  });
+
+  test('authenticated: delete denied', async () => {
+    await seedIndex();
+    await assertFails(deleteDoc(doc(authDb('user-1'), indexPath)));
+  });
+});
+
+// ---------------------------------------------------------------------------
 // /challenge_types
 // ---------------------------------------------------------------------------
 
@@ -825,7 +874,11 @@ describe('journey_days', () => {
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       await setDoc(doc(ctx.firestore(), dayPath), {
         date: '2026-08-14',
-        points: [{ lat: 33.2, lng: 131.4 }],
+        // The collection stores an encoded polyline, not an array of points;
+        // the rules never look at the shape, but the fixture should not
+        // document one the writers stopped producing.
+        // (33.20000, 131.40000) then (33.21000, 131.41000), encoded.
+        polyline: '_ksiE_a_aXo}@o}@',
         source: 'strava',
       });
     });

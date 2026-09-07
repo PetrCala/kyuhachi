@@ -29,6 +29,17 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Slim, derived projection of the catalog for the public journey website:
+    // one packed document holding the seven fields per onsen the site renders,
+    // so it no longer downloads the whole 386 KB catalog on every page load.
+    // Public read for the same reason /onsens is (the site never signs in), and
+    // it exposes strictly less than /onsens already does. Written by the data
+    // repo service account, which bypasses these rules.
+    match /catalog_index/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // Catalog metadata: read-only for any authenticated user
     match /catalog_meta/{docId} {
       allow read: if isAuthenticated();

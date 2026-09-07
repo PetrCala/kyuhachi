@@ -1,14 +1,22 @@
-import type {
-  ChallengeDocument,
-  JourneyDayDocument,
-  OnsenDocument,
-  VisitDocument,
-} from '@kyuhachi/shared';
+import type { ChallengeDocument, JourneyDayDocument, VisitDocument } from '@kyuhachi/shared';
 import type { LatLng } from './lib/geo';
 
-/** A catalog onsen with its Firestore document id (the kyuhachiId). */
-export interface OnsenWithId extends OnsenDocument {
+/**
+ * An onsen as the site knows it: its id (the kyuhachiId) and the six fields the
+ * map, the stats and the visit panel actually render. Everything else a catalog
+ * document carries (opening hours, fees, spring quality, photos) belongs to the
+ * app, and the site never reads it, so it is never fetched either. Decoded from
+ * the packed /catalog_index/current by useOnsens, the same way WalkedDay below
+ * is decoded from a polyline.
+ */
+export interface CatalogOnsen {
   id: string;
+  name: string;
+  nameRomaji: string | null;
+  areaName: string;
+  prefecture: string;
+  lat: number;
+  lng: number;
 }
 
 /** Petr's default challenge with its Firestore document id. */

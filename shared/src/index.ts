@@ -5,9 +5,13 @@ export type {
   LocalizedText,
   OnsenDocument,
   CatalogMetaDocument,
+  CatalogIndexDocument,
+  CatalogIndexEntry,
   CachedOnsen,
   CachedCatalog,
 } from './types/onsen';
+
+export { CATALOG_INDEX_SCHEMA_VERSION } from './types/onsen';
 
 export type {
   TierConditionType,
@@ -73,5 +77,6 @@ export {
   COLLECTIONS,
   SUBCOLLECTIONS,
   CATALOG_META_DOC_ID,
+  CATALOG_INDEX_DOC_ID,
   AREA_GUIDES_META_DOC_ID,
 } from './types/firestore';

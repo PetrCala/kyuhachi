@@ -27,6 +27,7 @@ export function onsenDoc(overrides: Partial<OnsenDocument> = {}): OnsenDocument 
     imageUrl: null,
     blurhash: null,
     isActive: true,
+    dataVerifiedAt: ts(0),
     catalogVersion: 1,
     createdAt: ts(0),
     updatedAt: ts(0),
@@ -36,6 +37,11 @@ export function onsenDoc(overrides: Partial<OnsenDocument> = {}): OnsenDocument 
 
 /** The same onsen as the catalog cache holds it: no Timestamps, plus its id. */
 export function cachedOnsen(overrides: Partial<CachedOnsen> = {}): CachedOnsen {
-  const { createdAt: _createdAt, updatedAt: _updatedAt, ...rest } = onsenDoc();
+  const {
+    createdAt: _createdAt,
+    updatedAt: _updatedAt,
+    dataVerifiedAt: _dataVerifiedAt,
+    ...rest
+  } = onsenDoc();
   return { id: 'onsen-1', ...rest, ...overrides };
 }

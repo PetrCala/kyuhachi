@@ -99,6 +99,14 @@ export interface OnsenDocument {
   blurhash: string | null;
   /** false = deprecated; never deleted from Firestore */
   isActive: boolean;
+  /**
+   * When the data repo last re-checked this onsen against 88onsen.com, whether
+   * or not anything changed (unlike `updatedAt`, which only moves on a real
+   * edit). Diagnostics for the data repo; nothing in the app or the website
+   * reads it. Published on every document since the pipeline started stamping
+   * it, so it is declared here rather than left as undeclared drift.
+   */
+  dataVerifiedAt: Timestamp;
   catalogVersion: number;
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -117,12 +125,88 @@ export interface CatalogMetaDocument {
   activeCount: number;
 }
 
+/** Current packing of `CatalogIndexDocument.entries`. See the document type. */
+export const CATALOG_INDEX_SCHEMA_VERSION = 1;
+
+/**
+ * One onsen inside the packed `CatalogIndexDocument.entries` string: a
+ * positional tuple, not an object, because a key repeated 161 times is the
+ * cost this document exists to avoid.
+ *
+ * Positional means the order is the contract. A reader indexes by position, so
+ * a later schema may APPEND a field without breaking anything; reordering or
+ * removing one is a breaking change and must bump
+ * CATALOG_INDEX_SCHEMA_VERSION.
+ */
+export type CatalogIndexEntry = [
+  /** The kyuhachiId, i.e. the /onsens document id. */
+  id: string,
+  name: string,
+  nameRomaji: string | null,
+  areaName: string,
+  prefecture: string,
+  /** Published rounded to 5 decimal places (~1.1 m), as tracks are. */
+  lat: number,
+  lng: number,
+];
+
+/**
+ * /catalog_index/current
+ *
+ * A slim, derived projection of the onsen catalog for the public journey
+ * website, published atomically by the data repo alongside /onsens and
+ * /catalog_meta. Derived: /onsens stays the source of truth and keeps every
+ * field, because the app reads and uses nearly all of them.
+ *
+ * Why it exists. The website joins onsens onto a map and needs seven values
+ * per onsen; reading /onsens to get them cost 386 KB (62 KB gzipped) across
+ * 161 documents on every page load, because Firestore wraps every field of
+ * every document in protobuf-JSON and `businessHours` alone accounted for
+ * 130 KB of what was downloaded and never read. This document carries the same
+ * 161 onsens in 24 KB (11 KB gzipped), in one document read. Same trade as the
+ * encoded polyline on /journey_days: per-item structural overhead dominates,
+ * so pack the payload. Measured against production on 2026-09-07; see
+ * docs/adr/012-website-catalog-index.md.
+ *
+ * Entries cover EVERY onsen, active and archived alike. The site has to be
+ * able to place a visit to an onsen that was later deprecated, and a frozen
+ * challenge snapshot may still name one, so filtering on isActive here would
+ * lose dots the map has to draw. `isActive` itself is absent because nothing
+ * on the site branches on it.
+ *
+ * Size: 24 KB against Firestore's 1 MiB per-document limit, i.e. room for
+ * roughly 40x the current catalog. Nothing here needs to page.
+ */
+export interface CatalogIndexDocument {
+  /**
+   * How `entries` is packed, currently CATALOG_INDEX_SCHEMA_VERSION. A reader
+   * that does not recognise the value must treat the whole document as
+   * unusable rather than guess at the packing.
+   */
+  schemaVersion: number;
+  /** The catalog this was derived from: mirrors /catalog_meta/current.version. */
+  version: number;
+  publishedAt: Timestamp;
+  /** Number of entries, for verifying a publish; the site does not gate on it. */
+  count: number;
+  /**
+   * JSON.stringify of a CatalogIndexEntry[], stored as one string rather than
+   * as a native Firestore array. That is the whole point of the document: a
+   * native array of maps re-incurs the per-value protobuf-JSON overhead this
+   * exists to remove, and measured 54 KB against this shape's 24 KB.
+   */
+  entries: string;
+}
+
 /**
  * One onsen as stored in the device's offline catalog cache: the Firestore
  * document minus its Timestamps (not JSON-serializable, and no screen reads
  * them), plus its document id (the kyuhachiId).
  */
-export type CachedOnsen = Omit<OnsenDocument, 'createdAt' | 'updatedAt'> & {
+export type CachedOnsen = Omit<
+  OnsenDocument,
+  'createdAt' | 'updatedAt' | 'dataVerifiedAt'
+> & {
   id: string;
 };
 

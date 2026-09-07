@@ -10,7 +10,7 @@ const CATALOG_KEY = 'catalog.cache.v1';
  * Timestamps (not JSON-serializable, unused by the UI) and fold in the id.
  */
 export function toCachedOnsen(id: string, data: OnsenDocument): CachedOnsen {
-  const { createdAt, updatedAt, ...rest } = data;
+  const { createdAt, updatedAt, dataVerifiedAt, ...rest } = data;
   return { id, ...rest };
 }
 

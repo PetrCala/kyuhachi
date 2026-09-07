@@ -10,15 +10,15 @@ import {
 } from '../config';
 import { formatJstDay } from '../lib/format-date';
 import { MAP_COLORS } from '../lib/map-theme';
-import type { LayerVisibility, OnsenWithId, WalkedDay } from '../types';
+import type { CatalogOnsen, LayerVisibility, WalkedDay } from '../types';
 
 interface Props {
   /** Onsens Petr has visited (already joined against the catalog). */
-  visited: OnsenWithId[];
+  visited: CatalogOnsen[];
   /** The challenge's whole eligible pool. */
-  allOnsens: OnsenWithId[];
+  allOnsens: CatalogOnsen[];
   /** Eligible, unvisited onsens near the planned route. */
-  plannedOnsens: OnsenWithId[];
+  plannedOnsens: CatalogOnsen[];
   /** One privacy-trimmed track per walked day, oldest first. */
   walkedDays: WalkedDay[];
   plannedRoute: RouteDocument | null;
@@ -64,7 +64,7 @@ const EMPTY_COLLECTION: GeoJSON.FeatureCollection = {
   features: [],
 };
 
-function onsenFeatures(onsens: OnsenWithId[]): GeoJSON.FeatureCollection {
+function onsenFeatures(onsens: CatalogOnsen[]): GeoJSON.FeatureCollection {
   return {
     type: 'FeatureCollection',
     features: onsens.map((onsen) => ({

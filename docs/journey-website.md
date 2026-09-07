@@ -10,9 +10,9 @@ decision and data-exposure rationale: [ADR-009](adr/009-public-journey-website.m
   it has its own `package-lock.json` (same pattern as `firebase/`).
 - Reads Firestore directly with the Firebase JS SDK as an **unauthenticated**
   client. What it may read is governed by `firebase/firestore.rules` (public
-  catalog, public journey uid, public `journey_days`); the site holds no
-  credentials of any kind. The web config in `website/src/firebase.ts` is
-  public identifiers, not secrets.
+  catalog and `catalog_index`, public journey uid, public `journey_days`); the
+  site holds no credentials of any kind. The web config in
+  `website/src/firebase.ts` is public identifiers, not secrets.
 - Map: MapLibre GL JS on OpenFreeMap vector tiles (no key, no quota).
 - Petr's visit photos come from the tokened Storage download URLs already
   stored on visit documents. Official catalog photos are NEVER shown
@@ -39,7 +39,7 @@ decision and data-exposure rationale: [ADR-009](adr/009-public-journey-website.m
 |---|---|---|
 | Default challenge | `users/{uid}/challenges` where `isDefault == true` | live (`onSnapshot`) |
 | Visited onsens | `.../challenges/{id}/visits` | live (`onSnapshot`) |
-| Onsen catalog | `onsens` | per page load |
+| Onsen catalog | `catalog_index/current`, one packed document | per page load ([why](#the-catalog-index)) |
 | Completion target + eligible pool | `challenge_types/{typeId}` | per page load |
 | Walked route | `journey_days`, one line per day; dotted connectors mark unrecorded stretches | per page load ([how days get published](journey-days.md)) |
 | Planned route | `users/{uid}/routes/{activeRouteId}` | per page load |
@@ -47,6 +47,31 @@ decision and data-exposure rationale: [ADR-009](adr/009-public-journey-website.m
 | Terrain | GSI (国土地理院) hillshade raster tiles, off by default | tile CDN |
 
 The side panel toggles each layer and doubles as the legend.
+
+### The catalog index
+
+The site reads seven values per onsen: the document id, `name`, `nameRomaji`,
+`areaName`, `prefecture`, `lat`, `lng`. It used to get them by reading the whole
+`/onsens` collection, which is 161 documents of 23 fields each: 386 KB
+uncompressed, 62 KB gzipped, every page load, to render about a hundred bytes of
+content per onsen. `businessHours` alone was 130 KB of it and the site has never
+read a field of it.
+
+It now reads `/catalog_index/current`, a single document whose `entries` field
+is a packed JSON array of seven-element tuples: 24 KB uncompressed, 11 KB
+gzipped, one document read instead of 161. `/onsens` is unchanged, because the
+app needs every field of it; the index is derived from it and republished with
+it. The shape and the reasoning are in
+[ADR-012](adr/012-website-catalog-index.md), the contract is
+`CatalogIndexDocument` in `shared/src/types/onsen.ts`, and the unpacking is
+confined to `website/src/hooks/useOnsens.ts` so nothing downstream sees the
+packing. This is the same move as storing walked tracks as encoded polylines
+([journey-days.md](journey-days.md), "How a track is stored").
+
+The index is published by the private data repo, not from here. Until it
+publishes, `useOnsens` falls back to the old full-catalog read and warns in the
+console; delete `readFullCatalog` and its call site once
+`/catalog_index/current` exists in production.
 
 The only hardcoded datum is Petr's uid (`website/src/config.ts`, mirrored by
 `isJourneyUser()` in the rules). Everything else is derived.
