@@ -1,2 +1,6 @@
+# The journey site is public and indexable (see docs/journey-website.md).
+# It was noindex + Disallow while its only readers were people Petr sent the
+# link to; the Instagram account made that a fiction worth dropping rather
+# than defending.
 User-agent: *
-Disallow: /
+Allow: /

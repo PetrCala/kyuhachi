@@ -17,8 +17,15 @@ decision and data-exposure rationale: [ADR-009](adr/009-public-journey-website.m
 - Petr's visit photos come from the tokened Storage download URLs already
   stored on visit documents. Official catalog photos are NEVER shown
   (licence pending, see [storage-image-exposure.md](storage-image-exposure.md)).
-- Unlisted: `noindex` meta + `robots.txt` disallow. There is no auth wall;
-  anyone with the link can view.
+- Public and indexable. It was unlisted (`noindex` + a `robots.txt` disallow)
+  while its only readers were people Petr had sent the link to. The walk's
+  Instagram account (see [instagram.md](instagram.md)) puts the URL in a public
+  bio, which made the unlisting a fiction; it was dropped rather than defended
+  on 2026-09-07. There is, and never was, an auth wall.
+- What that exposes has not changed, only who finds it: the same journey data
+  the Firestore rules already serve to anyone with the link (ADR-009). What is
+  new is that it becomes searchable and quotable, and search engines are slow
+  to forget, so this is not a setting to flip back and forth.
 - A small "viewing now" counter runs on Firebase Realtime Database presence
   (`/presence`, one node per open tab, removed server-side via `onDisconnect`).
   That is RTDB's only job in this project: rules

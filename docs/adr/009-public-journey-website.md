@@ -61,3 +61,21 @@ Three ways to expose it were considered:
 - The two-repo split: the data repo still owns the catalog and its ids.
 - `catalog_meta`, `area_guides` and `area_guides_meta` stay
   authenticated-only; the site does not need them.
+
+## Amendment, 2026-09-07: the site is listed
+
+The site shipped `noindex` + a `robots.txt` disallow, described above as
+"unlisted". That was always a soft measure (there is no auth wall, and the
+rules serve the data to anyone who asks), but it kept the walk out of search
+results while the only readers were people Petr handed the link to.
+
+The walk now has a public Instagram account (ADR-012) whose bio link is this
+site. A URL in a public bio is not unlisted in any sense a reader would
+recognise, so keeping the meta tag would have been a claim the setup no longer
+supported. Both the tag and the disallow are removed.
+
+Nothing about what is exposed changes: the Firestore rules are untouched, and
+the data was already world-readable to anyone with the link or the project id.
+What changes is discoverability, and it changes in one direction: search
+engines index quickly and forget slowly, so this is not a decision to revisit
+casually.
