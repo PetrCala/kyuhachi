@@ -14,6 +14,7 @@
 		"deploy:functions": "firebase deploy --only functions",
 		"deploy:hosting": "firebase deploy --only hosting",
 		"journey:import-gpx": "NODE_PATH=functions/node_modules npx ts-node --transpile-only --project functions/tsconfig.json scripts/import-journey-gpx.ts",
+		"journey:migrate-polylines": "NODE_PATH=functions/node_modules npx ts-node --transpile-only --project functions/tsconfig.json scripts/migrate-journey-day-polylines.ts",
 		"seed:demo": "NODE_PATH=functions/node_modules npx ts-node --transpile-only --project functions/tsconfig.json scripts/seed-demo-account.ts",
 		"test:scripts": "node --test 'scripts/**/*.test.mjs'",
 		"version:bump": "node scripts/version.mjs"

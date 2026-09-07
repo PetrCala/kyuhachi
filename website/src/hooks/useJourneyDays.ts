@@ -3,10 +3,32 @@ import { COLLECTIONS } from '@kyuhachi/shared';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { db } from '../firebase';
+import type { LatLng } from '../lib/geo';
+import { decodePolyline } from '../lib/polyline';
+import type { WalkedDay } from '../types';
 
 interface State {
-  days: JourneyDayDocument[] | null;
+  days: WalkedDay[] | null;
   failed: boolean;
+}
+
+/**
+ * A document as it may actually be stored. Every day published since the track
+ * became an encoded polyline carries `polyline`; days written before that still
+ * carry a raw `points` array until the migration script has been over them
+ * (scripts/migrate-journey-day-polylines.ts). Reading both means the site never
+ * depends on the website deploy and the migration landing in a given order.
+ * Drop the `points` half once no document has it.
+ */
+type StoredJourneyDay = Omit<JourneyDayDocument, 'polyline'> & {
+  polyline?: string;
+  points?: LatLng[];
+};
+
+/** The stored track, however this particular document happens to hold it. */
+function toWalkedDay(stored: StoredJourneyDay): WalkedDay {
+  const { polyline, points, ...rest } = stored;
+  return { ...rest, points: polyline != null ? decodePolyline(polyline) : (points ?? []) };
 }
 
 /**
@@ -25,7 +47,7 @@ export function useJourneyDays(): State {
       .then((snap) => {
         if (cancelled) return;
         setState({
-          days: snap.docs.map((docSnap) => docSnap.data() as JourneyDayDocument),
+          days: snap.docs.map((docSnap) => toWalkedDay(docSnap.data() as StoredJourneyDay)),
           failed: false,
         });
       })

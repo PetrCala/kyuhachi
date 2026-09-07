@@ -70,8 +70,36 @@ published raw. Strava's own hidden-zone setting does not help here, because it
 only redacts what *other* Strava users see; the owner-token API returns the full
 track.
 
-Tracks are then simplified (Douglas-Peucker, capped at 1500 points, 6-decimal
+Tracks are then simplified (Douglas-Peucker, capped at 1500 points, 5-decimal
 coordinates), matching how the app simplifies imported routes.
+
+### How a track is stored
+
+`polyline`, a Google-encoded polyline at five decimal places (~1.1 m), not an
+array of `{lat, lng}`.
+
+It was an array until the walk made the cost obvious. Firestore spends about 24
+bytes on each point as a map of two doubles, and the web SDK wraps every one of
+them again in protobuf-JSON, so a single day of ~1000 points reached the browser
+as ~95 KB. The journey site fetches every walked day on every page load, with no
+pagination, so the page got heavier with each day walked: at 60 days that would
+have been several megabytes per visit. The same track encodes to ~2.6 KB,
+because consecutive points on a walk are metres apart and a delta that small
+costs two characters.
+
+- Encoder: `encodePolyline` in [../functions/src/util/track.ts](../functions/src/util/track.ts),
+  which every writer goes through.
+- Decoder: [../website/src/lib/polyline.ts](../website/src/lib/polyline.ts), a
+  deliberate copy, because the website is outside the npm workspace and can
+  import types from `@kyuhachi/shared` but never runtime code. The two
+  precisions have to stay equal.
+- The app reads this collection for distances and dates only, never for the
+  track, so it never decodes anything.
+
+Documents written before the change carry `points` instead. Re-encode them with
+`npm run journey:migrate-polylines -- --dry-run` first, then without the flag;
+it is idempotent. The website reads either shape until every document has been
+migrated.
 
 ## Publishing from the phone
 

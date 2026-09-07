@@ -15,6 +15,8 @@ import { describe, expect, it } from '@jest/globals';
 import {
   boundsOf,
   buildJourneyDay,
+  decodePolyline,
+  encodePolyline,
   haversineMeters,
   simplifyTrack,
   totalDistanceMeters,
@@ -88,7 +90,7 @@ describe('buildJourneyDay', () => {
     const built = buildJourneyDay('2026-08-17', [recording(points, 6100, 5500)], 'gpx');
 
     expect(built).not.toBeNull();
-    const stored = built!.data.points;
+    const stored = decodePolyline(built!.data.polyline);
     expect(stored.length).toBeGreaterThan(50);
     expect(closestApproach(stored, points[0])).toBeGreaterThanOrEqual(TRIM_RADIUS_METERS);
     expect(closestApproach(stored, points[points.length - 1])).toBeGreaterThanOrEqual(
@@ -108,7 +110,7 @@ describe('buildJourneyDay', () => {
     );
 
     expect(built).not.toBeNull();
-    const stored = built!.data.points;
+    const stored = decodePolyline(built!.data.polyline);
     for (const place of [
       morning[0],
       morning[morning.length - 1],
@@ -161,19 +163,68 @@ describe('buildJourneyDay', () => {
 
   it('reports a point count and bounds that match the stored points', () => {
     const built = buildJourneyDay('2026-08-17', [recording(walk(5500))], 'gpx');
-    const stored = built!.data.points;
+    const stored = decodePolyline(built!.data.polyline);
 
     expect(built!.data.pointCount).toBe(stored.length);
     expect(built!.data.bounds).toEqual(boundsOf(stored));
   });
 
-  it('rounds stored coordinates to six decimals', () => {
+  it('rounds stored coordinates to five decimals', () => {
     const built = buildJourneyDay('2026-08-17', [recording(walk(5500))], 'gpx');
 
-    for (const { lat, lng } of built!.data.points) {
-      expect(lat).toBeCloseTo(Math.round(lat * 1e6) / 1e6, 10);
-      expect(lng).toBeCloseTo(Math.round(lng * 1e6) / 1e6, 10);
+    for (const { lat, lng } of decodePolyline(built!.data.polyline)) {
+      expect(lat).toBeCloseTo(Math.round(lat * 1e5) / 1e5, 10);
+      expect(lng).toBeCloseTo(Math.round(lng * 1e5) / 1e5, 10);
     }
+  });
+
+  /*
+   * The reason the track is a polyline at all. A day used to reach the browser
+   * as ~95 KB of {lat, lng} maps, and every walked day is fetched on every page
+   * load, so the site grew heavier with every day Petr walked. Guard the win:
+   * an encoded day has to stay an order of magnitude under the array it
+   * replaced, or the growth problem is quietly back.
+   */
+  it('stores a day far more cheaply than an array of points would', () => {
+    const built = buildJourneyDay('2026-08-17', [recording(walk(24_000))], 'gpx');
+    const stored = decodePolyline(built!.data.polyline);
+
+    const asArray = JSON.stringify(stored).length;
+    expect(built!.data.polyline.length).toBeLessThan(asArray / 10);
+  });
+});
+
+describe('encodePolyline', () => {
+  it('round-trips a track at the precision it stores', () => {
+    const points = walk(3000).map((p) => ({
+      lat: Math.round(p.lat * 1e5) / 1e5,
+      lng: Math.round(p.lng * 1e5) / 1e5,
+    }));
+
+    for (const [i, point] of decodePolyline(encodePolyline(points)).entries()) {
+      expect(point.lat).toBeCloseTo(points[i].lat, 5);
+      expect(point.lng).toBeCloseTo(points[i].lng, 5);
+    }
+  });
+
+  it('handles negative and westward deltas', () => {
+    const points: LatLng[] = [
+      { lat: -33.12345, lng: -70.54321 },
+      { lat: -33.12445, lng: -70.54221 },
+      { lat: -33.12345, lng: -70.54421 },
+    ];
+
+    const decoded = decodePolyline(encodePolyline(points));
+    expect(decoded).toHaveLength(3);
+    for (const [i, point] of decoded.entries()) {
+      expect(point.lat).toBeCloseTo(points[i].lat, 5);
+      expect(point.lng).toBeCloseTo(points[i].lng, 5);
+    }
+  });
+
+  it('encodes an empty track as an empty string', () => {
+    expect(encodePolyline([])).toBe('');
+    expect(decodePolyline('')).toEqual([]);
   });
 });
 
