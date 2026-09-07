@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment } from 'react';
 import { PLANNED_ROUTE_CORRIDOR_KM } from '../config';
 import type { LayerVisibility } from '../types';
 
@@ -7,6 +7,12 @@ interface Props {
   onChange: (layers: LayerVisibility) => void;
   /** Layers with nothing to draw. A key that is absent counts as available. */
   available: Partial<Record<keyof LayerVisibility, boolean>>;
+  /**
+   * Owned by App, not by this card: on a phone only one of the two map cards
+   * may be open at a time, and neither can enforce that from inside itself.
+   */
+  open: boolean;
+  onToggle: () => void;
 }
 
 interface RowDef {
@@ -36,21 +42,12 @@ const ROWS: RowDef[] = [
 ];
 
 /** The side card that toggles map layers and doubles as the legend. */
-export function LayerPanel({ layers, onChange, available }: Props) {
-  // Open by default: on a first visit this card is the only key to the map, and
-  // a collapsed one leaves every line and dot unexplained.
-  const [open, setOpen] = useState(true);
-
+export function LayerPanel({ layers, onChange, available, open, onToggle }: Props) {
   return (
-    <div className="layer-panel">
-      <button
-        type="button"
-        className="layer-panel-header"
-        aria-expanded={open}
-        onClick={() => setOpen(!open)}
-      >
+    <div className={`map-panel layer-panel${open ? ' map-panel-open' : ''}`}>
+      <button type="button" className="panel-toggle" aria-expanded={open} onClick={onToggle}>
         Layers
-        <span className="layer-panel-chevron" aria-hidden="true">
+        <span className="panel-chevron" aria-hidden="true">
           {open ? '▾' : '▸'}
         </span>
       </button>

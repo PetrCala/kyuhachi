@@ -44,8 +44,18 @@ function StatRow({ row }: { row: Row }) {
   );
 }
 
+interface Props {
+  stats: WalkStats;
+  /**
+   * Owned by App for the same reason the layer card's is: on a phone the two
+   * cards take turns, which neither of them can decide alone.
+   */
+  open: boolean;
+  onToggle: () => void;
+}
+
 /** The small card under the layer panel: how far he has walked, how far he has got. */
-export function StatsPanel({ stats }: { stats: WalkStats }) {
+export function StatsPanel({ stats, open, onToggle }: Props) {
   const walkRows: Row[] = [];
   if (stats.km != null) walkRows.push({ label: 'Walked so far', value: formatKm(stats.km) });
   if (stats.days != null) walkRows.push({ label: 'Days walked', value: String(stats.days) });
@@ -83,22 +93,35 @@ export function StatsPanel({ stats }: { stats: WalkStats }) {
   if (walkRows.length === 0 && progressRows.length === 0) return null;
 
   return (
-    <section className="stats-panel" aria-label="The walk so far">
-      {walkRows.length > 0 && (
-        <dl className="row-list">
-          {walkRows.map((row) => (
-            <StatRow key={row.label} row={row} />
-          ))}
-        </dl>
-      )}
-      {/* The rule separates what the walking has cost from where it has got to. */}
-      {walkRows.length > 0 && progressRows.length > 0 && <hr className="stats-rule" />}
-      {progressRows.length > 0 && (
-        <dl className="row-list">
-          {progressRows.map((row) => (
-            <StatRow key={row.label} row={row} />
-          ))}
-        </dl>
+    <section
+      className={`map-panel stats-panel${open ? ' map-panel-open' : ''}`}
+      aria-label="The walk so far"
+    >
+      <button type="button" className="panel-toggle" aria-expanded={open} onClick={onToggle}>
+        The walk so far
+        <span className="panel-chevron" aria-hidden="true">
+          {open ? '▾' : '▸'}
+        </span>
+      </button>
+      {open && (
+        <div className="stats-rows">
+          {walkRows.length > 0 && (
+            <dl className="row-list">
+              {walkRows.map((row) => (
+                <StatRow key={row.label} row={row} />
+              ))}
+            </dl>
+          )}
+          {/* The rule separates what the walking has cost from where it has got to. */}
+          {walkRows.length > 0 && progressRows.length > 0 && <hr className="stats-rule" />}
+          {progressRows.length > 0 && (
+            <dl className="row-list">
+              {progressRows.map((row) => (
+                <StatRow key={row.label} row={row} />
+              ))}
+            </dl>
+          )}
+        </div>
       )}
     </section>
   );
