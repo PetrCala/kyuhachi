@@ -106,6 +106,14 @@ body {
   line-height: 1;
 }
 
+/* The subtitle below never wraps, which sets this box's min-content width to
+   the full length of that line. Without min-width:0 it refuses to shrink past
+   it, overflows the flex row, and the progress chips print on top of the title
+   on a phone. */
+.app-title > div {
+  min-width: 0;
+}
+
 /* Wraps rather than truncates: it is the only flexible item in a header of
    fixed-width chips, so at phone widths an ellipsis eats the title itself. */
 .app-title h1 {
@@ -149,7 +157,7 @@ body {
   position: relative;
   flex: 1;
   min-height: 0;
-  /* The left-hand cards are in normal flow (see .layer-panel); a tall one on a
+  /* The left-hand cards are in normal flow (see .map-panels); a tall one on a
      short viewport is clipped here rather than pushing the document past the
      bottom of the screen. */
   overflow: hidden;
@@ -173,29 +181,32 @@ body {
 /* ---- Layer panel ---- */
 
 /* The two left-hand cards are the only children of the map that stay in normal
-   flow, stacked by the block layout instead of by a hand-picked offset: the
-   layer card's height changes when it is collapsed, and an absolute stats card
-   below it would either overlap it or float away from it. Everything else over
-   the map is absolute, so nothing else joins this column. They are positioned
-   but keep z-index auto, so they paint over the map and under the visit panel
+   flow, stacked by this wrapper instead of by a hand-picked offset: each card's
+   height changes when it is collapsed, and an absolute stats card below the
+   layer card would either overlap it or float away from it. Everything else
+   over the map is absolute, so nothing else joins this column. It is positioned
+   but keeps z-index auto, so it paints over the map and under the visit panel
    on document order alone, exactly as the absolute layer card used to.
    The top margin clears MapLibre's zoom buttons in the same corner. */
-.layer-panel,
-.stats-panel {
+.map-panels {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
   width: 210px;
-  margin: 10px 0 0 10px;
+  margin: 90px 0 0 10px;
+}
+
+.map-panel {
+  width: 100%;
   background: var(--color-surface);
   border-radius: var(--radius-md);
   box-shadow: 0 2px 12px rgba(34, 39, 46, 0.16);
   overflow: hidden;
 }
 
-.layer-panel {
-  margin-top: 90px;
-}
-
-.layer-panel-header {
+.panel-toggle {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -214,12 +225,13 @@ body {
 
 /* Full-bleed inside a card that clips its corners, so an outset ring would be
    cut off on all four sides. */
-.layer-panel-header:focus-visible {
+.panel-toggle:focus-visible {
   outline-offset: -3px;
 }
 
-.layer-panel-chevron {
+.panel-chevron {
   font-size: 11px;
+  margin-left: 8px;
 }
 
 .layer-rows {
@@ -331,8 +343,16 @@ body {
 /* ---- Stats panel ---- */
 
 /* The card under the layers, borrowing the visit panel's label/value rows. */
-.stats-panel {
-  padding: 2px 12px 12px;
+.stats-rows {
+  padding: 0 12px 8px;
+}
+
+/* .row-list carries a top border so the visit panel's sections are ruled off
+   from the heading above them. Here the card's own header is that separator,
+   so the first list would draw a second line right under it. The rule between
+   the two groups is the SECOND list's top border, which this leaves alone. */
+.stats-rows .row-list:first-of-type {
+  border-top: none;
 }
 
 .stats-panel .row {
@@ -731,6 +751,45 @@ body {
   border-radius: var(--radius-md);
 }
 
+/* ---- Small screens: the map cards ---- */
+
+/* Open, the two cards together covered about three quarters of a phone's map:
+   the legend gains a row per layer, each with a caption that wraps to two lines
+   this narrow, and the stats card adds seven more rows under it. So here they
+   start collapsed (App decides that at mount, off the same query) and sit as a
+   row of pills instead of a column of cards.
+
+   Only one can be open at a time at this size, and the open one takes a full
+   line to itself, which leaves the other as a pill above or below it. A capped,
+   scrolling body then stops a long card from growing back over the map it is a
+   key to.
+
+   The height half of the query catches a phone held sideways: 812px wide, so it
+   passes the width test, with barely 300px of map under the header. Keep this
+   query in step with NARROW_QUERY in hooks/useIsNarrow.ts. */
+@media (max-width: 700px), (max-height: 500px) {
+  .map-panels {
+    flex-flow: row wrap;
+    gap: 6px;
+    width: auto;
+    margin-right: 10px;
+  }
+
+  .map-panel {
+    width: auto;
+  }
+
+  .map-panel-open {
+    flex: 1 0 100%;
+  }
+
+  .layer-rows,
+  .stats-rows {
+    max-height: 38vh;
+    overflow-y: auto;
+  }
+}
+
 /* ---- Small screens ---- */
 
 /* 700px, not 560: the layer card ends at x=220 and the visit panel starts at
@@ -738,18 +797,23 @@ body {
    in the document, covers the legend. Below this the panel is a bottom sheet
    instead and the left column is left alone. */
 @media (max-width: 700px) {
-  .app-title h1 {
-    font-size: 15px;
+  /* Two rows. The title and the two progress chips want about 420px between
+     them and a phone has 350, so on one row either the chips print over the
+     title or the title is squeezed to three wrapped lines. Giving each a row
+     of its own costs ~27px of header and keeps both readable in full. */
+  .app-header {
+    flex-wrap: wrap;
+    row-gap: 6px;
+    padding: 8px 12px;
   }
 
-  /* The legend and the stats card stack down the left of a screen that is
-     mostly map, and the legend is the one that grows: it gains a row per
-     layer, each with a caption that wraps to two lines at this width. Cap it
-     and let it scroll inside itself, so the pair of cards can never grow to
-     cover the map they are a key to. */
-  .layer-rows {
-    max-height: 34vh;
-    overflow-y: auto;
+  .app-title,
+  .header-chips {
+    flex: 1 0 100%;
+  }
+
+  .app-title h1 {
+    font-size: 15px;
   }
 
   /* Kept, at a size that survives a narrow header. Hiding it took the one line

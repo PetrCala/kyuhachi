@@ -6,6 +6,7 @@ import { VisitPanel } from './components/VisitPanel';
 import { PLANNED_ROUTE_CORRIDOR_KM } from './config';
 import { useChallengeType } from './hooks/useChallengeType';
 import { useJourneyChallenge } from './hooks/useJourneyChallenge';
+import { NARROW_QUERY, useIsNarrow } from './hooks/useIsNarrow';
 import { useJourneyDays } from './hooks/useJourneyDays';
 import { useOnsens } from './hooks/useOnsens';
 import { usePlannedRoute } from './hooks/usePlannedRoute';
@@ -30,6 +31,11 @@ const DEFAULT_LAYERS: LayerVisibility = {
  * Firestore listener retries a stalled connection indefinitely and never calls
  * its error callback, so on a bad train connection nothing else on the page
  * would ever stop saying "loading".
+ *
+ * This now times the challenge query alone, which is one small document. The
+ * heavy reads (the catalog, the walked tracks) no longer sit behind it, so 12 s
+ * without that one document really does mean the connection is the problem
+ * rather than the payload, and the message is allowed to say so again.
  */
 const SLOW_LOAD_MS = 12_000;
 
@@ -54,6 +60,29 @@ export default function App() {
   const [mapFailed, setMapFailed] = useState(false);
   const [slowLoad, setSlowLoad] = useState(false);
   const viewerCount = usePresence();
+  const isNarrow = useIsNarrow();
+
+  /*
+   * Both cards start open on a desktop, where there is room beside the map for
+   * them, and closed on a phone, where together they covered about three
+   * quarters of the map they are a key to. Read once, at mount: re-syncing on
+   * every resize would reopen or shut a card under someone who had just chosen
+   * otherwise, and a phone that crosses the breakpoint has been rotated, not
+   * handed to a different reader.
+   */
+  const [openPanels, setOpenPanels] = useState(() => {
+    const open = !window.matchMedia(NARROW_QUERY).matches;
+    return { layers: open, stats: open };
+  });
+
+  /** On a phone the two cards take turns, so one is never buried under the other. */
+  const togglePanel = (panel: 'layers' | 'stats') => {
+    setOpenPanels((prev) => {
+      const next = !prev[panel];
+      if (isNarrow && next) return { layers: false, stats: false, [panel]: true };
+      return { ...prev, [panel]: next };
+    });
+  };
 
   const visitedOnsens = useMemo(() => {
     if (!onsens) return [];
@@ -117,9 +146,17 @@ export default function App() {
   const selectedOnsen = selectedOnsenId ? (onsens?.get(selectedOnsenId) ?? null) : null;
   const selectedVisit = selectedOnsenId ? (visits.get(selectedOnsenId) ?? null) : null;
 
-  // A failed catalog never fills in, so it has to end the loading state too.
-  // Otherwise the overlay sits there for good over a map nobody is fetching.
-  const loading = challengeLoading || (onsens === null && !onsensFailed);
+  /*
+   * Only the challenge document blocks the page. It is one small doc, and
+   * everything else on the map is a layer that can arrive late: the catalog is
+   * ~800 KB and the walked tracks grow by ~95 KB per day walked, which on a
+   * phone put a full-screen "still trying to reach the server" over a site that
+   * was working perfectly and merely downloading. Those two report themselves
+   * through `stillArriving` instead, as a quiet pill over a usable map.
+   */
+  const loading = challengeLoading;
+  const stillArriving =
+    (onsens === null && !onsensFailed) || (walkedDays === null && !daysFailed);
   const partlyFailed =
     onsensFailed || daysFailed || visitsFailed || mapFailed || challengeTypeFailed || routeFailed;
 
@@ -136,7 +173,10 @@ export default function App() {
     visits.size === 0;
 
   useEffect(() => {
-    if (!loading) return;
+    if (!loading) {
+      setSlowLoad(false);
+      return;
+    }
     const timer = window.setTimeout(() => setSlowLoad(true), SLOW_LOAD_MS);
     return () => window.clearTimeout(timer);
   }, [loading]);
@@ -212,8 +252,22 @@ export default function App() {
           </nav>
         )}
 
-        <LayerPanel layers={layers} onChange={setLayers} available={layerAvailability} />
-        <StatsPanel stats={stats} />
+        {/* One column, so the stats card follows the layer card's height as it
+            opens and closes; on a phone the same two become a row of pills. */}
+        <div className="map-panels">
+          <LayerPanel
+            layers={layers}
+            onChange={setLayers}
+            available={layerAvailability}
+            open={openPanels.layers}
+            onToggle={() => togglePanel('layers')}
+          />
+          <StatsPanel
+            stats={stats}
+            open={openPanels.stats}
+            onToggle={() => togglePanel('stats')}
+          />
+        </div>
 
         {viewerCount > 0 && (
           <div className="presence-pill">
@@ -233,6 +287,14 @@ export default function App() {
           </div>
         )}
 
+        {/* The map and its chrome are already up; this says the route and the
+            onsens are still on their way, without covering either. */}
+        {!loading && !error && stillArriving && !partlyFailed && (
+          <div className="load-banner" role="status">
+            Loading the route...
+          </div>
+        )}
+
         {loading && (
           <div className="status-overlay" role="status">
             {slowLoad
@@ -243,7 +305,11 @@ export default function App() {
         {!loading && error && (
           <div className="status-overlay">The journey could not be loaded right now.</div>
         )}
-        {!loading && !error && !partlyFailed && notStarted && (
+        {/* `stillArriving` too: with the walked days in and empty but the
+            catalog outstanding, this and the loading pill would otherwise both
+            be on screen, one saying the walk has not started and the other that
+            it is still coming. */}
+        {!loading && !error && !partlyFailed && !stillArriving && notStarted && (
           <div className="status-overlay">The journey has not started yet. Check back soon.</div>
         )}
 
