@@ -1,0 +1,176 @@
+# Instagram
+
+The public Instagram account for the walk, and the Function that posts to it.
+Architecture decision and the privacy reasoning: [ADR-012](adr/012-instagram-journey-publishing.md).
+
+## The account
+
+| | |
+|---|---|
+| Handle | `@kyuhachi.walk` |
+| Type | Instagram **Professional → Creator** (Business also works; Creator is the closer fit and keeps the same API) |
+| Purpose | The walk. The app is in the bio and turns up occasionally; it is never the point. |
+| Languages | English and Japanese in every caption, English first |
+| Bio link | <https://kyuhachi-path.web.app> |
+
+The account is created by hand, on the phone, once. There is no API for
+creating an Instagram account and automating signup breaks Meta's terms, so
+nothing in this repo does it. Everything after the account exists is automated.
+
+### Creating it (one-time, ~10 minutes)
+
+1. Instagram app → profile → ☰ → **Add account → Create new account**. Use a
+   mail address that is not tied to the App Store account, so a support issue
+   on one never locks the other.
+2. Set the handle, name, bio and profile photo from the design in this doc.
+3. **Settings → Account type and tools → Switch to professional account →
+   Creator**, category *Travel*. Content publishing via the API needs a
+   professional account; a personal one cannot be posted to at all.
+4. Settings → **Privacy: public**. A private account cannot be published to via
+   the API either, and an unlisted-but-public site behind a private feed makes
+   no sense.
+
+### Profile
+
+**Name:** `九州八十八湯 · Walking Kyushu`
+
+Both halves earn their place: the kanji is what a Japanese reader searches, and
+the English is what everyone else can read. Instagram's name field is indexed
+for search; the handle is not, on its own.
+
+**Bio (EN + JA, inside the 150-character limit):**
+
+```
+1,205 km on foot, 88 onsens, 61 days. Oct 2 to Dec 2 2026.
+歩いて九州八十八湯。1,205km・88湯・61日。
+Live map ↓
+```
+
+Bio rules follow [brand-voice.md](brand-voice.md): the numbers do the selling,
+no adjectives, and the joke stays in the app's subtitle rather than being
+retold here.
+
+**Profile photo:** the app's mark, the vertical 九八 in Klee One, amber
+`#ffb300` on ink `#262837` (`app/assets/icon.png`). It reads at 32 px, which
+almost nothing else in the project does.
+
+**Story highlights**, four covers on the ink ground, one amber glyph each:
+
+| Highlight | Holds |
+|---|---|
+| はじめに / Start | What the Kyushu 88 is, the route, the rules of the walk |
+| ルート / Route | Weekly map screenshots from the journey site |
+| 湯 / Onsen | The best baths, one story per onsen worth stopping at |
+| アプリ / App | Kyuhachi: what it does, TestFlight or App Store link |
+
+## The publisher
+
+`functions/src/scheduled/instagramJourney.ts`, a scheduled Function that turns
+the data behind the journey website into one post a morning.
+
+```
+09:00 JST daily
+  └─ refresh the access token if it is older than 7 days
+  └─ for each of the last 5 JST days, oldest first:
+       ├─ already logged under journey_sync/instagram/posts/{date}?  skip
+       ├─ no /journey_days/{date} yet, or no publishable photo?      skip
+       └─ build caption → publish photo or carousel → log the outcome
+  └─ at most one post per run
+```
+
+Split across three modules so each is testable on its own:
+
+| File | Does |
+|---|---|
+| `instagram/client.ts` | The Graph API: containers, publish, token refresh |
+| `instagram/caption.ts` | Bilingual caption text. Pure, unit-tested |
+| `instagram/recap.ts` | Assembles a day from Firestore; filters photos |
+| `scheduled/instagramJourney.ts` | Scheduling, token state, the outcome log |
+
+### What a post looks like
+
+```
+Day 12 · 41.2 km · 487.6 km so far
+Onsen 18 and 19 of 88: 竹瓦温泉 (Takegawara Onsen) and ひょうたん温泉 (Hyotan Onsen). 別府, Ōita.
+Rain from Yufuin on.
+
+12日目・41.2km・通算487.6km
+88湯のうち18・19湯目：竹瓦温泉、ひょうたん温泉。大分県別府。
+
+kyuhachi-path.web.app
+
+#九州八十八湯 #温泉 #温泉巡り #湯めぐり #九州温泉 #onsen #kyushu #japantravel #hotsprings #walkingjapan #大分 #別府
+```
+
+The photos are Petr's own visit photos for that day, in visit order, as a
+carousel when there is more than one.
+
+### Rules the code enforces
+
+- **Yesterday, never today.** A live post is a location broadcast, and it would
+  hand back exactly what the ~500 m trimming in `/journey_days` removes. The
+  delay is the feature, not a scheduling convenience.
+- **No location tags, ever.** Nothing sends `location_id`, and the Instagram
+  Login auth path could not send one anyway.
+- **Petr's own photos only.** Catalog photos from 88onsen.com are never posted:
+  the licence from 九州観光機構 is granted on per-photo credit plus a link back,
+  which a carousel cannot honour. Same rule as the website
+  ([storage-image-exposure.md](storage-image-exposure.md)).
+- **JPEG only.** Instagram fetches each image itself and accepts nothing else,
+  so every photo is HEAD-checked first and anything else is skipped.
+- **One post per run.** A backlog drains a day at a time, oldest first, rather
+  than arriving as five posts at once.
+
+### Known gaps
+
+- **A day with no photo gets no post.** Instagram has no text-only post, so
+  there is nothing to publish. Rendering a map or numbers card server-side
+  would close this and is the obvious next piece of work.
+- **Stories are not automated.** The API supports them (`media_type=STORIES`),
+  but a story is worth posting when something happens, which is a judgement a
+  cron job does not have. Post those by hand.
+
+## Enabling it
+
+The Function is written but **not exported** from `functions/src/index.ts`, the
+same as `stravaSync`: `defineSecret()` on a secret that does not exist in
+Secret Manager makes firebase-tools prompt, and that prompt blocks every
+functions deploy, targeted ones included.
+
+1. Create the account and switch it to Creator (above).
+2. Create a Meta app at <https://developers.facebook.com/apps>, product
+   **Instagram → API setup with Instagram business login**, and add the
+   `instagram_business_basic` and `instagram_business_content_publish` scopes.
+3. Run the Instagram business login flow once, exchange the short-lived code
+   for a long-lived token, and note the Instagram user id.
+4. Put both into Secret Manager:
+
+   ```bash
+   firebase functions:secrets:set INSTAGRAM_USER_ID
+   firebase functions:secrets:set INSTAGRAM_ACCESS_TOKEN
+   ```
+
+5. Uncomment the `instagramJourney` export in `functions/src/index.ts`.
+6. `npm run deploy:functions`.
+
+The seeded token is only ever the first one. It rotates on refresh, and the
+live value lives in the private `journey_sync/instagram` document from then on:
+the same pattern as the Strava refresh token, and for the same reason.
+
+### If the token ever expires
+
+A long-lived token lasts 60 days and can only be refreshed while it is still
+alive. If the Function has not run for two months, no API call can recover it:
+redo step 3 and re-set the secret. The weekly-ish refresh in `currentAccessToken`
+exists to make that impossible while the schedule is running, and it logs an
+error rather than failing the run when a single refresh fails.
+
+## Posting by hand
+
+Everything the Function does not cover: stories, reels, anything that happens
+mid-walk and is worth saying the same day. Two guardrails apply to those too,
+and they are on Petr rather than on the code:
+
+- Nothing that shows tonight's lodging, and nothing posted from it while he is
+  still there. The next morning is fine.
+- No catalog photos, for the licence reason above. His own camera roll only.

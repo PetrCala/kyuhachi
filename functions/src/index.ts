@@ -18,3 +18,12 @@ export { deleteJourneyDay } from './callables/deleteJourneyDay';
 // deploy including targeted ones. To bring it back: create the three secrets
 // (docs/journey-days.md), then restore the export below.
 // export { stravaSync } from './scheduled/stravaSync';
+
+// instagramJourney is deliberately NOT exported yet, for exactly the reason
+// stravaSync is not: its defineSecret() calls make firebase-tools prompt for
+// INSTAGRAM_USER_ID / INSTAGRAM_ACCESS_TOKEN, and a prompt for a secret that
+// does not exist in Secret Manager blocks EVERY functions deploy, including
+// targeted ones. The account it posts to does not exist yet either.
+// To turn it on: create the Instagram account and its two secrets
+// (docs/instagram.md), then restore the export below and deploy.
+// export { instagramJourney } from './scheduled/instagramJourney';
