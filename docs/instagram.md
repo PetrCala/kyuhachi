@@ -32,25 +32,29 @@ nothing in this repo does it. Everything after the account exists is automated.
 
 ### Profile
 
-**Name:** `九州八十八湯 · Walking Kyushu`
+**Name:** `Pecovy Onseny · 九州八十八湯`
 
-Both halves earn their place: the kanji is what a Japanese reader searches, and
-the English is what everyone else can read. Instagram's name field is indexed
-for search; the handle is not, on its own. That is what makes a personal handle
-affordable here: `@pecovy.onseny` is Petr's name for the account rather than the
-walk's, and it outlives the walk, while the name field keeps doing the finding.
+Instagram indexes the name field; the handle is barely searchable on its own.
+So the name carries both jobs: `Pecovy Onseny` says whose account this is, and
+`九州八十八湯` is the term a Japanese reader actually types. There is no English
+search term in it by choice, which means English discovery runs through the
+captions and hashtags instead. That is the accepted cost of a name that reads
+as a person's rather than a project's.
 
 **Bio (EN + JA, inside the 150-character limit):**
 
 ```
-1,205 km on foot, 88 onsens, 61 days. Oct 2 to Dec 2 2026.
-歩いて九州八十八湯。1,205km・88湯・61日。
+I'm walking 1,205 km across Kyushu to 88 onsens.
+Oct 2 to Dec 2 2026. 61 days, on foot.
+歩いて九州八十八湯へ。1,205km・88湯・61日。
 Live map ↓
 ```
 
 Bio rules follow [brand-voice.md](brand-voice.md): the numbers do the selling,
 no adjectives, and the joke stays in the app's subtitle rather than being
-retold here.
+retold here. First person is deliberate: the account is a person walking, not a
+route with a website, and a bio written about the walk rather than by the walker
+reads as the second one.
 
 **Profile photo:** the app's mark, the vertical 九八 in Klee One, amber
 `#ffb300` on ink `#262837` (`app/assets/icon.png`). It reads at 32 px, which
