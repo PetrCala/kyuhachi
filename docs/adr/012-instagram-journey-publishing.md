@@ -5,7 +5,7 @@
 
 ## Context
 
-The walk gets a public Instagram account (`@kyuhachi.walk`), primarily a
+The walk gets a public Instagram account (`@pecovy.onseny`), primarily a
 journey log and only incidentally a channel for the app. Everything a daily
 post would say is already in Firestore: the walked track in `/journey_days`,
 the visits with Petr's own photos, ratings and notes, and the onsen catalog.

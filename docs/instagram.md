@@ -7,7 +7,7 @@ Architecture decision and the privacy reasoning: [ADR-012](adr/012-instagram-jou
 
 | | |
 |---|---|
-| Handle | `@kyuhachi.walk` |
+| Handle | `@pecovy.onseny` |
 | Type | Instagram **Professional → Creator** (Business also works; Creator is the closer fit and keeps the same API) |
 | Purpose | The walk. The app is in the bio and turns up occasionally; it is never the point. |
 | Languages | English and Japanese in every caption, English first |
@@ -36,7 +36,9 @@ nothing in this repo does it. Everything after the account exists is automated.
 
 Both halves earn their place: the kanji is what a Japanese reader searches, and
 the English is what everyone else can read. Instagram's name field is indexed
-for search; the handle is not, on its own.
+for search; the handle is not, on its own. That is what makes a personal handle
+affordable here: `@pecovy.onseny` is Petr's name for the account rather than the
+walk's, and it outlives the walk, while the name field keeps doing the finding.
 
 **Bio (EN + JA, inside the 150-character limit):**
 
