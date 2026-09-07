@@ -34,11 +34,24 @@ export interface JourneyDayDocument {
   /** The walked day in JST, "YYYY-MM-DD". Mirrors the document id. */
   date: string;
   /**
-   * Ordered, simplified, privacy-trimmed track points (same shape as
-   * RouteDocument.points). Multiple recordings on one day are concatenated in
-   * start-time order.
+   * The ordered, simplified, privacy-trimmed track as a Google-encoded
+   * polyline at five decimal places (~1.1 m). Multiple recordings on one day
+   * are concatenated in start-time order before encoding.
+   *
+   * Not an array of {lat, lng}, which is what this was until the walk made the
+   * cost obvious: Firestore spends ~24 bytes per point on a map of two doubles
+   * and the web SDK wraps each one again in protobuf-JSON, so a single ~1000
+   * point day reached the browser as ~95 KB. Every walked day is fetched on
+   * every page load, so that was heading for megabytes per visit. The same
+   * track encodes to ~2.6 KB, because consecutive points on a walk are metres
+   * apart and a delta that small costs two characters.
+   *
+   * Encoder: `encodePolyline` in functions/src/util/track.ts, the only writer.
+   * Decoder: website/src/lib/polyline.ts, the only reader (the app reads this
+   * collection for distances and dates, never for the track).
    */
-  points: { lat: number; lng: number }[];
+  polyline: string;
+  /** Points encoded in `polyline`. Kept as a field so a reader can size a day without decoding. */
   pointCount: number;
   /** Bounding box of the trimmed track, for map fitting. */
   bounds: { minLat: number; minLng: number; maxLat: number; maxLng: number };

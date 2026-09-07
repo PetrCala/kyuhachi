@@ -1,5 +1,5 @@
-import type { JourneyDayDocument, VisitDocument } from '@kyuhachi/shared';
-import type { OnsenWithId } from '../types';
+import type { VisitDocument } from '@kyuhachi/shared';
+import type { OnsenWithId, WalkedDay } from '../types';
 
 /**
  * The handful of numbers the site puts under the layer panel. All of it is
@@ -40,7 +40,7 @@ export interface WalkStats {
  * data has not arrived.
  */
 export function computeWalkStats(input: {
-  walkedDays: JourneyDayDocument[] | null;
+  walkedDays: WalkedDay[] | null;
   visits: Map<string, VisitDocument>;
   onsens: Map<string, OnsenWithId> | null;
   eligibleOnsenIds: string[] | null;

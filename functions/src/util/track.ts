@@ -26,7 +26,8 @@ export interface Bounds {
  */
 export interface JourneyDayData {
   date: string;
-  points: LatLng[];
+  /** The track as an encoded polyline; see `encodePolyline`. */
+  polyline: string;
   pointCount: number;
   bounds: Bounds;
   distanceMeters: number;
@@ -67,10 +68,27 @@ export const TRIM_RADIUS_METERS = 500;
 const MAX_POINTS = 1500;
 /** ~1 m in degrees; drops GPS jitter / collinear points without visibly changing the track. */
 const BASE_TOLERANCE = 1e-5;
-/** Coordinate precision (~0.1 m); trims document size. */
-const COORD_DECIMALS = 6;
+/**
+ * Decimal places kept on a stored coordinate, ~1.1 m. Must equal
+ * POLYLINE_PRECISION: the polyline is what gets stored, so rounding to more
+ * places than it encodes would leave `bounds` describing a track slightly
+ * different from the one the site draws.
+ *
+ * It was six (~0.1 m) while points were stored as raw numbers. That was always
+ * spurious next to a track simplified at a ~1 m tolerance and recorded by a
+ * consumer GPS, and it is far below the 500 m privacy trim, so nothing about
+ * the trimming invariant depends on it.
+ */
+const COORD_DECIMALS = 5;
 const ROUND_FACTOR = 10 ** COORD_DECIMALS;
 const EARTH_RADIUS_M = 6_371_000;
+
+/**
+ * Coordinate precision of the encoded polyline, in decimal places.
+ * Keep equal to COORD_DECIMALS, and to POLYLINE_PRECISION in the website's
+ * decoder (website/src/lib/polyline.ts).
+ */
+export const POLYLINE_PRECISION = 5;
 
 export function haversineMeters(a: LatLng, b: LatLng): number {
   const toRad = Math.PI / 180;
@@ -180,7 +198,7 @@ export function buildJourneyDay(
   return {
     data: {
       date,
-      points: simplified,
+      polyline: encodePolyline(simplified),
       pointCount: simplified.length,
       bounds: boundsOf(simplified),
       distanceMeters: Math.round(distanceMeters),
@@ -242,6 +260,84 @@ function decimate(points: LatLng[], max: number): LatLng[] {
   const step = (points.length - 1) / (max - 1);
   for (let i = 0; i < max; i++) out.push(points[Math.round(i * step)]);
   return out;
+}
+
+/**
+ * Google's encoded-polyline format: each coordinate is stored as a varint delta
+ * from the previous one, in printable ASCII.
+ *
+ * Why the track is stored this way rather than as an array of {lat, lng}. A day
+ * is around a thousand points, and Firestore spends roughly 24 bytes on each
+ * one as a map of two doubles, then wraps every one of them again in the
+ * protobuf-JSON the web SDK reads: one day went over the wire as ~95 KB. The
+ * same track encodes to ~2.6 KB, because consecutive points on a walk are
+ * metres apart and a delta that small is two characters. Every walked day is
+ * fetched on every page load, so at ~95 KB each the site was heading for
+ * megabytes per visit by the end of the walk.
+ *
+ * Lossless at the precision it is given: the points are already rounded to
+ * COORD_DECIMALS before they get here.
+ */
+export function encodePolyline(points: LatLng[]): string {
+  const factor = 10 ** POLYLINE_PRECISION;
+  let previousLat = 0;
+  let previousLng = 0;
+  let out = '';
+  for (const point of points) {
+    const lat = Math.round(point.lat * factor);
+    const lng = Math.round(point.lng * factor);
+    out += encodeValue(lat - previousLat) + encodeValue(lng - previousLng);
+    previousLat = lat;
+    previousLng = lng;
+  }
+  return out;
+}
+
+/**
+ * Inverse of `encodePolyline`. Not used in the publish path; it exists so the
+ * round trip is testable here, and so the migration script can read a legacy
+ * document's points back out. The website carries its own copy.
+ */
+export function decodePolyline(encoded: string): LatLng[] {
+  const factor = 10 ** POLYLINE_PRECISION;
+  const points: LatLng[] = [];
+  let index = 0;
+  let lat = 0;
+  let lng = 0;
+  while (index < encoded.length) {
+    let shift = 0;
+    let result = 0;
+    let byte: number;
+    do {
+      byte = encoded.charCodeAt(index++) - 63;
+      result |= (byte & 0x1f) << shift;
+      shift += 5;
+    } while (byte >= 0x20);
+    lat += result & 1 ? ~(result >> 1) : result >> 1;
+
+    shift = 0;
+    result = 0;
+    do {
+      byte = encoded.charCodeAt(index++) - 63;
+      result |= (byte & 0x1f) << shift;
+      shift += 5;
+    } while (byte >= 0x20);
+    lng += result & 1 ? ~(result >> 1) : result >> 1;
+
+    points.push({ lat: lat / factor, lng: lng / factor });
+  }
+  return points;
+}
+
+/** One signed varint, zig-zagged then emitted five bits at a time. */
+function encodeValue(value: number): string {
+  let v = value < 0 ? ~(value << 1) : value << 1;
+  let out = '';
+  while (v >= 0x20) {
+    out += String.fromCharCode((0x20 | (v & 0x1f)) + 63);
+    v >>= 5;
+  }
+  return out + String.fromCharCode(v + 63);
 }
 
 function roundPoint(p: LatLng): LatLng {

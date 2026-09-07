@@ -1,4 +1,4 @@
-import type { JourneyDayDocument, RouteDocument } from '@kyuhachi/shared';
+import type { RouteDocument } from '@kyuhachi/shared';
 import maplibregl from 'maplibre-gl';
 import type { GeoJSONSource } from 'maplibre-gl';
 import { useEffect, useRef, useState } from 'react';
@@ -10,7 +10,7 @@ import {
 } from '../config';
 import { formatJstDay } from '../lib/format-date';
 import { MAP_COLORS } from '../lib/map-theme';
-import type { LayerVisibility, OnsenWithId } from '../types';
+import type { LayerVisibility, OnsenWithId, WalkedDay } from '../types';
 
 interface Props {
   /** Onsens Petr has visited (already joined against the catalog). */
@@ -20,7 +20,7 @@ interface Props {
   /** Eligible, unvisited onsens near the planned route. */
   plannedOnsens: OnsenWithId[];
   /** One privacy-trimmed track per walked day, oldest first. */
-  walkedDays: JourneyDayDocument[];
+  walkedDays: WalkedDay[];
   plannedRoute: RouteDocument | null;
   layers: LayerVisibility;
   selectedOnsenId: string | null;
@@ -75,7 +75,7 @@ function onsenFeatures(onsens: OnsenWithId[]): GeoJSON.FeatureCollection {
   };
 }
 
-function formatDayLabel(day: JourneyDayDocument): string {
+function formatDayLabel(day: WalkedDay): string {
   const date = formatJstDay(day.date);
   const km = (day.distanceMeters / 1000).toFixed(1);
   // Round to whole minutes before splitting, or a day of 7199 seconds reads
@@ -87,7 +87,7 @@ function formatDayLabel(day: JourneyDayDocument): string {
   return `${date} · ${km} km · ${duration}`;
 }
 
-function walkedFeatures(days: JourneyDayDocument[]): GeoJSON.FeatureCollection {
+function walkedFeatures(days: WalkedDay[]): GeoJSON.FeatureCollection {
   return {
     type: 'FeatureCollection',
     features: days
@@ -108,7 +108,7 @@ function walkedFeatures(days: JourneyDayDocument[]): GeoJSON.FeatureCollection {
  * stretches nothing recorded (rest stops, trimmed zones, lost GPS). Styled
  * unmistakably differently from the walked line.
  */
-function gapFeatures(days: JourneyDayDocument[]): GeoJSON.FeatureCollection {
+function gapFeatures(days: WalkedDay[]): GeoJSON.FeatureCollection {
   const features: GeoJSON.Feature[] = [];
   const walked = days.filter((day) => day.points.length >= 2);
   for (let i = 1; i < walked.length; i++) {
