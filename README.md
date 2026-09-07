@@ -103,6 +103,8 @@ Rules tests run against the Firebase Emulator Suite from `firebase/`.
 - [docs/journey-website.md](docs/journey-website.md) for the public journey site
   and [docs/journey-days.md](docs/journey-days.md) for how a walked day gets
   published to it.
+- [docs/instagram.md](docs/instagram.md) for the walk's Instagram account and the
+  Function that posts a recap to it each morning.
 - [docs/app-store-listing.md](docs/app-store-listing.md) and
   [docs/app-store-screenshots.md](docs/app-store-screenshots.md) for the store
   listing copy and the screenshot plan.
