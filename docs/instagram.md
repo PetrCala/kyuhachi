@@ -208,6 +208,25 @@ redo step 3 and re-set the secret. The weekly-ish refresh in `currentAccessToken
 exists to make that impossible while the schedule is running, and it logs an
 error rather than failing the run when a single refresh fails.
 
+## Story cards
+
+`scripts/render-story-cards.py` renders 1080x1920 story cards in the app's ink
+and amber from the copy in `scripts/story-cards.json`:
+
+```bash
+python3 scripts/render-story-cards.py          # -> output/story-cards/
+```
+
+Write the words in the JSON and re-run. The layout, palette, type and the
+Instagram safe area live in the script, so a card cannot come out off-brand or
+with its text under the story UI, and the headline auto-sizes so a longer line
+never overflows. Cards render in file order and are numbered accordingly, so
+the phone's photo picker offers them in posting order.
+
+Rendering goes through headless Chrome rather than PIL (which
+`render-brand-assets.py` uses) because every card is a bilingual paragraph, and
+PIL cannot line-break mixed CJK and Latin text.
+
 ## Posting by hand
 
 This is the whole workflow now, not the leftovers. Two guardrails carry over
