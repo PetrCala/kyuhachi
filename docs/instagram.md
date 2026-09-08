@@ -153,8 +153,11 @@ functions deploy, targeted ones included.
    Login path: no redirect URI, no OAuth implementation, no Facebook Page.
    The dashboard's token is short-lived (about an hour), so it has to be
    exchanged before it is worth storing, which is what the next step does.
-4. Verify it and turn it into a 60-day token, with the app secret from
-   **App settings → Basic**:
+4. Verify it and turn it into a 60-day token. The secret to use is the
+   **Instagram app secret**, shown next to the Instagram app ID at the top of
+   that same API setup panel, NOT the Facebook app secret under App settings →
+   Basic. The two are different values and the exchange fails with the wrong
+   one:
 
    ```bash
    IG_TOKEN=... IG_APP_SECRET=... ./scripts/verify-instagram-token.sh
