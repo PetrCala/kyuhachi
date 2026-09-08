@@ -1,0 +1,41 @@
+{
+  "_comment": "Copy for the Instagram story cards. Edit the words here, then run scripts/render-story-cards.py. Every field is optional except name and big. Use <br> in 'big' for a deliberate line break. Delete cards you do not want, add as many as you like; they render in this order.",
+  "cards": [
+    {
+      "name": "what",
+      "label": "九州八十八湯",
+      "big": "The Kyushu 88",
+      "en": "88 hot springs, across one island, on foot.",
+      "ja": "九州の温泉を88湯、歩いて巡る。"
+    },
+    {
+      "name": "challenge",
+      "label": "THE CHALLENGE",
+      "big": "Reach 88 onsens.",
+      "en": "Chosen from an official pool of about 155. Miss one and you find another; the count is what matters, not the list.",
+      "ja": "対象は約155湯、そのうち88湯に入れば達成。どの湯を選ぶかは自由。"
+    },
+    {
+      "name": "walk",
+      "label": "THE WALK",
+      "big": "1,200+ km<br>7 prefectures",
+      "en": "Every onsen on the line, reached the slow way.",
+      "ja": "徒歩で1,200km超、七県をまたぐ。"
+    },
+    {
+      "name": "rule",
+      "label": "THE RULE",
+      "big": "The whole route on foot.",
+      "en": "No trains between onsens, no buses. Just the road, and whatever the road does to you.",
+      "ja": "湯から湯へは歩きだけ。電車もバスも使わない。"
+    },
+    {
+      "name": "follow",
+      "label": "FOLLOW",
+      "big": "A live map of the walk.",
+      "en": "The route so far, the onsens reached, and my notes from each one.",
+      "ja": "歩いた道、入った湯、その記録。",
+      "url": "kyuhachi-path.web.app"
+    }
+  ]
+}
