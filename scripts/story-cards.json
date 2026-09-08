@@ -1,40 +1,47 @@
 {
-  "_comment": "Copy for the Instagram story cards. Edit the words here, then run scripts/render-story-cards.py. Every field is optional except name and big. Use <br> in 'big' for a deliberate line break. Delete cards you do not want, add as many as you like; they render in this order.",
+  "_comment": "Copy for the Instagram story cards. Edit the words here, then run scripts/render-story-cards.py. Only 'name' and 'big' are required. Use <br> in 'big' for a deliberate line break. Cards render in this order and are numbered accordingly.",
   "cards": [
     {
       "name": "what",
       "label": "九州八十八湯",
-      "big": "The Kyushu 88",
-      "en": "88 hot springs, across one island, on foot.",
-      "ja": "九州の温泉を88湯、歩いて巡る。"
+      "big": "Around 88 onsens of Kyushu",
+      "en": "From October, I am travelling around the best onsens of Kyushu, on foot.",
+      "ja": "十月から、九州の名湯を歩いて巡ります。"
     },
     {
       "name": "challenge",
       "label": "THE CHALLENGE",
-      "big": "Reach 88 onsens.",
-      "en": "Chosen from an official pool of about 155. Miss one and you find another; the count is what matters, not the list.",
-      "ja": "対象は約155湯、そのうち88湯に入れば達成。どの湯を選ぶかは自由。"
+      "big": "Catch them all, using my two feet",
+      "en": "The goal is to collect 88 stamps from a pool of 160 onsens. Where it gets interesting is a favorite personal twist of mine of travelling like in the olden days. No car, no public transport. Just my own two feet.",
+      "ja": "対象は約160湯、そのうち88湯の湯印を集めます。面白いのはここから。昔ながらの旅のやり方で、車も公共交通も使わず、自分の足だけで回ります。"
     },
     {
       "name": "walk",
       "label": "THE WALK",
       "big": "1,200+ km<br>7 prefectures",
-      "en": "Every onsen on the line, reached the slow way.",
-      "ja": "徒歩で1,200km超、七県をまたぐ。"
+      "en": "Which onsens I choose does not matter, but they have to come from all 7 prefectures of Kyushu. As such, this will be a considerable walk, taking a whole month, or perhaps more.",
+      "ja": "どの湯を選ぶかは自由。ただし九州七県すべてから集める必要があります。だからこそ、一ヶ月あるいはそれ以上の長い道のりになります。"
     },
     {
       "name": "rule",
       "label": "THE RULE",
       "big": "The whole route on foot.",
-      "en": "No trains between onsens, no buses. Just the road, and whatever the road does to you.",
-      "ja": "湯から湯へは歩きだけ。電車もバスも使わない。"
+      "en": "No trains between onsens, no buses, no car. If an onsen closes in front of my eyes, I either wait for it to open, or walk to the next one. No exceptions.",
+      "ja": "湯から湯へ、電車もバスも車も使いません。目の前で暖簾が下りたら、開くまで待つか、次の湯まで歩くか。例外はなし。"
+    },
+    {
+      "name": "tool",
+      "label": "THE TOOL",
+      "big": "Tracking this the modern way.",
+      "en": "I put together a public iOS app for tracking all visits, posting photos, and more. Every step will be counted, every onsen recorded.",
+      "ja": "訪れた湯を記録するiOSアプリを自分で作りました。写真も残せます。一歩も、一湯も、取りこぼさないように。"
     },
     {
       "name": "follow",
       "label": "FOLLOW",
       "big": "A live map of the walk.",
-      "en": "The route so far, the onsens reached, and my notes from each one.",
-      "ja": "歩いた道、入った湯、その記録。",
+      "en": "The application will propagate data live onto the site below. You can track my steps (and baths) live as I add them.",
+      "ja": "アプリに記録すると、下のサイトにそのまま反映されます。歩いた道も、入った湯も、その場で見られます。",
       "url": "kyuhachi-path.web.app"
     }
   ]
