@@ -1,7 +1,7 @@
 # ADR-012: Instagram Journey Publishing (scheduled, delayed, photo-gated)
 
 **Date:** 2026-09-07
-**Status:** Accepted
+**Status:** Accepted, then deferred unbuilt (see the amendment below)
 
 ## Context
 
@@ -74,3 +74,36 @@ photo, a caption and a timestamp saying he is *there, now*.
 - One more private, admin-only Firestore surface (`journey_sync/instagram` and
   its `posts` subcollection). No rule matches it, so every client read is
   denied, the same as `journey_sync/strava`.
+
+## Amendment, 2026-09-08: the API path is dropped, posting is manual
+
+The publisher was never turned on, and will not be for this walk. The blocker
+was never the code: it was getting an access token at all.
+
+What happened, in order. The account was created and switched to Creator. The
+Meta app was created on the Instagram Login path with exactly
+`instagram_business_basic` and `instagram_business_content_publish`, no App
+Review requirements. Then the App Dashboard's *Add account* popup refused the
+authorization with "couldn't connect to Instagram". Two things were working
+against it and neither is fixable by trying harder:
+
+- The Instagram account was a day old and its password had been reset minutes
+  before. Instagram declines third-party authorization in that state, and
+  repeated attempts make it worse rather than better.
+- The documented workaround, assigning the Instagram Tester role, has to be
+  accepted from the Instagram side, and that screen exists only in the web
+  interface. The Instagram mobile app shows Active/Expired/Removed and no
+  invitations tab at all. Desktop instagram.com was refusing the login for the
+  same reason as the first bullet, so the workaround was unreachable.
+
+Waiting out the block would probably have worked. It was not worth it: the
+whole point of the automation was to save effort during 61 days of walking, and
+an unreliable dependency that needs a laptop to re-authorize every 60 days is a
+poor trade for one post a morning that can be typed in two minutes.
+
+So: **posting is manual for this walk.** The code stays, unexported and inert,
+because it is finished and tested and the argument for it may hold again with
+an established account. Nothing about the rest of ADR-012 is retracted. The
+delayed posting, the ban on location tags, and the own-photos-only rule were
+never really about the publisher; they are the reasons the account is safe to
+run at all, and they now apply to Petr's thumbs instead of to a cron job.
