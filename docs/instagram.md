@@ -1,7 +1,14 @@
 # Instagram
 
-The public Instagram account for the walk, and the Function that posts to it.
-Architecture decision and the privacy reasoning: [ADR-012](adr/012-instagram-journey-publishing.md).
+The public Instagram account for the walk. Architecture decision and the
+privacy reasoning: [ADR-012](adr/012-instagram-journey-publishing.md).
+
+> **Posting is manual.** The recap Function in this repo is written, tested and
+> deliberately switched off; the API path it needs was abandoned on 2026-09-08
+> (ADR-012 amendment). Everything about the account below still applies, and
+> the rules under [Posting by hand](#posting-by-hand) are the ones that matter
+> day to day. The publisher is documented from "The publisher" onward as a
+> record of what exists and what it would take to turn on.
 
 ## The account
 
@@ -15,7 +22,8 @@ Architecture decision and the privacy reasoning: [ADR-012](adr/012-instagram-jou
 
 The account is created by hand, on the phone, once. There is no API for
 creating an Instagram account and automating signup breaks Meta's terms, so
-nothing in this repo does it. Everything after the account exists is automated.
+nothing in this repo does it. As it turned out, everything after that is by
+hand too.
 
 ### Creating it (one-time, ~10 minutes)
 
@@ -70,6 +78,10 @@ almost nothing else in the project does.
 | アプリ / App | Kyuhachi: what it does, TestFlight or App Store link |
 
 ## The publisher
+
+**Not in use.** Kept because it is finished and because the caption rules below
+are the ones to follow when writing a post by hand. To understand why it is off
+rather than deleted, read the ADR-012 amendment.
 
 `functions/src/scheduled/instagramJourney.ts`, a scheduled Function that turns
 the data behind the journey website into one post a morning.
@@ -136,12 +148,17 @@ carousel when there is more than one.
   but a story is worth posting when something happens, which is a judgement a
   cron job does not have. Post those by hand.
 
-## Enabling it
+## What enabling it would take
 
-The Function is written but **not exported** from `functions/src/index.ts`, the
-same as `stravaSync`: `defineSecret()` on a secret that does not exist in
-Secret Manager makes firebase-tools prompt, and that prompt blocks every
-functions deploy, targeted ones included.
+Recorded for the day it looks worth doing again, not as a plan. Step 3 is where
+this stopped in September 2026: Instagram declined the authorization for a
+days-old account, and the tester-invite workaround needs an instagram.com web
+session, which was also being refused. None of it is a code problem.
+
+The Function is **not exported** from `functions/src/index.ts`, the same as
+`stravaSync`: `defineSecret()` on a secret that does not exist in Secret
+Manager makes firebase-tools prompt, and that prompt blocks every functions
+deploy, targeted ones included. That is what keeps it inert and harmless.
 
 1. Create the account and switch it to Creator (above).
 2. Create a Meta app at <https://developers.facebook.com/apps>, product
@@ -193,9 +210,9 @@ error rather than failing the run when a single refresh fails.
 
 ## Posting by hand
 
-Everything the Function does not cover: stories, reels, anything that happens
-mid-walk and is worth saying the same day. Two guardrails apply to those too,
-and they are on Petr rather than on the code:
+This is the whole workflow now, not the leftovers. Two guardrails carry over
+from the publisher's design, and with nothing enforcing them in code they are
+entirely on Petr:
 
 - Nothing that shows tonight's lodging, and nothing posted from it while he is
   still there. The next morning is fine.
