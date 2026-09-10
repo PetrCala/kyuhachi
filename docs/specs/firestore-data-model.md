@@ -243,7 +243,7 @@ A single visit record within a challenge.
 
 | Field | Type | Notes |
 | --- | --- | --- |
-| `visitedAt` | `Timestamp` | When the user visited (user-reported) |
+| `visitedAt` | `Timestamp` | When the user visited: the device clock at first save, so an offline visit keeps its real date |
 | `notes` | `string \| null` | Free text notes |
 | `photoUrl` | `string \| null` | Firebase Storage URL; see Storage model below |
 | `structuredData` | `VisitStructuredData` | See below |

@@ -22,6 +22,7 @@ import {
   updateDoc,
   deleteDoc,
   serverTimestamp,
+  Timestamp,
   type FirebaseFirestoreTypes,
 } from '@react-native-firebase/firestore';
 import {
@@ -216,8 +217,11 @@ export default function EditVisit() {
     const existingUrls = photos.flatMap((p) => (p.kind === 'existing' ? [p.url] : []));
     if (isCreate) {
       // First save records the visit: the only place a visit is created.
+      // visitedAt takes the device clock, not serverTimestamp(): a queued
+      // offline write gets its server time when it syncs, which could date a
+      // visit days after it happened.
       setDoc(docRef, {
-        visitedAt: serverTimestamp(),
+        visitedAt: Timestamp.now(),
         notes: notes.trim() || null,
         photoUrls: existingUrls,
         structuredData,
