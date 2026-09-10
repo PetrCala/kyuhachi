@@ -17,6 +17,7 @@ import {
   getDocs,
   writeBatch,
   serverTimestamp,
+  Timestamp,
   type FirebaseFirestoreTypes,
 } from '@react-native-firebase/firestore';
 import type { ChallengeDocument, ChallengeTypeDocument, TransportMode } from '@kyuhachi/shared';
@@ -72,7 +73,7 @@ function resolveTransport(transport: MockTransport): TransportMode | null {
 /** A visit doc matching what the real "mark visited" flow writes (see onsens/[id].tsx). */
 function buildMockVisit(transport: MockTransport) {
   return {
-    visitedAt: serverTimestamp(),
+    visitedAt: Timestamp.now(),
     notes: null,
     photoUrls: [],
     structuredData: {
