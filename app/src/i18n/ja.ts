@@ -269,6 +269,8 @@ const ja: Record<keyof typeof en, string> = {
   'visits.photo': '写真',
   'visits.photoOfCount': '写真 {{count}}枚中 {{index}}枚目',
   'visits.closePhotos': '写真を閉じる',
+  'visits.photosPending_one': '{{count}}枚の写真がアップロード待ちです',
+  'visits.photosPending_other': '{{count}}枚の写真がアップロード待ちです',
 
   // menu (settings tab)
   'menu.title': 'メニュー',
@@ -732,9 +734,10 @@ const ja: Record<keyof typeof en, string> = {
   'onsenDetail.takePhoto': '写真を撮る',
   'onsenDetail.chooseFromLibrary': 'ライブラリから選択',
   'onsenDetail.uploading': 'アップロード中...',
-  'onsenDetail.photoUploadFailedTitle': '写真をアップロードできませんでした',
-  'onsenDetail.photoUploadFailedMessage':
-    '訪問は保存されましたが、一部の写真をアップロードできませんでした。訪問を編集して再度お試しください。',
+  'onsenDetail.cameraDeniedTitle': 'カメラへのアクセスがオフです',
+  'onsenDetail.cameraDeniedMessage':
+    'この訪問の写真を撮るには、設定でKyuhachiにカメラへのアクセスを許可してください。',
+  'onsenDetail.openSettings': '設定を開く',
   'onsenDetail.cancel': 'キャンセル',
   'onsenDetail.editTitle': '訪問を編集',
   'onsenDetail.recordTitle': '訪問を記録',

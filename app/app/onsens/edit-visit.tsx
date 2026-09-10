@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Linking,
 } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -23,15 +24,7 @@ import {
   deleteDoc,
   serverTimestamp,
   Timestamp,
-  type FirebaseFirestoreTypes,
 } from '@react-native-firebase/firestore';
-import {
-  ref,
-  putFile,
-  getDownloadURL,
-  deleteObject,
-  refFromURL,
-} from '@react-native-firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 import type {
   VisitStructuredData,
@@ -53,8 +46,9 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { useOnsenCatalog } from '@/context/OnsenCatalogContext';
 import { useStampCelebration } from '@/context/StampCelebrationContext';
+import { usePhotoQueue, queuedPhotoSource, type EditorPhoto } from '@/context/PhotoQueueContext';
 import { useVisit } from '@/hooks/useVisit';
-import { db, storage } from '@/firebase';
+import { db } from '@/firebase';
 import { firebaseErrorKey } from '@/lib/firebase-errors';
 import { downscalePhoto, PHOTO_QUALITY } from '@/lib/downscale-photo';
 import { RatingStars } from '@/components/visit/RatingStars';
@@ -77,11 +71,18 @@ const SAVE_VISIBLE_MS = STAMP_PRESS_CYCLE_MS;
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 /**
- * A photo in the editor: one already stored on the visit, or one freshly picked
- * but not yet uploaded. New ones upload to Storage on Save; nothing is written
- * before that, so Cancel discards them.
+ * Where an editor photo previews from. Fresh picks sit in the picker's cache
+ * until Save hands them to the upload queue (ADR-013), so Cancel discards them;
+ * queued ones show from their local copy while they have one.
  */
-type PhotoItem = { kind: 'existing'; url: string } | { kind: 'new'; uri: string };
+function photoSource(photo: EditorPhoto): string {
+  return photo.kind === 'fresh' ? photo.uri : queuedPhotoSource(photo);
+}
+
+function photoKey(photo: EditorPhoto): string {
+  if (photo.kind === 'fresh') return `fresh:${photo.uri}`;
+  return photo.kind === 'local' || photo.file ? `file:${photo.file}` : photo.url;
+}
 
 /** A labelled form row. */
 function Field({ label, children }: { label: string; children: ReactNode }) {
@@ -100,6 +101,7 @@ export default function EditVisit() {
   const { id, returnTo } = useLocalSearchParams<{ id: string; returnTo?: string }>();
   const { challengeId, visit, loading } = useVisit(id);
   const { celebrateStamp } = useStampCelebration();
+  const { ready: queueReady, jobFor, savePhotos, discardVisit } = usePhotoQueue();
 
   // When the modal is opened from the record-a-visit list (returnTo='home'), a
   // successful Save or a Delete pops the whole flow (both the modal and the
@@ -115,10 +117,10 @@ export default function EditVisit() {
   // True while freshly picked photos are being scaled down. Save waits for it:
   // it writes whatever `photos` holds at the moment it runs.
   const [staging, setStaging] = useState(false);
-  // Photos are staged locally and only uploaded/written on Save; Cancel discards
-  // them. `originalPhotoUrls` remembers what the doc had so Save can delete the
-  // Storage objects for any the user removed.
-  const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  // Photos are staged locally and only queued on Save; Cancel discards them.
+  // `originalPhotoUrls` remembers the uploaded photos the editor started with,
+  // so Save can schedule any the user removed for deletion from Storage.
+  const [photos, setPhotos] = useState<EditorPhoto[]>([]);
   // The onsen's catalog fields, used only to ink the seal on the stamp-collection
   // celebration when a first visit is recorded. Served from the offline-first
   // catalog store, so it's ready by save time without a network round-trip.
@@ -141,17 +143,27 @@ export default function EditVisit() {
   // Spreading over the empty record fills any field a pre-existing doc lacks.
   useEffect(() => {
     if (visit) hadVisit.current = true;
-    if (!visit || seeded.current) return;
+    // Also waits for the photo queue: a visit whose photos are still uploading
+    // is edited from its queued list, which the doc doesn't have yet.
+    if (!visit || seeded.current || !queueReady) return;
     seeded.current = true;
     setNotes(visit.notes ?? '');
     setDetails({ ...EMPTY_VISIT_STRUCTURED_DATA, ...visit.structuredData });
     setDurationText(
       visit.structuredData?.duration != null ? String(visit.structuredData.duration) : ''
     );
-    const urls = visit.photoUrls ?? [];
-    originalPhotoUrls.current = urls;
-    setPhotos(urls.map((url) => ({ kind: 'existing', url })));
-  }, [visit]);
+    const job = challengeId && id ? jobFor(challengeId, id) : null;
+    const seed = job
+      ? job.photos
+      : (visit.photoUrls ?? []).map((url): EditorPhoto => ({ kind: 'uploaded', url }));
+    originalPhotoUrls.current = [
+      ...new Set([
+        ...(visit.photoUrls ?? []),
+        ...seed.flatMap((p) => (p.kind === 'uploaded' ? [p.url] : [])),
+      ]),
+    ];
+    setPhotos(seed);
+  }, [visit, queueReady, challengeId, id, jobFor]);
 
   // Leave the editor when there's nothing left to edit: no onsen id (the modal
   // was re-presented by navigation state restoration on reload), or the visit we
@@ -190,7 +202,7 @@ export default function EditVisit() {
 
   async function handleSaveVisit() {
     const docRef = visitRef();
-    if (!docRef) return;
+    if (!docRef || !challengeId) return;
     // Guard against a late snapshot re-seeding the form mid-save: a create makes
     // the visit non-null before we navigate away.
     seeded.current = true;
@@ -204,8 +216,8 @@ export default function EditVisit() {
     // Photos already on the visit are uploaded; freshly-picked ones aren't. The
     // doc is written now with just the uploaded URLs so the save, and the stamp,
     // lands instantly off Firestore's offline cache, with no Storage round-trip
-    // on the critical path. Any new photos upload in the background (see
-    // finalizeVisitPhotos) and patch onto the doc once they finish.
+    // on the critical path. Any new photos go to the upload queue (ADR-013),
+    // which patches the full list onto the doc once they are all uploaded.
     //
     // The write is deliberately NOT awaited: Firestore applies it to the local
     // cache at once and syncs when connectivity allows, but the returned promise
@@ -214,7 +226,7 @@ export default function EditVisit() {
     // exactly where visits get recorded. Snapshots deliver the pending write to
     // every screen immediately; a genuine rejection (e.g. rules) surfaces through
     // the alert.
-    const existingUrls = photos.flatMap((p) => (p.kind === 'existing' ? [p.url] : []));
+    const existingUrls = photos.flatMap((p) => (p.kind === 'uploaded' ? [p.url] : []));
     if (isCreate) {
       // First save records the visit: the only place a visit is created.
       // visitedAt takes the device clock, not serverTimestamp(): a queued
@@ -236,10 +248,25 @@ export default function EditVisit() {
         updatedAt: serverTimestamp(),
       }).catch((error) => Alert.alert(t('common.errorTitle'), t(firebaseErrorKey(error))));
     }
+    // Hand the photos to the upload queue. Local work only (copying fresh
+    // picks somewhere iOS won't purge), so it finishes while the loader plays;
+    // the uploads themselves happen whenever there's signal.
+    const kept = new Set(existingUrls);
+    const photosQueued = savePhotos({
+      challengeId,
+      onsenId: id,
+      photos,
+      removedUrls: originalPhotoUrls.current.filter((url) => !kept.has(url)),
+    });
     // Hold the saving overlay for one full stamp-press cycle (see
     // SAVE_VISIBLE_MS): the loader's press-lift-reveal is the save's visible
     // beat, and this timer is its only pacer.
     await delay(SAVE_VISIBLE_MS);
+    try {
+      await photosQueued;
+    } catch (error) {
+      Alert.alert(t('common.errorTitle'), t(firebaseErrorKey(error)));
+    }
 
     // A brand-new visit earns a stamp: celebrate it now that the loader has played
     // out. The reveal waits for this editor to dismiss (see StampCelebrationContext),
@@ -255,53 +282,19 @@ export default function EditVisit() {
       });
     }
 
-    // The visit is saved; leave the editor rather than holding the user on a
-    // disabled button while photos upload. The upload runs detached from this
-    // now-unmounting screen, then patches the doc and sweeps removed files.
-    void finalizeVisitPhotos(docRef, existingUrls);
+    // The visit is saved and its photos queued; leave the editor rather than
+    // holding the user on a disabled button while photos upload.
     if (dismissToHome) router.dismissAll();
     else router.back();
-  }
-
-  // Finishes the photo side of a save after the editor has navigated away: uploads
-  // any freshly-picked photos, writes the final ordered photo list, then drops the
-  // Storage objects for any removed originals. Runs detached from the (unmounting)
-  // screen, so it never touches React state; a failure surfaces as a single alert
-  // and the visit keeps whatever photos did upload. With no new photos the
-  // synchronous save already wrote the URLs, leaving only the removed-file sweep.
-  async function finalizeVisitPhotos(
-    docRef: FirebaseFirestoreTypes.DocumentReference,
-    existingUrls: string[]
-  ) {
-    try {
-      let finalUrls = existingUrls;
-      if (photos.some((p) => p.kind === 'new')) {
-        const urls: string[] = [];
-        for (let i = 0; i < photos.length; i++) {
-          const photo = photos[i];
-          urls.push(photo.kind === 'existing' ? photo.url : await uploadPhotoFile(photo.uri, i));
-        }
-        finalUrls = urls;
-        await updateDoc(docRef, { photoUrls: finalUrls, updatedAt: serverTimestamp() });
-      }
-      // Best-effort: drop the Storage objects for any pre-existing photo the user
-      // removed. (onVisitDeleted sweeps by prefix if the whole visit is deleted.)
-      const kept = new Set(finalUrls);
-      for (const url of originalPhotoUrls.current) {
-        if (!kept.has(url)) deleteObject(refFromURL(storage, url)).catch(() => {});
-      }
-    } catch {
-      Alert.alert(
-        t('onsenDetail.photoUploadFailedTitle'),
-        t('onsenDetail.photoUploadFailedMessage')
-      );
-    }
   }
 
   function handleRemoveVisit() {
     const docRef = visitRef();
     if (!docRef) return;
     setRemoving(true);
+    // Photos still waiting to upload go with it: there's nothing left to
+    // attach them to. (onVisitDeleted sweeps the ones already in Storage.)
+    if (challengeId) discardVisit(challengeId, id);
     // Not awaited, same rationale as the save: the delete applies to the local
     // cache instantly: the visit subscription drops to null, which dismisses
     // the modal via the effect above, while the promise resolves only on the
@@ -325,16 +318,6 @@ export default function EditVisit() {
     ]);
   }
 
-  // Uploads one freshly-picked photo to Storage and returns its download URL. The
-  // index keeps names distinct when several upload in the same Save. User /
-  // challenge / id are present here: the caller checked visitRef() first.
-  async function uploadPhotoFile(uri: string, index: number): Promise<string> {
-    const name = `photo_${Date.now()}_${index}.jpg`;
-    const photoRef = ref(storage, `visits/${user!.uid}/${challengeId}_${id}/${name}`);
-    await putFile(photoRef, uri);
-    return getDownloadURL(photoRef);
-  }
-
   function removePhoto(index: number) {
     setPhotos((ps) => ps.filter((_, i) => i !== index));
   }
@@ -355,18 +338,34 @@ export default function EditVisit() {
       },
       async (buttonIndex) => {
         let result: ImagePicker.ImagePickerResult | null = null;
-        if (buttonIndex === 1) {
-          result = await ImagePicker.launchCameraAsync({
-            mediaTypes: ['images'],
-            quality: PHOTO_QUALITY,
-          });
-        } else if (buttonIndex === 2) {
-          result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ['images'],
-            quality: PHOTO_QUALITY,
-            allowsMultipleSelection: true,
-            selectionLimit: remaining,
-          });
+        try {
+          if (buttonIndex === 1) {
+            // Unlike the library picker, the camera needs permission granted
+            // up front: without it launchCameraAsync rejects, which is why
+            // "Take Photo" used to do nothing at all.
+            const permission = await ImagePicker.requestCameraPermissionsAsync();
+            if (!permission.granted) {
+              Alert.alert(t('onsenDetail.cameraDeniedTitle'), t('onsenDetail.cameraDeniedMessage'), [
+                { text: t('onsenDetail.cancel'), style: 'cancel' },
+                { text: t('onsenDetail.openSettings'), onPress: () => void Linking.openSettings() },
+              ]);
+              return;
+            }
+            result = await ImagePicker.launchCameraAsync({
+              mediaTypes: ['images'],
+              quality: PHOTO_QUALITY,
+            });
+          } else if (buttonIndex === 2) {
+            result = await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ['images'],
+              quality: PHOTO_QUALITY,
+              allowsMultipleSelection: true,
+              selectionLimit: remaining,
+            });
+          }
+        } catch (error) {
+          Alert.alert(t('common.errorTitle'), t(firebaseErrorKey(error)));
+          return;
         }
         if (!result || result.canceled) return;
         // Scaled down before they are staged, so what the strip previews is what
@@ -384,7 +383,7 @@ export default function EditVisit() {
         try {
           for (const asset of result.assets) {
             const uri = await downscalePhoto(asset.uri, asset.width, asset.height);
-            setPhotos((ps) => [...ps, { kind: 'new' as const, uri }].slice(0, MAX_PHOTOS));
+            setPhotos((ps) => [...ps, { kind: 'fresh' as const, uri }].slice(0, MAX_PHOTOS));
           }
         } finally {
           setStaging(false);
@@ -436,7 +435,7 @@ export default function EditVisit() {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
         >
-          {/* Photos (staged locally; uploaded on Save). Laid out as a
+          {/* Photos (staged locally; queued for upload on Save). Laid out as a
               horizontal strip, in the same order and the same left-to-right
               reading as the card's photo strip, so which photo is the cover is
               visible from here. */}
@@ -448,12 +447,9 @@ export default function EditVisit() {
             contentContainerStyle={styles.photoStrip}
           >
             {photos.map((photo, index) => (
-              <View
-                key={photo.kind === 'existing' ? photo.url : `new:${index}:${photo.uri}`}
-                style={styles.photoThumbWrap}
-              >
+              <View key={photoKey(photo)} style={styles.photoThumbWrap}>
                 <Image
-                  source={{ uri: photo.kind === 'existing' ? photo.url : photo.uri }}
+                  source={{ uri: photoSource(photo) }}
                   style={styles.photoThumb}
                   resizeMode="cover"
                 />

@@ -25,6 +25,7 @@ import {
 import type { ChallengeDocument, ChallengeTypeDocument } from '@kyuhachi/shared';
 import { COLLECTIONS, SUBCOLLECTIONS, effectiveEligibleIds } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
+import { usePhotoQueue } from '@/context/PhotoQueueContext';
 import { db } from '@/firebase';
 import { firebaseErrorKey } from '@/lib/firebase-errors';
 import { challengeTypeName } from '@/lib/challenge-i18n';
@@ -45,6 +46,7 @@ interface TypeInfo {
 export default function ChallengeList() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { discardChallenge } = usePhotoQueue();
   const [challenges, setChallenges] = useState<ChallengeRow[]>([]);
   const [typeInfo, setTypeInfo] = useState<Map<string, TypeInfo>>(new Map());
   const [progress, setProgress] = useState<Map<string, number>>(new Map());
@@ -236,6 +238,8 @@ export default function ChallengeList() {
       }
 
       await batch.commit();
+      // Photos still waiting to upload for its visits have nowhere to go now.
+      discardChallenge(id);
     } catch (error) {
       Alert.alert(t('challengeList.errorDelete'), t(firebaseErrorKey(error)));
     }

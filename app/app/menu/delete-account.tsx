@@ -22,6 +22,7 @@ import {
   type FirebaseAuthTypes,
 } from '@react-native-firebase/auth';
 import { useAuth } from '@/context/AuthContext';
+import { usePhotoQueue } from '@/context/PhotoQueueContext';
 import { auth } from '@/firebase';
 import { firebaseErrorKey } from '@/lib/firebase-errors';
 import { colors, spacing, typography, radii } from '@/theme';
@@ -37,6 +38,7 @@ const APPLE_CANCEL_CODE = 'ERR_REQUEST_CANCELED';
 export default function DeleteAccount() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { discardAll } = usePhotoQueue();
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -75,8 +77,9 @@ export default function DeleteAccount() {
       await deleteUser(currentUser);
       // onAuthStateChanged then fires with null and the root navigator redirects
       // to /sign-in. The onUserDeleted Cloud Function erases this user's
-      // Firestore documents and Storage photos server-side, so there is nothing
-      // left to clean up here.
+      // Firestore documents and Storage photos server-side; all that's left here
+      // is any photo still waiting on this device to upload.
+      discardAll();
     } catch (error) {
       if (
         error instanceof Error &&

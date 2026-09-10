@@ -29,6 +29,7 @@ import {
 import type { ChallengeTypeDocument, TransportMode } from '@kyuhachi/shared';
 import { COLLECTIONS, TRANSPORT_MODES } from '@kyuhachi/shared';
 import { useAuth } from '@/context/AuthContext';
+import { usePhotoQueue } from '@/context/PhotoQueueContext';
 import { db } from '@/firebase';
 import { DEV_TOOLS_ENABLED } from '@/lib/dev/flags';
 import RedirectHome from '@/components/RedirectHome';
@@ -55,6 +56,7 @@ const QUICK_ADD_COUNT = 10;
 
 export default function DevTools() {
   const { user } = useAuth();
+  const { discardAll } = usePhotoQueue();
   const [types, setTypes] = useState<TypeRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -146,6 +148,7 @@ export default function DevTools() {
           setBusy(true);
           try {
             const n = await deleteAllChallenges(user.uid);
+            discardAll();
             Alert.alert('Done', `Deleted ${n} challenge(s).`);
           } catch (error) {
             Alert.alert('Delete failed', String(error));

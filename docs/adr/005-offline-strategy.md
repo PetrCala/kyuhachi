@@ -5,7 +5,9 @@
 the onsen catalog (and its images) now additionally lives in an explicit
 versioned device-local cache, because Firestore persistence only guarantees
 offline access to data that was queried while online. User data (challenges,
-visits, routes) still works exactly as described here.
+visits, routes) still works exactly as described here. Also amended by
+[ADR-013](013-visit-photo-upload-queue.md): visit photos are recorded offline
+and upload later from a device-local queue.
 
 ## Context
 
