@@ -15,6 +15,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useVisitPhotos } from '@/context/PhotoQueueContext';
 import { useVisit } from '@/hooks/useVisit';
 import { colors, spacing, typography, radii } from '@/theme';
 
@@ -36,7 +37,9 @@ export default function VisitPhotosScreen() {
   const { width, height } = useWindowDimensions();
   const { visit, loading } = useVisit(id);
 
-  const urls = visit?.photoUrls ?? [];
+  // The same list the card showed, including photos still waiting to upload,
+  // so the tapped index lands on the tapped photo.
+  const { uris: urls } = useVisitPhotos(id, visit?.photoUrls ?? []);
   // Clamped: `index` arrives as a route param, and the visit it points into may
   // have lost photos since the card that linked here was rendered.
   const initial = Math.min(Math.max(Number(index) || 0, 0), Math.max(urls.length - 1, 0));

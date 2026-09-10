@@ -9,6 +9,7 @@ import { ActiveChallengeProvider } from '@/context/ActiveChallengeContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { FavoritesProvider } from '@/context/FavoritesContext';
 import { OnsenCatalogProvider } from '@/context/OnsenCatalogContext';
+import { PhotoQueueProvider } from '@/context/PhotoQueueContext';
 import { AreaGuideProvider } from '@/context/AreaGuideContext';
 import { PreferencesProvider } from '@/context/PreferencesContext';
 import { StampCelebrationProvider } from '@/context/StampCelebrationContext';
@@ -130,34 +131,36 @@ export default function RootLayout() {
       <AuthProvider>
         <OnsenCatalogProvider>
           <ActiveChallengeProvider>
-            <AreaGuideProvider>
-              <FavoritesProvider>
-                <PreferencesProvider>
-                  <StampCelebrationProvider>
-                    <RowActionsSheetProvider>
-                      {!splashHidden && (
-                        <SplashGate localReady={localReady} onHidden={handleSplashHidden} />
-                      )}
-                      <NavigationController />
-                      <Stack screenOptions={{ headerShown: false, headerBackButtonDisplayMode: 'minimal' }}>
-                        <Stack.Screen
-                          name="onsens/edit-visit"
-                          options={{ presentation: 'modal', headerShown: true }}
-                        />
-                        {/* Full-screen so the photo sits on black edge to edge,
-                            with the screen's own close button instead of a
-                            header, and faded in so the photo grows out of the
-                            card rather than sliding over it. */}
-                        <Stack.Screen
-                          name="onsens/photos"
-                          options={{ presentation: 'fullScreenModal', animation: 'fade' }}
-                        />
-                      </Stack>
-                    </RowActionsSheetProvider>
-                  </StampCelebrationProvider>
-                </PreferencesProvider>
-              </FavoritesProvider>
-            </AreaGuideProvider>
+            <PhotoQueueProvider>
+              <AreaGuideProvider>
+                <FavoritesProvider>
+                  <PreferencesProvider>
+                    <StampCelebrationProvider>
+                      <RowActionsSheetProvider>
+                        {!splashHidden && (
+                          <SplashGate localReady={localReady} onHidden={handleSplashHidden} />
+                        )}
+                        <NavigationController />
+                        <Stack screenOptions={{ headerShown: false, headerBackButtonDisplayMode: 'minimal' }}>
+                          <Stack.Screen
+                            name="onsens/edit-visit"
+                            options={{ presentation: 'modal', headerShown: true }}
+                          />
+                          {/* Full-screen so the photo sits on black edge to edge,
+                              with the screen's own close button instead of a
+                              header, and faded in so the photo grows out of the
+                              card rather than sliding over it. */}
+                          <Stack.Screen
+                            name="onsens/photos"
+                            options={{ presentation: 'fullScreenModal', animation: 'fade' }}
+                          />
+                        </Stack>
+                      </RowActionsSheetProvider>
+                    </StampCelebrationProvider>
+                  </PreferencesProvider>
+                </FavoritesProvider>
+              </AreaGuideProvider>
+            </PhotoQueueProvider>
           </ActiveChallengeProvider>
         </OnsenCatalogProvider>
       </AuthProvider>

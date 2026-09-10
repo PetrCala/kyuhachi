@@ -278,6 +278,8 @@ const en = {
   'visits.photo': 'Photo',
   'visits.photoOfCount': 'Photo {{index}} of {{count}}',
   'visits.closePhotos': 'Close photos',
+  'visits.photosPending_one': '{{count}} photo waiting to upload',
+  'visits.photosPending_other': '{{count}} photos waiting to upload',
 
   // menu (settings tab)
   'menu.title': 'Menu',
@@ -763,9 +765,10 @@ const en = {
   'onsenDetail.takePhoto': 'Take Photo',
   'onsenDetail.chooseFromLibrary': 'Choose from Library',
   'onsenDetail.uploading': 'Uploading...',
-  'onsenDetail.photoUploadFailedTitle': "Couldn't upload photos",
-  'onsenDetail.photoUploadFailedMessage':
-    "Your visit was saved, but some photos couldn't be uploaded. Edit the visit to try again.",
+  'onsenDetail.cameraDeniedTitle': 'Camera access is off',
+  'onsenDetail.cameraDeniedMessage':
+    'To take a photo for this visit, allow camera access for Kyuhachi in Settings.',
+  'onsenDetail.openSettings': 'Open Settings',
   'onsenDetail.cancel': 'Cancel',
   'onsenDetail.editTitle': 'Edit visit',
   'onsenDetail.recordTitle': 'Record a visit',

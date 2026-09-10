@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import type { TransportMode } from '@kyuhachi/shared';
 import OnsenIcon from '@/components/OnsenIcon';
 import { VisitPhotoStrip } from '@/components/VisitPhotoStrip';
+import { useVisitPhotos } from '@/context/PhotoQueueContext';
 import { usePreferences } from '@/context/PreferencesContext';
 import { formatVisitDate } from '@/lib/format-visit-date';
 import { onsenReading } from '@/lib/onsen-name';
@@ -52,7 +53,8 @@ export function VisitCard({
   const reading = onsenReading({ nameRomaji, nameKana, language: i18n.language, showReadings });
   const { rating, transportMode, duration, waterTemp, wouldReturn } = visit.structuredData;
 
-  const photoUrls = visit.photoUrls ?? [];
+  // Photos still uploading show from the device, with a line saying so.
+  const { uris: photoUris, pendingCount } = useVisitPhotos(item.onsenId, visit.photoUrls ?? []);
   const location = [areaName, prefecture].filter(Boolean).join(' · ');
   const dateLabel = formatVisitDate(visit.visitedAt.toDate(), new Date(), t, i18n.language);
   const visitedOn = visit.visitedAt.toDate().toLocaleDateString(i18n.language);
@@ -119,9 +121,9 @@ export function VisitCard({
         ) : null}
       </View>
 
-      {photoUrls.length > 0 ? (
+      {photoUris.length > 0 ? (
         <VisitPhotoStrip
-          urls={photoUrls}
+          urls={photoUris}
           onPressPhoto={(index) =>
             router.push({
               pathname: '/onsens/photos',
@@ -129,6 +131,19 @@ export function VisitCard({
             })
           }
         />
+      ) : null}
+
+      {pendingCount > 0 ? (
+        <View style={styles.pendingRow}>
+          <Ionicons
+            name="cloud-upload-outline"
+            size={typography.sizes.sm}
+            color={colors.textMuted}
+          />
+          <Text style={styles.pendingText}>
+            {t('visits.photosPending', { count: pendingCount })}
+          </Text>
+        </View>
       ) : null}
 
       {hasStats ? (
@@ -279,6 +294,16 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.medium,
     color: colors.actionPrimary,
+  },
+  pendingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+    marginTop: spacing[2],
+  },
+  pendingText: {
+    fontSize: typography.sizes.xs,
+    color: colors.textMuted,
   },
   chipRow: {
     flexDirection: 'row',
