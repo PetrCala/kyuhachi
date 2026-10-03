@@ -733,7 +733,8 @@ body {
   z-index: 30;
   display: grid;
   place-items: center;
-  padding: 24px;
+  --lightbox-pad: 24px;
+  padding: var(--lightbox-pad);
   background: var(--color-scrim);
   cursor: zoom-out;
 }
@@ -745,9 +746,12 @@ body {
   right: 16px;
 }
 
+/* Sized off the viewport rather than with percentages: the grid row is as tall
+   as the image, so max-height: 100% resolved against the image's own height and
+   capped nothing, and a photo taller than the screen ran off the bottom. */
 .lightbox img {
-  max-width: 100%;
-  max-height: 100%;
+  max-width: calc(100vw - 2 * var(--lightbox-pad));
+  max-height: calc(100dvh - 2 * var(--lightbox-pad));
   border-radius: var(--radius-md);
 }
 
