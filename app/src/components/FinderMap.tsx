@@ -3,8 +3,10 @@ import { View, Pressable, StyleSheet } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
+import type { EatInStatus } from '@kyuhachi/shared';
 import MapZoomControl, { MIN_ALTITUDE, MAX_ALTITUDE } from '@/components/MapZoomControl';
 import FinderMarker from '@/components/FinderMarker';
+import { eatInLabelKey } from '@/lib/eat-in';
 import { finderResultKey, type FinderResult } from '@/lib/finder';
 import type { LatLng } from '@/lib/geo';
 import { colors, spacing, radii, shadows } from '@/theme';
@@ -43,6 +45,8 @@ interface FinderMapProps {
   simulated: boolean;
   routeCoords: { latitude: number; longitude: number }[];
   selectedKey: string | null;
+  /** Results (by key) that earn an eat-in badge; shown in the pin's callout. */
+  eatInByKey: ReadonlyMap<string, EatInStatus>;
   /** Stable. Selects a result (by key) when its pin is tapped. */
   onSelect: (key: string) => void;
   expanded: boolean;
@@ -64,6 +68,7 @@ export default function FinderMap({
   simulated,
   routeCoords,
   selectedKey,
+  eatInByKey,
   onSelect,
   expanded,
   onToggleExpand,
@@ -81,14 +86,19 @@ export default function FinderMap({
 
   const markers = useMemo(
     () =>
-      results.map((r, i) => ({
-        key: finderResultKey(r),
-        index: i + 1,
-        lat: r.poi.lat,
-        lng: r.poi.lng,
-        label: r.poi.name,
-      })),
-    [results]
+      results.map((r, i) => {
+        const key = finderResultKey(r);
+        const eatIn = eatInByKey.get(key);
+        return {
+          key,
+          index: i + 1,
+          lat: r.poi.lat,
+          lng: r.poi.lng,
+          label: r.poi.name,
+          detail: eatIn ? t(eatInLabelKey(eatIn)) : undefined,
+        };
+      }),
+    [results, eatInByKey, t]
   );
 
   // Stable pin-press handler (so memoized markers don't re-render every frame):
@@ -200,6 +210,7 @@ export default function FinderMap({
             lat={m.lat}
             lng={m.lng}
             label={m.label}
+            detail={m.detail}
             selected={m.key === selectedKey}
             onPress={handleMarkerPress}
           />

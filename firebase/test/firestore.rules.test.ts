@@ -217,6 +217,32 @@ describe('area_guides', () => {
 });
 
 // ---------------------------------------------------------------------------
+// /konbini
+// ---------------------------------------------------------------------------
+
+describe('konbini', () => {
+  test('unauthenticated: read denied', async () => {
+    await assertFails(getDoc(doc(unauthDb(), 'konbini/osm-node-1')));
+  });
+
+  test('authenticated: read and list allowed', async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'konbini/osm-node-1'), { name: 'ローソン', eatIn: { status: 'yes' } });
+    });
+    await assertSucceeds(getDoc(doc(authDb('user-1'), 'konbini/osm-node-1')));
+    await assertSucceeds(getDocs(collection(authDb('user-1'), 'konbini')));
+  });
+
+  test('authenticated: write denied', async () => {
+    await assertFails(setDoc(doc(authDb('user-1'), 'konbini/osm-node-1'), { eatIn: { status: 'yes' } }));
+  });
+
+  test('authenticated: delete denied', async () => {
+    await assertFails(deleteDoc(doc(authDb('user-1'), 'konbini/osm-node-1')));
+  });
+});
+
+// ---------------------------------------------------------------------------
 // /area_guides_meta
 // ---------------------------------------------------------------------------
 

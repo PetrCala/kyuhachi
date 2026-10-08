@@ -354,6 +354,8 @@ const en = {
   'finder.mapExpand': 'Enlarge map',
   'finder.mapCollapse': 'Collapse map',
   'finder.youAreHere': 'You are here',
+  'finder.eatIn': 'Eat-in',
+  'finder.eatInLikely': 'Eat-in (likely)',
   'finder.empty': 'Nothing found. Try a longer distance in Preferences.',
   'finder.locationNeededTitle': 'Location needed',
   'finder.locationNeededBody':

@@ -78,6 +78,15 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Convenience stores along the planned route with an eat-in assessment,
+    // written by the batch job (scripts/konbini-eat-in.ts) with admin
+    // credentials, which bypass these rules. Read-only for any authenticated
+    // user: the finder decorates its live Apple Maps results with a badge.
+    match /konbini/{konbiniId} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
     // User documents and all subcollections: owner only, with one deliberate
     // exception: the journey uid's challenges, visits and routes are publicly
     // readable (see isJourneyUser above). The user DOCUMENT itself is public
