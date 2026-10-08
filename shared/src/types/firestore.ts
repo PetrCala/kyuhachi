@@ -22,6 +22,7 @@ export const COLLECTIONS = {
 	CHALLENGE_TYPES: "challenge_types",
 	USERS: "users",
 	JOURNEY_DAYS: "journey_days",
+	KONBINI: "konbini",
 } as const
 
 export const SUBCOLLECTIONS = {

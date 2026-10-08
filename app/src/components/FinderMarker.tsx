@@ -15,6 +15,8 @@ interface FinderMarkerProps {
   lng: number;
   /** Place name: the native callout title (Apple Maps data, untranslated). */
   label: string;
+  /** Optional second callout line, e.g. the eat-in badge text. */
+  detail?: string;
   /** Highlighted (enlarged, accent-coloured) when its list row is selected. */
   selected: boolean;
   /** Selects this result when the pin is tapped. Must be stable. */
@@ -28,7 +30,7 @@ interface FinderMarkerProps {
  * we pulse `tracksViewChanges` on mount and whenever the badge's look changes
  * (selection), then switch it back off so the pin stays static during pans.
  */
-function FinderMarker({ index, lat, lng, label, selected, onPress }: FinderMarkerProps) {
+function FinderMarker({ index, lat, lng, label, detail, selected, onPress }: FinderMarkerProps) {
   const handlePress = useCallback(() => onPress(index), [index, onPress]);
 
   const [tracksViewChanges, setTracksViewChanges] = useState(true);
@@ -42,6 +44,7 @@ function FinderMarker({ index, lat, lng, label, selected, onPress }: FinderMarke
     <Marker
       coordinate={{ latitude: lat, longitude: lng }}
       title={label}
+      description={detail}
       tracksViewChanges={tracksViewChanges}
       onPress={handlePress}
       anchor={{ x: 0.5, y: 0.5 }}

@@ -15,6 +15,7 @@ This document is the reference for all Firestore collections. TypeScript types i
 /area_guides/{areaId}
 /area_guides_meta/current
 /challenge_types/{typeId}
+/konbini/{konbiniId}
 /users/{userId}
 /users/{userId}/challenges/{challengeId}
 /users/{userId}/challenges/{challengeId}/visits/{onsenId}
@@ -182,6 +183,38 @@ Tier thresholds live in the `challenge_types` documents (one per transport type;
 Ranks are the official 九州八十八湯 progression and are **derived, never claimed**: the app computes the held rank from progress (highest rank whose `minVisits` *and* `minPrefectures` are both met) and stores nothing. Thresholds rise monotonically along the ladder, so prefecture diversity can gate progression independently of visit count. Like tier thresholds, ranks live in `challenge_types` (published by the data repo; see `scripts/seed-challenge-type.ts`) and must never be hardcoded in app code.
 
 **Access:** Authenticated users may read. No user may write.
+
+---
+
+## /konbini/{konbiniId}
+
+Convenience stores within the search buffer of the planned route, each with an eat-in assessment. Written exclusively by the batch job `scripts/konbini-eat-in.ts` with admin credentials; never written by the app or Functions. See `docs/konbini-eat-in.md`.
+
+The finder does not list stores from here (they still come live from Apple Maps). It reads the whole collection once and decorates live results with a badge by matching on position and chain (`app/src/lib/eat-in.ts`), because Apple results carry no stable id to join on.
+
+**Document ID:** `osm-<type>-<id>` from the OpenStreetMap element (e.g. `osm-node-123456`), so a re-run upserts and never duplicates a store.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `name` | `string` | OSM display name, Japanese, shown as-is |
+| `brand` | `string \| null` | OSM `brand` tag |
+| `lat` / `lng` | `number` | WGS84 |
+| `town` | `string \| null` | Best effort: OSM `addr:city`, else Google's locality, else the nearest onsen's area |
+| `osmId` | `string` | `"node/123"` or `"way/456"` |
+| `googlePlaceId` | `string \| null` | Set once the job has matched the store to a Google place |
+| `routeOffsetKm` | `number` | Perpendicular distance from the route as of the last run |
+| `eatIn.status` | `"yes" \| "likely" \| "unknown" \| "no"` | The app badges `yes` and `likely` only |
+| `eatIn.confidence` | `number` | 0 to 1; 0 for `unknown` |
+| `eatIn.sources` | `EatInSource[]` | `{ kind, verdict, detail }` per source consulted: `osm_tags`, `google_dine_in`, `google_reviews`, `google_photos` |
+| `eatIn.checkedAt` | `Timestamp` | Last evaluation |
+| `createdAt` / `updatedAt` | `Timestamp` | Preserved / refreshed on re-runs |
+
+**Invariants:**
+
+- Never deleted; a store that leaves the buffer keeps its document
+- `eatIn.status` is `yes` only on direct evidence with no contradicting source; photos alone reach `likely` at most
+
+**Access:** Authenticated users may read. No user may write. Admin service account may write.
 
 ---
 

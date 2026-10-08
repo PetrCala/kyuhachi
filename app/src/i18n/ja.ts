@@ -342,6 +342,8 @@ const ja: Record<keyof typeof en, string> = {
   'finder.mapExpand': '地図を拡大',
   'finder.mapCollapse': '地図を縮小',
   'finder.youAreHere': '現在地',
+  'finder.eatIn': 'イートイン',
+  'finder.eatInLikely': 'イートイン（推定）',
   'finder.empty': '見つかりませんでした。設定で距離を広げてみてください。',
   'finder.locationNeededTitle': '位置情報が必要です',
   'finder.locationNeededBody': 'ルート沿いのスポットを探すには位置情報を許可してください。',
