@@ -68,6 +68,11 @@ const en = {
   // The check icon beside this label carries the tick, so the text omits it.
   'onsenPreview.visited': 'Visited',
 
+  // copy name (the copy icon beside an onsen's name on the detail screen and the
+  // map preview sheet; `copied` is also what VoiceOver announces after a copy)
+  'copyName.copy': 'Copy name',
+  'copyName.copied': 'Copied',
+
   // onsen list
   'onsenList.title': 'Onsen List',
   'onsenList.searchPlaceholder': 'Search onsens...',

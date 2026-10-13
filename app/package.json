@@ -29,6 +29,7 @@
     "expo-apple-authentication": "^55.0.9",
     "expo-application": "~55.0.15",
     "expo-build-properties": "~55.0.10",
+    "expo-clipboard": "~55.0.9",
     "expo-constants": "~55.0.9",
     "expo-dev-client": "~55.0.18",
     "expo-document-picker": "~55.0.9",

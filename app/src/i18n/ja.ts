@@ -59,6 +59,10 @@ const ja: Record<keyof typeof en, string> = {
   'onsenPreview.close': '閉じる',
   'onsenPreview.visited': '訪問済み',
 
+  // copy name
+  'copyName.copy': '名前をコピー',
+  'copyName.copied': 'コピーしました',
+
   // onsen list
   'onsenList.title': '温泉一覧',
   'onsenList.searchPlaceholder': '温泉を検索…',

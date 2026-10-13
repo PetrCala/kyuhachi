@@ -18,6 +18,7 @@ import { OnsenInfoRow } from '@/components/OnsenInfoRow';
 import { OnsenFee } from '@/components/OnsenFee';
 import { OnsenHours } from '@/components/OnsenHours';
 import { AreaGuideRow } from '@/components/AreaGuideRow';
+import { CopyableName } from '@/components/CopyableName';
 import OnsenHeroImage from '@/components/OnsenHeroImage';
 import RecordVisitFab from '@/components/RecordVisitFab';
 import { useVisit } from '@/hooks/useVisit';
@@ -157,9 +158,7 @@ export default function OnsenDetail() {
         <OnsenHeroImage onsen={onsen} style={styles.hero} />
 
         <View style={styles.header}>
-          <Text style={styles.name} selectable>
-            {onsen.name}
-          </Text>
+          <CopyableName name={onsen.name} textStyle={styles.name} style={styles.nameRow} />
           {reading && (
             <Text style={styles.reading} selectable>
               {reading}
@@ -301,11 +300,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.separator,
   },
+  nameRow: {
+    marginBottom: spacing[1],
+  },
   name: {
     fontSize: typography.sizes.xl,
     fontWeight: typography.weights.bold,
     color: colors.textPrimary,
-    marginBottom: spacing[1],
   },
   reading: {
     fontSize: typography.sizes.md,

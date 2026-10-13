@@ -10,6 +10,7 @@ import BottomSheet, {
   BottomSheetScrollView,
 } from '@gorhom/bottom-sheet';
 import type { CachedOnsen } from '@kyuhachi/shared';
+import { CopyableName } from '@/components/CopyableName';
 import OnsenHeroImage from '@/components/OnsenHeroImage';
 import { OnsenInfoRow } from '@/components/OnsenInfoRow';
 import { OnsenFee } from '@/components/OnsenFee';
@@ -224,10 +225,10 @@ export default function OnsenPreviewSheet({
         <View style={styles.hero}>
           <OnsenHeroImage onsen={onsen} style={styles.heroImage} />
           <View style={styles.heroScrim} pointerEvents="none" />
-          <View style={styles.heroText} pointerEvents="none">
-            <Text style={styles.heroName} numberOfLines={2}>
-              {onsen.name}
-            </Text>
+          {/* box-none: the block itself stays out of the way of the sheet's
+              gestures, while the name's copy control inside it still takes taps. */}
+          <View style={styles.heroText} pointerEvents="box-none">
+            <CopyableName name={onsen.name} textStyle={styles.heroName} numberOfLines={2} inverted />
             {reading && (
               <Text style={styles.heroReading} numberOfLines={1}>
                 {reading}
