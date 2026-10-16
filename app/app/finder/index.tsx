@@ -22,11 +22,13 @@ import {
 import { Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
-import { POI_CATEGORIES, type PoiCategory } from '@kyuhachi/shared';
+import { POI_CATEGORIES, type EatInStatus, type PoiCategory } from '@kyuhachi/shared';
 import { usePreferences } from '@/context/PreferencesContext';
 import { useActiveChallengeProgress } from '@/hooks/useActiveChallengeProgress';
+import { useKonbiniEatIn } from '@/hooks/useKonbiniEatIn';
 import { useUserLocation } from '@/hooks/useUserLocation';
 import { simulatedCoordinate } from '@/lib/dev-location';
+import { eatInBadgeFor, eatInLabelKey } from '@/lib/eat-in';
 import type { LatLng } from '@/lib/geo';
 import {
   corridorTileCenters,
@@ -82,6 +84,20 @@ export default function FinderScreen() {
   const [searching, setSearching] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+
+  // Eat-in badges for convenience-store results, keyed like the list rows and
+  // the map pins so each can look its own up. Stores still come live from
+  // Apple Maps; /konbini only decorates them (see lib/eat-in.ts).
+  const konbini = useKonbiniEatIn();
+  const eatInByKey = useMemo(() => {
+    const out = new Map<string, EatInStatus>();
+    if (category !== 'convenience_store' || konbini.length === 0) return out;
+    for (const r of results) {
+      const status = eatInBadgeFor(r.poi, konbini);
+      if (status) out.set(finderResultKey(r), status);
+    }
+    return out;
+  }, [category, results, konbini]);
 
   const listRef = useRef<FlatList<FinderResult>>(null);
   const resultsRef = useRef(results);
@@ -218,6 +234,7 @@ export default function FinderScreen() {
           simulated={__DEV__}
           routeCoords={routeCoords}
           selectedKey={selectedKey}
+          eatInByKey={eatInByKey}
           onSelect={handleSelectFromMap}
           expanded={expanded}
           onToggleExpand={handleToggleExpand}
@@ -233,6 +250,7 @@ export default function FinderScreen() {
         hidden={expanded}
         listRef={listRef}
         selectedKey={selectedKey}
+        eatInByKey={eatInByKey}
         onSelectRow={handleSelectRow}
         onScrollToIndexFailed={handleScrollToIndexFailed}
       />
@@ -249,6 +267,7 @@ function FinderBody({
   hidden,
   listRef,
   selectedKey,
+  eatInByKey,
   onSelectRow,
   onScrollToIndexFailed,
 }: {
@@ -260,10 +279,14 @@ function FinderBody({
   hidden: boolean;
   listRef: RefObject<FlatList<FinderResult> | null>;
   selectedKey: string | null;
+  eatInByKey: ReadonlyMap<string, EatInStatus>;
   onSelectRow: (key: string) => void;
   onScrollToIndexFailed: (info: { index: number; averageItemLength: number }) => void;
 }) {
   const { t } = useTranslation();
+  // Rows re-render on a selection or badge change; keep the trigger stable
+  // otherwise so the list is not told its rows changed on every parent render.
+  const extraData = useMemo(() => ({ selectedKey, eatInByKey }), [selectedKey, eatInByKey]);
 
   let content: ReactNode;
   if (!available) {
@@ -302,11 +325,12 @@ function FinderBody({
               result={item}
               category={category}
               selected={key === selectedKey}
+              eatIn={eatInByKey.get(key) ?? null}
               onSelect={() => onSelectRow(key)}
             />
           );
         }}
-        extraData={selectedKey}
+        extraData={extraData}
         ItemSeparatorComponent={Separator}
         onScrollToIndexFailed={onScrollToIndexFailed}
         contentContainerStyle={results.length === 0 ? styles.emptyContainer : undefined}
@@ -352,11 +376,14 @@ function ResultRow({
   result,
   category,
   selected,
+  eatIn,
   onSelect,
 }: {
   result: FinderResult;
   category: PoiCategory;
   selected: boolean;
+  /** Eat-in status worth a badge, or null for no badge. */
+  eatIn: EatInStatus | null;
   onSelect: () => void;
 }) {
   const { t } = useTranslation();
@@ -381,9 +408,16 @@ function ResultRow({
         style={styles.rowIcon}
       />
       <View style={styles.rowText}>
-        <Text style={styles.rowName} numberOfLines={1}>
-          {poi.name}
-        </Text>
+        <View style={styles.rowTitle}>
+          <Text style={styles.rowName} numberOfLines={1}>
+            {poi.name}
+          </Text>
+          {eatIn && (
+            <View style={styles.eatInBadge}>
+              <Text style={styles.eatInBadgeText}>{t(eatInLabelKey(eatIn))}</Text>
+            </View>
+          )}
+        </View>
         <Text style={styles.rowSubtitle}>{subtitle}</Text>
       </View>
       <Pressable
@@ -485,10 +519,27 @@ const styles = StyleSheet.create({
   rowText: {
     flex: 1,
   },
+  rowTitle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
+  },
   rowName: {
+    flexShrink: 1,
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.medium,
     color: colors.textPrimary,
+  },
+  eatInBadge: {
+    paddingHorizontal: spacing[2],
+    paddingVertical: spacing[1],
+    borderRadius: radii.full,
+    backgroundColor: colors.backgroundSecondary,
+  },
+  eatInBadgeText: {
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.semibold,
+    color: colors.textSecondary,
   },
   rowSubtitle: {
     fontSize: typography.sizes.sm,

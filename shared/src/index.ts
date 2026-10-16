@@ -48,6 +48,16 @@ export type { PoiCategory, Poi } from './types/finder';
 export { POI_CATEGORIES } from './types/finder';
 
 export type {
+  EatInStatus,
+  EatInSourceKind,
+  EatInSource,
+  EatInAssessment,
+  KonbiniDocument,
+} from './types/konbini';
+
+export { EAT_IN_STATUSES, showsEatInBadge, konbiniBrandKey } from './types/konbini';
+
+export type {
   AreaGuideSectionKind,
   AreaGuideSection,
   AreaGuideDocument,

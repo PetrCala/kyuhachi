@@ -11,6 +11,8 @@ _archive/data/cache/
 # Local files
 local/
 output/
+# Raw API responses and verdicts cached by scripts/konbini-eat-in.ts between runs
+.cache/
 **-firebase-adminsdk-*.json
 
 # OS
